@@ -73,8 +73,23 @@ export type BevelLimits = {
  */
 export function maxBevelForSector(sector: Sector, limits: BevelLimits): number {
   const radial = limits.outerR - limits.innerR;
-  const arcLen = limits.innerR * (sector.a1 - sector.a0);
-  const gapArc = limits.innerR * limits.gapAngle;
+
+  /*
+    Radio de referencia para las medidas angulares.
+
+    En una TARTA `innerR` es 0, y tanto el arco como el hueco se miden
+    multiplicando por él: los dos daban 0 y el bevel desaparecía por completo.
+    Se veía a simple vista — la tarta salía con aristas vivas.
+
+    El suelo del 12% del radio exterior es una decisión estética: la punta de un
+    sector de tarta es degenerada por definición (converge en un punto), y son
+    unos pocos píxeles junto al centro. Medir ahí en vez de en la punta da un
+    canto correcto en el 95% de la pieza a cambio de un bevel ligeramente
+    optimista en la punta, que además queda tapada por los sectores vecinos.
+  */
+  const referenceR = Math.max(limits.innerR, limits.outerR * 0.12);
+  const arcLen = referenceR * (sector.a1 - sector.a0);
+  const gapArc = referenceR * limits.gapAngle;
 
   return Math.max(
     0,
@@ -132,17 +147,51 @@ export function curveSegmentsFor(sector: Sector, quality = 1): number {
  * solución es suavizar todo y luego devolver a las tapas su normal exacta: son
  * los vértices que están justo en y=0 y en y=depth.
  */
-function smoothCurvedSurfaces(geometry: BufferGeometry, depth: number): BufferGeometry {
+function smoothCurvedSurfaces(
+  geometry: BufferGeometry,
+  depth: number,
+  innerR: number,
+  outerR: number,
+): BufferGeometry {
   const smooth = toCreasedNormals(geometry, MathUtils.degToRad(60));
 
   const position = smooth.attributes.position;
   const normal = smooth.attributes.normal;
-  const epsilon = 1e-4;
+  const flat = 1e-4;
+  const wall = 2e-3;
 
   for (let i = 0; i < position.count; i += 1) {
+    const x = position.getX(i);
     const y = position.getY(i);
-    if (Math.abs(y - depth) < epsilon) normal.setXYZ(i, 0, 1, 0);
-    else if (Math.abs(y) < epsilon) normal.setXYZ(i, 0, -1, 0);
+    const z = position.getZ(i);
+
+    // Tapas: normal exacta hacia arriba o hacia abajo.
+    if (Math.abs(y - depth) < flat) {
+      normal.setXYZ(i, 0, 1, 0);
+      continue;
+    }
+    if (Math.abs(y) < flat) {
+      normal.setXYZ(i, 0, -1, 0);
+      continue;
+    }
+
+    /*
+      Paredes: la normal de un cilindro ES la radial, no hay nada que promediar.
+      Dejar que toCreasedNormals la calcule produce estrías verticales en cada
+      división del arco, porque interpola entre triángulos de un cilindro que en
+      realidad es un polígono. Aquí se pone el valor exacto.
+
+      También cubre la unión pared–bevel: ahí la superficie del bevel es tangente
+      al cilindro, así que su normal es radial igualmente.
+    */
+    const r = Math.hypot(x, z);
+    if (r < 1e-6) continue;
+
+    if (Math.abs(r - outerR) < wall) {
+      normal.setXYZ(i, x / r, 0, z / r);
+    } else if (innerR > 1e-6 && Math.abs(r - innerR) < wall) {
+      normal.setXYZ(i, -x / r, 0, -z / r);
+    }
   }
   normal.needsUpdate = true;
 
@@ -232,7 +281,7 @@ export function sectorGeometry({
   geometry.rotateX(-Math.PI / 2);
   geometry.translate(0, depth / 2, 0);
 
-  const smooth = smoothCurvedSurfaces(geometry, depth);
+  const smooth = smoothCurvedSurfaces(geometry, depth, innerR, outerR);
   geometry.dispose();
   return smooth;
 }

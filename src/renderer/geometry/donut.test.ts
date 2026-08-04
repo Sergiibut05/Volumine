@@ -336,3 +336,36 @@ describe('sectorGeometry', () => {
     muchos.dispose();
   });
 });
+
+describe('tarta (innerRadius = 0)', () => {
+  const pieLimits = { innerR: 0, outerR: OUTER_RADIUS, depth: 0.34, gapAngle: 0.0754 };
+
+  it('admite bevel: medir el arco en innerR lo anulaba por completo', () => {
+    // Regresión. innerR=0 hacía que arcLen y gapArc valieran 0, así que el
+    // máximo salía 0 y la tarta se renderizaba con aristas vivas.
+    const sectors = computeSectors([42, 26, 17, 9, 6], 0.012);
+    const bevel = globalBevel(sectors, pieLimits, 1);
+    expect(bevel).toBeGreaterThan(0.01);
+  });
+
+  it('produce geometría válida y con la altura pedida', () => {
+    const sectors = computeSectors([50, 30, 20], 0.012);
+    const bevel = globalBevel(sectors, pieLimits, 0.6);
+
+    for (const sector of sectors) {
+      const geo = sectorGeometry({
+        sector,
+        innerR: 0,
+        outerR: 1,
+        depth: 0.34,
+        bevel,
+        curveSegments: 24,
+      });
+      geo.computeBoundingBox();
+      expect(geo.boundingBox!.min.y).toBeCloseTo(0, 4);
+      expect(geo.boundingBox!.max.y).toBeCloseTo(0.34, 4);
+      expect(geo.attributes.position.count).toBeGreaterThan(0);
+      geo.dispose();
+    }
+  });
+});
