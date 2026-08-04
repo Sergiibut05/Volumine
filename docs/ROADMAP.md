@@ -18,11 +18,11 @@ invertir en arquitectura.
 
 Un solo archivo HTML, sin build, sin framework:
 
-- [ ] Sector anular extruido con bevel; el redondeo de canto se ve bien
-- [ ] N segmentos con separación, colores y grosor parametrizables
-- [ ] Rotación automática suave
-- [ ] Hover por segmento con realce
-- [ ] Iluminación que hace que se vea caro
+- [x] Sector anular extruido con bevel; el redondeo de canto se ve bien
+- [x] N segmentos con separación, colores y grosor parametrizables
+- [x] Rotación automática suave
+- [x] Hover por segmento con realce
+- [x] Iluminación que hace que se vea caro
 
 **Criterio de salida:** una captura que a ti te guste. Si el bevel no queda
 bien, el proyecto entero se replantea aquí, que es donde es barato.

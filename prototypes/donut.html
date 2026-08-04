@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Voluma · prototipo donut 3D</title>
+<!--
+  PROTOTIPO DESECHABLE — Fase 1 del roadmap.
+
+  Objetivo único: validar que el canto redondeado, el material y la luz quedan
+  como la referencia, ANTES de invertir en arquitectura. Este archivo se tira.
+  No copies código de aquí a src/: el renderer de verdad se escribe de cero
+  siguiendo docs/chart-config-schema.md.
+
+  Deliberadamente sin build, sin framework y con three desde CDN. Nada de esto
+  es aceptable en /embed (ver docs/PERFORMANCE-BUDGET.md).
+-->
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body {
+    background: #0b0b12;
+    font: 13px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: #e9e9f2;
+  }
+  #app { position: fixed; inset: 0; }
+  canvas { display: block; }
+
+  /* Tooltip de segmento */
+  #tip {
+    position: fixed; pointer-events: none; opacity: 0;
+    transform: translate(-50%, calc(-100% - 14px));
+    padding: 7px 11px; border-radius: 10px;
+    background: rgba(16,16,24,.82);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 32px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.09);
+    white-space: nowrap;
+    transition: opacity .16s cubic-bezier(.32,.72,0,1);
+    font-variant-numeric: tabular-nums;
+  }
+  #tip b { font-weight: 600; }
+  #tip span { opacity: .62; margin-left: 8px; }
+  #tip i { display: inline-block; width: 7px; height: 7px; border-radius: 2px;
+           margin-right: 7px; vertical-align: 1px; }
+
+  #hint {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+    opacity: .38; letter-spacing: .02em; pointer-events: none;
+  }
+  .lil-gui { --width: 268px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="tip"></div>
+<div id="hint">arrastra para orbitar · pasa el cursor por un segmento</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://esm.sh/three@0.169.0",
+    "three/addons/": "https://esm.sh/three@0.169.0/examples/jsm/",
+    "lil-gui": "https://esm.sh/lil-gui@0.19.2"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls }    from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment }  from 'three/addons/environments/RoomEnvironment.js';
+import GUI                  from 'lil-gui';
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Datos y parámetros
+   Los nombres siguen a propósito docs/chart-config-schema.md, para comprobar
+   que el esquema que diseñamos cubre de verdad lo que el renderer necesita.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+const DATA = [
+  { label: 'Suscripciones', value: 42 },
+  { label: 'Servicios',     value: 26 },
+  { label: 'Licencias',     value: 17 },
+  { label: 'Formación',     value: 9  },
+  { label: 'Otros',         value: 6  },
+];
+
+const PALETTES = {
+  aurora:  ['#7c5cff', '#00d4ff', '#41ffc9', '#ffd166', '#ff4d6d'],
+  ember:   ['#ff6b35', '#f7c59f', '#ff2e63', '#ffd166', '#c1121f'],
+  mono:    ['#f2f2f7', '#c9c9d4', '#9a9aab', '#6e6e80', '#4a4a58'],
+  ocean:   ['#0466c8', '#0582ca', '#00a6fb', '#48cae4', '#ade8f4'],
+};
+
+const P = {
+  // style
+  palette: 'aurora',
+  bevel: 0.35,          // 0..1 → el rasgo de marca
+  height: 0.34,
+  innerRadius: 0.55,    // 0 = tarta
+  gap: 0.012,           // separación entre segmentos (radianes normalizados)
+  explode: 0.0,
+  roughness: 0.32,
+  metalness: 0.06,
+  clearcoat: 0.3,
+  curveSegments: 64,
+  // scene
+  background: '#0b0b12',
+  // El IBL de estudio es blanco: pasado de intensidad lava todo el color y
+  // acaba pareciendo plastilina pastel. 0.55 deja que mande el color del
+  // material y el entorno solo aporte el brillo del canto.
+  envIntensity: 0.55,
+  exposure: 0.95,
+  shadow: true,
+  // motion
+  autoRotate: true,
+  speed: 0.9,           // vueltas por minuto
+  hoverLift: 0.09,
+};
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Escena
+   ──────────────────────────────────────────────────────────────────────────── */
+
+const app = document.getElementById('app');
+const tip = document.getElementById('tip');
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = P.exposure;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+app.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(P.background);
+
+const camera = new THREE.PerspectiveCamera(34, innerWidth / innerHeight, 0.1, 100);
+camera.position.set(0, 2.6, 3.7);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.enablePan = false;
+controls.enableZoom = true;          // en el embed real irá a false: roba el scroll
+controls.minPolarAngle = 0.12;
+controls.maxPolarAngle = Math.PI / 2 - 0.04;
+controls.target.set(0, 0.26, 0);
+
+// Iluminación: IBL de estudio. Es lo que separa "se ve caro" de "se ve a WebGL".
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envRT = pmrem.fromScene(new RoomEnvironment(), 0.04);
+scene.environment = envRT.texture;
+scene.environmentIntensity = P.envIntensity;
+
+// Una key light direccional encima del IBL, para dar dirección y sombra.
+const key = new THREE.DirectionalLight(0xffffff, 1.1);
+key.position.set(2.6, 4.2, 2.2);
+key.castShadow = true;
+key.shadow.mapSize.set(1024, 1024);
+key.shadow.camera.near = 0.5;
+key.shadow.camera.far = 14;
+key.shadow.camera.left = -2.6;
+key.shadow.camera.right = 2.6;
+key.shadow.camera.top = 2.6;
+key.shadow.camera.bottom = -2.6;
+key.shadow.bias = -0.0012;
+key.shadow.radius = 4;
+scene.add(key);
+renderer.shadowMap.enabled = P.shadow;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+// Suelo que solo recibe sombra (invisible salvo por la sombra).
+const floor = new THREE.Mesh(
+  new THREE.PlaneGeometry(24, 24),
+  new THREE.ShadowMaterial({ opacity: 0.34 }),
+);
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = -0.001;
+floor.receiveShadow = true;
+scene.add(floor);
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Geometría: sector anular extruido con bevel
+   Esto es EL experimento. Todo lo demás está para poder juzgarlo.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+const OUTER = 1.0;
+
+/**
+ * Sector anular en el plano XY, extruido en Z con bevel.
+ *
+ * El bevel de ExtrudeGeometry desplaza el contorno hacia dentro `bevelSize`.
+ * Si `bevelSize` supera la mitad del grosor radial o de la cuerda del arco, el
+ * contorno se autointersecta y aparecen artefactos. Por eso se acota abajo:
+ * ese límite es exactamente el problema que este prototipo tiene que resolver.
+ */
+function annularSector({ a0, a1, innerR, outerR, depth, bevel, curveSegments }) {
+  const radial = outerR - innerR;
+  const arcLen = innerR * (a1 - a0);           // el arco más corto, el interior
+
+  // Límite de seguridad del bevel: nunca más de ~45% de la dimensión menor,
+  // ni más de la mitad del grosor.
+  const maxBevel = Math.max(0, Math.min(radial, arcLen, depth) * 0.45);
+  const b = Math.min(bevel * maxBevel * 2, maxBevel);
+
+  const shape = new THREE.Shape();
+  shape.absarc(0, 0, outerR, a0, a1, false);
+  shape.absarc(0, 0, innerR, a1, a0, true);
+  shape.closePath();
+
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    curveSegments,
+    steps: 1,
+    depth: Math.max(0.001, depth - b * 2),
+    bevelEnabled: b > 0.0005,
+    bevelThickness: b,
+    bevelSize: b,
+    bevelOffset: 0,
+    bevelSegments: Math.max(2, Math.round(3 + bevel * 5)),
+  });
+
+  // Extruido en +Z desde z=0; lo centramos y lo tumbamos para que crezca en +Y.
+  geo.translate(0, 0, -(depth - b * 2) / 2 - b);
+  geo.rotateX(-Math.PI / 2);
+  geo.translate(0, depth / 2, 0);
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Construcción del donut
+   ──────────────────────────────────────────────────────────────────────────── */
+
+const group = new THREE.Group();
+// Separado del suelo: apoyado sobre el plano la sombra queda oculta debajo del
+// propio objeto y se pierde toda la sensación de peso.
+group.position.y = 0.26;
+scene.add(group);
+
+let segments = [];
+
+function build() {
+  // Limpieza explícita. En el renderer real esto es obligatorio al desmontar
+  // (ver CLAUDE.md); aquí se hace igual para no coger vicios.
+  for (const s of segments) {
+    s.mesh.geometry.dispose();
+    s.mesh.material.dispose();
+    group.remove(s.mesh);
+  }
+  segments = [];
+
+  const colors = PALETTES[P.palette];
+  const total = DATA.reduce((sum, d) => sum + d.value, 0);
+  const gapAngle = P.gap * Math.PI * 2;
+
+  let angle = -Math.PI / 2;   // arranca arriba, como cualquier gráfica decente
+
+  DATA.forEach((d, i) => {
+    const sweep = (d.value / total) * Math.PI * 2;
+    const a0 = angle + gapAngle / 2;
+    const a1 = angle + sweep - gapAngle / 2;
+    angle += sweep;
+
+    if (a1 <= a0) return;   // segmento más pequeño que la separación
+
+    const geometry = annularSector({
+      a0, a1,
+      innerR: P.innerRadius * OUTER,
+      outerR: OUTER,
+      depth: P.height,
+      bevel: P.bevel,
+      curveSegments: P.curveSegments,
+    });
+
+    // OJO: nada de convertSRGBToLinear() aquí. Con la gestión de color de three
+    // activada (por defecto), Color ya interpreta el hex como sRGB. Convertir a
+    // mano lo hace dos veces y los colores salen lavados y pastel.
+    const material = new THREE.MeshPhysicalMaterial({
+      color: colors[i % colors.length],
+      roughness: P.roughness,
+      metalness: P.metalness,
+      clearcoat: P.clearcoat,
+      clearcoatRoughness: 0.25,
+      envMapIntensity: 1,
+    });
+
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+
+    // Dirección radial media: sirve para explode y para el realce en hover.
+    const mid = (a0 + a1) / 2;
+    const dir = new THREE.Vector3(Math.cos(mid), 0, Math.sin(mid));
+    mesh.position.copy(dir).multiplyScalar(P.explode * 0.35);
+
+    mesh.userData = { index: i, dir, baseY: 0, hoverT: 0 };
+    group.add(mesh);
+
+    segments.push({ mesh, data: d, color: colors[i % colors.length], pct: d.value / total });
+  });
+}
+
+build();
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Interacción: hover por segmento
+   ──────────────────────────────────────────────────────────────────────────── */
+
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let hovered = null;
+let pointerInside = false;
+
+renderer.domElement.addEventListener('pointermove', (e) => {
+  pointer.x = (e.clientX / innerWidth) * 2 - 1;
+  pointer.y = -(e.clientY / innerHeight) * 2 + 1;
+  pointerInside = true;
+  tip.style.left = e.clientX + 'px';
+  tip.style.top = e.clientY + 'px';
+});
+renderer.domElement.addEventListener('pointerleave', () => {
+  pointerInside = false;
+});
+
+function updateHover() {
+  if (!pointerInside) { setHovered(null); return; }
+  raycaster.setFromCamera(pointer, camera);
+  const hit = raycaster.intersectObjects(group.children, false)[0];
+  setHovered(hit ? hit.object : null);
+}
+
+function setHovered(mesh) {
+  if (hovered === mesh) return;
+  hovered = mesh;
+
+  if (!mesh) {
+    tip.style.opacity = '0';
+    renderer.domElement.style.cursor = '';
+    return;
+  }
+  const seg = segments.find((s) => s.mesh === mesh);
+  renderer.domElement.style.cursor = 'pointer';
+  tip.innerHTML =
+    `<i style="background:${seg.color}"></i><b>${seg.data.label}</b>` +
+    `<span>${seg.data.value} · ${(seg.pct * 100).toFixed(1)}%</span>`;
+  tip.style.opacity = '1';
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Bucle
+   ──────────────────────────────────────────────────────────────────────────── */
+
+const clock = new THREE.Clock();
+
+function tick() {
+  const dt = Math.min(clock.getDelta(), 0.05);
+
+  if (P.autoRotate) group.rotation.y += (P.speed / 60) * Math.PI * 2 * dt;
+
+  updateHover();
+
+  // Realce del segmento activo: sube y se separa un poco. Interpolado, no a saltos.
+  for (const { mesh } of segments) {
+    const target = mesh === hovered ? 1 : 0;
+    const ud = mesh.userData;
+    ud.hoverT += (target - ud.hoverT) * (1 - Math.pow(0.001, dt));
+    mesh.position.y = ud.hoverT * P.hoverLift;
+    const push = P.explode * 0.35 + ud.hoverT * 0.05;
+    mesh.position.x = ud.dir.x * push;
+    mesh.position.z = ud.dir.z * push;
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+tick();
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Panel de control — solo para juzgar el look, no forma parte del producto
+   ──────────────────────────────────────────────────────────────────────────── */
+
+const gui = new GUI({ title: 'Voluma · prototipo' });
+
+const gStyle = gui.addFolder('Forma y material');
+gStyle.add(P, 'bevel', 0, 1, 0.01).name('bevel (canto)').onChange(build);
+gStyle.add(P, 'height', 0.05, 1, 0.01).name('grosor').onChange(build);
+gStyle.add(P, 'innerRadius', 0, 0.85, 0.01).name('radio interior').onChange(build);
+gStyle.add(P, 'gap', 0, 0.05, 0.001).name('separación').onChange(build);
+gStyle.add(P, 'explode', 0, 1, 0.01).name('explode').onChange(build);
+gStyle.add(P, 'curveSegments', 8, 128, 1).name('curveSegments').onChange(build);
+gStyle.add(P, 'roughness', 0, 1, 0.01).onChange(build);
+gStyle.add(P, 'metalness', 0, 1, 0.01).onChange(build);
+gStyle.add(P, 'clearcoat', 0, 1, 0.01).onChange(build);
+gStyle.add(P, 'palette', Object.keys(PALETTES)).name('paleta').onChange(build);
+
+const gScene = gui.addFolder('Escena');
+gScene.addColor(P, 'background').name('fondo')
+  .onChange((v) => scene.background.set(v));
+gScene.add(P, 'envIntensity', 0, 3, 0.05).name('intensidad IBL')
+  .onChange((v) => { scene.environmentIntensity = v; });
+gScene.add(P, 'exposure', 0.2, 2, 0.01).name('exposición')
+  .onChange((v) => { renderer.toneMappingExposure = v; });
+gScene.add(P, 'shadow').name('sombra')
+  .onChange((v) => { renderer.shadowMap.enabled = v; scene.traverse(o => { if (o.material) o.material.needsUpdate = true; }); });
+
+const gMotion = gui.addFolder('Movimiento');
+gMotion.add(P, 'autoRotate').name('rotación auto');
+gMotion.add(P, 'speed', 0, 6, 0.1).name('vueltas/min');
+gMotion.add(P, 'hoverLift', 0, 0.3, 0.005).name('elevación hover');
+
+gui.add({
+  captura: () => {
+    renderer.render(scene, camera);
+    const a = document.createElement('a');
+    a.download = 'voluma-prototipo.png';
+    a.href = renderer.domElement.toDataURL('image/png');
+    a.click();
+  },
+}, 'captura').name('⇩ guardar PNG');
+</script>
+</body>
+</html>
