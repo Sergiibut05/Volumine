@@ -31,6 +31,7 @@ export const THEMES: Theme[] = [
     config: {
       style: {
         palette: ['#7c5cff', '#00d4ff', '#41ffc9', '#ffd166', '#ff4d6d'],
+        globe: { base: '#111634', land: '#8b7dff', glow: '#5b3ce6' },
         material: 'physical',
       },
       scene: { environment: 'studio', lightIntensity: 0.55 },
@@ -44,6 +45,7 @@ export const THEMES: Theme[] = [
     config: {
       style: {
         palette: ['#2f2f3a', '#6b6b7c', '#a8a8b8', '#d0d0da', '#ec6a5c'],
+        globe: { base: '#e8e8ee', land: '#4a4a58', glow: '#a8a8b8' },
         material: 'matte',
         roughness: 0.85,
       },
@@ -58,6 +60,7 @@ export const THEMES: Theme[] = [
     config: {
       style: {
         palette: ['#ff6b35', '#f9c22e', '#e63946', '#8a2846', '#3d1420'],
+        globe: { base: '#2a0f14', land: '#ff8f5e', glow: '#e63946' },
         material: 'physical',
         roughness: 0.25,
       },
@@ -72,6 +75,7 @@ export const THEMES: Theme[] = [
     config: {
       style: {
         palette: ['#c9d1d9', '#8b949e', '#f0b429', '#57606a', '#30363d'],
+        globe: { base: '#1a1d22', land: '#c9d1d9', glow: '#8b949e' },
         material: 'metal',
         metalness: 1,
         roughness: 0.22,
@@ -87,6 +91,7 @@ export const THEMES: Theme[] = [
     config: {
       style: {
         palette: ['#264653', '#2a9d8f', '#e9c46a', '#f4a261', '#e76f51'],
+        globe: { base: '#f2ede3', land: '#264653', glow: '#2a9d8f' },
         material: 'toon',
         shadow: false,
       },
@@ -104,6 +109,7 @@ export const THEMES: Theme[] = [
     config: {
       style: {
         palette: ['#5b3ce6', '#0466c8', '#00a6fb', '#48cae4', '#ade8f4'],
+        globe: { base: '#080d24', land: '#48cae4', glow: '#0466c8' },
         material: 'physical',
         roughness: 0.2,
       },

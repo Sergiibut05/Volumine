@@ -87,6 +87,15 @@ a mano. **Un link publicado debe seguir funcionando para siempre.**
   "explode": 0, // 0..1 desplazamiento radial de segmentos
   "cornerRadius": 0.2, // barras: redondeo de las esquinas superiores
   "shadow": true,
+  // Solo `globe`. Va agrupado porque no significa nada en los otros tipos.
+  "globe": {
+    "base": "#111634", // el planeta, bajo los puntos
+    "land": "#8b7dff", // los puntos de tierra
+    "glow": "#5b3ce6", // halo atmosférico
+    "density": 0.72, // cuántos puntos
+    "dotSize": 0.7,
+    "markerSize": 0.62,
+  },
 }
 ```
 

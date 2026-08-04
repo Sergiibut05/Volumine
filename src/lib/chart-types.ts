@@ -92,7 +92,7 @@ export const CHART_TYPES: ChartTypeEntry[] = [
     id: 'globe',
     name: 'Globo',
     answers: '¿Dónde está pasando, geográficamente?',
-    avoid: 'Si necesitas reconocer países. No lleva contornos: ver docs.',
+    avoid: 'Para comparar cifras con precisión. Media esfera está de espaldas.',
     status: 'listo',
     sample: {
       v: 1,

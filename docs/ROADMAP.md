@@ -102,9 +102,9 @@ presupuesto.
 - [x] Barras 3D
 - [x] Barras animadas (bar race). Las series se leen como periodos, así que no
       hizo falta tocar el esquema.
-- [x] Globo. Esfera + retícula calculada + una barra por coordenada. **Sin
-      contornos de países**: el mundo en GeoJSON son 100-200 KB y `/embed` tiene
-      180 en total. Responde a "dónde y cuánto", no a "qué país es este".
+- [x] Globo de puntos, con el planteamiento de cobe: la tierra es una nube de
+      puntos y **sí se reconocen los continentes**. La máscara de tierra se
+      rasteriza en build y cuesta 6,5 KB comprimidos.
 
 Los cinco tipos de v1 están disponibles en el renderer, en la galería y en el
 editor. Añadir uno nuevo es una función en el registro `BUILDERS`.
@@ -122,6 +122,6 @@ editor. Añadir uno nuevo es una función en el registro `BUILDERS`.
 
 ## Backlog (no comprometido)
 
-contornos de países en el globo, en una capa aparte con `import()` · datos en vivo (Sheets/CSV/endpoint) ·
+arcos entre coordenadas en el globo · datos en vivo (Sheets/CSV/endpoint) ·
 dominios propios · exportación a vídeo/GIF · equipos · plantillas de la
 comunidad.

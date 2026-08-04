@@ -30,16 +30,17 @@ verificado con `sandbox` puesto, que es lo que hace Confluence Cloud.
   del periodo se pinta en HTML (el bundle no lleva fuentes) y la geometría solo
   se rehace cuando la altura se aleja más de un 4% de la construida — escalar
   sin más deforma el canto, y rehacerla cada frame asigna dentro del bucle.
-- **Globo**: esfera + retícula calculada + una barra por coordenada. **Sin
-  contornos de países**, y es una decisión de presupuesto, no un olvido: el
-  mundo en GeoJSON son 100-200 KB y /embed tiene 180 en total. Responde a "dónde
-  y cuánto", no a "qué país es este".
+- **Globo** con el planteamiento de cobe: la tierra es una nube de ~9.000
+  puntos en una sola llamada de dibujo, con halo atmosférico por fresnel y
+  marcadores cuyo radio va con la RAÍZ del valor (lo que el ojo compara en un
+  círculo es el área). Colores, densidad y tamaños personalizables, y cada tema
+  trae los suyos.
 - Renderer de donut/pie en three plano: bevel uniforme, sombreado suave, sombra
   de contacto, hover con elevación y tooltip, órbita. El canto al máximo se ve
   bien **con la separación a 0**: los extremos son un redondeo convexo de
   verdad, así que dos vecinos pegados dejan un surco limpio.
 - Tabla de datos accesible y `aria-label` generado, siempre en el DOM.
-- **118 tests** unitarios de geometría y de contrato.
+- **125 tests** unitarios de geometría y de contrato.
 
 ## Interfaz
 
@@ -142,6 +143,13 @@ display: none }` o el elemento oculto se ve.
     dentro del sólido y se renderizaban negras. Cualquier test con un solo
     sector, según dónde cayera, lo daba por bueno. Los sectores de prueba tienen
     que cubrir los cuatro cuadrantes.
+
+15. **Descarté los países del globo por presupuesto y el razonamiento era
+    correcto para lo que estaba mirando, y equivocado para el problema.** Los
+    contornos vectoriales sí son 100-200 KB, pero el mapa no tiene por qué ser
+    vectorial: una máscara de tierra rasterizada a 0,5° son 6,5 KB comprimidos y
+    se genera en build. Antes de dar algo por imposible por su coste, conviene
+    comprobar si hay otra representación del mismo dato.
 
 ## Problemas abiertos
 

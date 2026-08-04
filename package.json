@@ -13,7 +13,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "perf:embed": "node scripts/perf-embed.mjs",
-    "build:embed": "node scripts/build-embed.mjs"
+    "build:embed": "node scripts/build-embed.mjs",
+    "build:map": "node scripts/build-globe-map.mjs"
   },
   "dependencies": {
     "@radix-ui/react-popover": "^1.1.23",
@@ -38,12 +39,15 @@
     "@types/react-dom": "^19",
     "@types/three": "^0.180.0",
     "@vitejs/plugin-react": "^5.0.4",
+    "d3-geo": "^3.1.1",
     "esbuild": "^0.28.1",
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
     "prettier": "^3.6.2",
     "tailwindcss": "^4",
+    "topojson-client": "^3.1.0",
     "typescript": "^5",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "world-atlas": "^2.0.2"
   }
 }

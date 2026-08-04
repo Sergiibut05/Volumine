@@ -4,13 +4,15 @@ import {
   DirectionalLight,
   DoubleSide,
   Group,
-  LineBasicMaterial,
-  LineSegments,
   Mesh,
   MathUtils,
   MeshBasicMaterial,
+  Points,
+  PointsMaterial,
+  ShaderMaterial,
   SphereGeometry,
-  type MeshStandardMaterial,
+  AdditiveBlending,
+  BackSide,
   PCFSoftShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
@@ -51,11 +53,7 @@ import {
   placementsFor,
   valuesAt,
 } from '../geometry/bar-race';
-import {
-  GLOBE_RADIUS,
-  computeMarkers,
-  graticuleGeometry,
-} from '../geometry/globe';
+import { GLOBE_RADIUS, computeMarkers, landPointsGeometry } from '../geometry/globe';
 import { colorForSegment, createMaterial } from './materials';
 
 /*
@@ -109,9 +107,6 @@ const BAR_CAMERA_MULTI: Record<string, CameraPlacement> = {
 
 /** Amplitud del vaivén de una gráfica de barras, en grados. Ver el bucle. */
 const BAR_SWAY_DEGREES = 13;
-
-/** Hacia dónde crece una barra recién construida. Reutilizado, no por frame. */
-const UP = new Vector3(0, 1, 0);
 
 /** Caja que ocupa lo dibujado, centrada en el eje Y. Para encuadrar. */
 type PlotBox = { width: number; height: number; depth: number };
@@ -628,98 +623,137 @@ export function createChartRenderer(
   /*
     GLOBO
     -----
-    La esfera y la retícula NO son piezas: no se puede pasar el ratón por encima
-    de "el planeta". Van aparte, se crean una vez por build y se liberan en
-    `disposeGlobe()`.
+    Planteamiento tomado de cobe (cobe.vercel.app): la tierra es una nube de
+    PUNTOS, no contornos. Tres objetos que no son datos —planeta, puntos y
+    halo— más un marcador por dato, que sí lo es.
+
+    Los tres primeros no responden al ratón: nadie quiere el tooltip de "el
+    planeta". Van aparte de `pieces` y se liberan en `disposeGlobe()`.
+
+    Todos los puntos de tierra caben en UNA llamada de dibujo: son un solo
+    objeto `Points`, no once mil mallas.
   */
-  let globeMesh: Mesh | null = null;
-  let graticule: LineSegments | null = null;
+  let globeBody: Mesh | null = null;
+  let globeLand: Points | null = null;
+  let globeGlow: Mesh | null = null;
 
   function disposeGlobe() {
-    for (const object of [globeMesh, graticule]) {
+    for (const object of [globeBody, globeLand, globeGlow]) {
       if (!object) continue;
       group.remove(object);
       object.geometry.dispose();
       (object.material as Material).dispose();
     }
-    globeMesh = null;
-    graticule = null;
+    globeBody = null;
+    globeLand = null;
+    globeGlow = null;
   }
 
   function buildGlobe() {
-    const { height } = config.style;
-    const coords = config.data.coords;
+    const globe = config.style.globe;
     const values = config.data.series[0]?.values ?? [];
-    const layout = computeMarkers(values, coords, { height });
+    const layout = computeMarkers(values, config.data.coords, { size: globe.markerSize });
 
-    /* Se encuadra por el diámetro más la barra más alta, y con un poco más de
-       aire que el resto de tipos: un globo pegado a los bordes del iframe deja
-       de leerse como un objeto suelto y parece un fondo. */
-    const reach = (GLOBE_RADIUS + layout.tallest) * 2 * 1.12;
+    /* Se encuadra por el diámetro más el marcador mayor, y con más aire que el
+       resto de tipos: un globo pegado a los bordes deja de leerse como un objeto
+       suelto y parece un fondo. */
+    /* El halo es una esfera del 1,18 del radio, así que encuadrar solo por el
+       globo lo deja cortado por los bordes. */
+    const reach = Math.max(GLOBE_RADIUS + layout.largest, GLOBE_RADIUS * 1.18) * 2 * 1.16;
     plotBox = { width: reach, height: reach, depth: reach };
 
-    const sphere = new SphereGeometry(GLOBE_RADIUS, 64, 48);
-    const sphereMaterial = createMaterial(config, config.style.palette[0] ?? '#7c5cff');
-    const body = sphereMaterial as MeshStandardMaterial;
-    /* Oscuro para que las barras destaquen encima, y MATE. Una esfera grande y
-       pulida refleja el entorno IBL en manchas grandes que parecen suciedad;
-       subiendo la rugosidad la luz se reparte y se lee como un planeta. */
-    body.color.multiplyScalar(0.22);
-    if ('roughness' in body) body.roughness = 0.92;
-    if ('metalness' in body) body.metalness = 0;
-    globeMesh = new Mesh(sphere, sphereMaterial);
-    globeMesh.castShadow = config.style.shadow;
-    globeMesh.receiveShadow = config.style.shadow;
-    // El planeta no es un dato: no responde al puntero.
-    globeMesh.raycast = () => {};
-    group.add(globeMesh);
+    /* El planeta. Mate y sin recibir el entorno: una esfera lisa y pulida
+       refleja el IBL en manchas grandes que parecen suciedad, y aquí lo único
+       que tiene que hacer es tapar los puntos de la cara de atrás. */
+    globeBody = new Mesh(
+      new SphereGeometry(GLOBE_RADIUS, 64, 48),
+      new MeshBasicMaterial({ color: globe.base }),
+    );
+    globeBody.raycast = () => {};
+    group.add(globeBody);
 
-    graticule = new LineSegments(
-      graticuleGeometry(),
-      new LineBasicMaterial({
-        color: 0xffffff,
+    /* Los puntos de tierra, justo encima de la superficie. Sin iluminar: en cobe
+       el mapa es color plano, y es lo que mantiene el dibujo legible cuando el
+       globo gira y media esfera queda en sombra. */
+    globeLand = new Points(
+      landPointsGeometry(globe.density),
+      new PointsMaterial({
+        color: globe.land,
+        /* En unidades de mundo, no de píxel: así el punto crece al acercar el
+           zoom y el mapa no se deshace. */
+        size: 0.004 + globe.dotSize * 0.016,
+        sizeAttenuation: true,
         transparent: true,
-        opacity: 0.14,
         depthWrite: false,
       }),
     );
-    graticule.raycast = () => {};
-    group.add(graticule);
+    globeLand.scale.setScalar(1.004);
+    globeLand.raycast = () => {};
+    group.add(globeLand);
+
+    /* Halo atmosférico: una esfera mayor vista por dentro, que solo se pinta
+       donde el borde mira de canto. Es lo que despega el globo del fondo sin
+       necesidad de post-proceso, que no cabe en el presupuesto del embed. */
+    globeGlow = new Mesh(
+      new SphereGeometry(GLOBE_RADIUS * 1.18, 48, 32),
+      new ShaderMaterial({
+        uniforms: { uColor: { value: new Color(globe.glow) } },
+        transparent: true,
+        depthWrite: false,
+        side: BackSide,
+        blending: AdditiveBlending,
+        vertexShader: `
+          varying vec3 vNormal;
+          varying vec3 vView;
+          void main() {
+            vNormal = normalize(normalMatrix * normal);
+            vec4 mv = modelViewMatrix * vec4(position, 1.0);
+            vView = normalize(-mv.xyz);
+            gl_Position = projectionMatrix * mv;
+          }`,
+        fragmentShader: `
+          uniform vec3 uColor;
+          varying vec3 vNormal;
+          varying vec3 vView;
+          void main() {
+            // Fresnel: opaco de canto, transparente de frente.
+            float rim = 1.0 - abs(dot(vNormal, vView));
+            gl_FragColor = vec4(uColor, pow(rim, 3.2) * 0.55);
+          }`,
+      }),
+    );
+    globeGlow.raycast = () => {};
+    group.add(globeGlow);
 
     if (layout.markers.length === 0) return;
 
-    const cornerSegments = cornerSegmentsFor(layout.markers.length);
+    /* Los marcadores SÍ son datos: mallas propias para que el raycaster y el
+       tooltip funcionen igual que en el resto de tipos. Emisivos, para que se
+       lean sobre la cara oscura del planeta sin depender de dónde dé la luz. */
     for (const marker of layout.markers) {
-      const geometry = roundedBoxGeometry({
-        width: layout.footprint,
-        depth: layout.footprint,
-        height: marker.height,
-        cornerSegments,
-        ...barRadii(
-          marker.height,
-          { width: layout.footprint, depth: layout.footprint },
-          { bevel: config.style.bevel, cornerRadius: config.style.cornerRadius },
-        ),
-      });
+      const color = colorForSegment(config, marker.index);
+      const mesh = new Mesh(
+        new SphereGeometry(marker.radius, 18, 14),
+        new MeshBasicMaterial({ color }),
+      );
+      mesh.position.copy(marker.position);
+      group.add(mesh);
 
-      addPiece(
-        geometry,
-        marker.index,
-        {
+      pieces.push({
+        info: {
           index: marker.index,
           label: config.data.labels[marker.index] ?? '',
           value: marker.value,
           fraction: marker.fraction,
           series: null,
         },
-        marker.position,
-        new Vector3(0, 0, 0),
-      );
-
-      /* La barra se construye creciendo en +Y; aquí tiene que crecer hacia
-         fuera del globo, que es una dirección distinta en cada coordenada. */
-      const mesh = pieces[pieces.length - 1].mesh;
-      mesh.quaternion.setFromUnitVectors(UP, marker.normal);
+        mesh,
+        base: marker.position.clone(),
+        /* Al señalarlo se separa de la superficie, no sube: "arriba" en una
+           esfera es distinto en cada punto. */
+        direction: marker.normal.clone(),
+        hoverAmount: 0,
+      });
     }
   }
 

@@ -98,6 +98,7 @@ export default function EditorPage() {
     signifique algo.
   */
   const isBar = config.type === 'bar';
+  const isGlobe = config.type === 'globe';
 
   const bevelCeiling = useMemo(() => {
     if (!parsed.ok) return 0;
@@ -128,6 +129,15 @@ export default function EditorPage() {
   const patch = (next: Partial<ChartConfig>) => setConfig((c) => ({ ...c, ...next }));
   const patchStyle = (next: Partial<NonNullable<ChartConfig['style']>>) =>
     setConfig((c) => ({ ...c, style: { ...c.style, ...next } }));
+
+  /* Los ajustes del globo van anidados, así que hay que fusionar a dos niveles
+     o cada cambio borraría los otros dos colores. */
+  type GlobeStyle = NonNullable<NonNullable<ChartConfig['style']>['globe']>;
+  const patchGlobe = (next: Partial<GlobeStyle>) =>
+    setConfig((c) => ({
+      ...c,
+      style: { ...c.style, globe: { ...c.style?.globe, ...next } },
+    }));
 
   const setSegmentColor = (index: number, color: string) => {
     setConfig((c) => {
@@ -272,79 +282,138 @@ export default function EditorPage() {
           </div>
         </Group>
 
+        {/* El globo no comparte casi nada con los demás: no tiene canto, ni
+            grosor, ni separación. Sus propios controles, y solo los suyos. */}
+        {isGlobe && (
+          <Group title="Planeta">
+            <div className="segments">
+              <ColorRow
+                label="Planeta"
+                value={style?.globe.base ?? '#111634'}
+                onChange={(base) => patchGlobe({ base })}
+              />
+              <ColorRow
+                label="Tierra"
+                value={style?.globe.land ?? '#8b7dff'}
+                onChange={(land) => patchGlobe({ land })}
+              />
+              <ColorRow
+                label="Halo"
+                value={style?.globe.glow ?? '#5b3ce6'}
+                onChange={(glow) => patchGlobe({ glow })}
+              />
+            </div>
+            <Slider
+              label="Densidad del mapa"
+              value={style?.globe.density ?? 0.72}
+              min={0}
+              max={1}
+              step={0.01}
+              format={(v) =>
+                `${Math.round(6000 + (40000 - 6000) * v).toLocaleString('es-ES')} puntos`
+              }
+              onChange={(density) => patchGlobe({ density })}
+            />
+            <Slider
+              label="Tamaño del punto"
+              value={style?.globe.dotSize ?? 0.7}
+              min={0}
+              max={1}
+              step={0.01}
+              onChange={(dotSize) => patchGlobe({ dotSize })}
+            />
+            <Slider
+              label="Tamaño del marcador"
+              value={style?.globe.markerSize ?? 0.62}
+              min={0}
+              max={1}
+              step={0.01}
+              onChange={(markerSize) => patchGlobe({ markerSize })}
+            />
+          </Group>
+        )}
+
         {/* Cada tipo enseña SOLO sus campos. Un slider que no hace nada es peor
             que uno que falta: te hace dudar de si la gráfica está rota. */}
-        <Group title="Forma" hint="Rangos seguros">
-          <Slider
-            label="Canto redondeado"
-            value={style?.bevel ?? 0.6}
-            min={0}
-            max={1}
-            step={0.01}
-            format={(v) => `${(v * bevelCeiling).toFixed(3)} de ${bevelCeiling.toFixed(3)}`}
-            onChange={(v) => patchStyle({ bevel: v })}
-          />
-          <Slider
-            label={isBar ? 'Altura' : 'Grosor'}
-            value={style?.height ?? 0.34}
-            min={0.05}
-            max={1}
-            step={0.01}
-            onChange={(v) => patchStyle({ height: v })}
-          />
-          {isBar ? (
+        {!isGlobe && (
+          <Group title="Forma" hint="Rangos seguros">
             <Slider
-              label="Punta redondeada"
-              value={style?.cornerRadius ?? 0.2}
+              label="Canto redondeado"
+              value={style?.bevel ?? 0.6}
               min={0}
               max={1}
               step={0.01}
-              onChange={(v) => patchStyle({ cornerRadius: v })}
+              format={(v) =>
+                `${(v * bevelCeiling).toFixed(3)} de ${bevelCeiling.toFixed(3)}`
+              }
+              onChange={(v) => patchStyle({ bevel: v })}
             />
-          ) : (
             <Slider
-              label="Agujero central"
-              value={style?.innerRadius ?? 0.55}
-              min={0}
-              max={0.85}
-              step={0.01}
-              onChange={(v) => patchStyle({ innerRadius: v })}
-            />
-          )}
-          <Slider
-            label="Separación"
-            value={style?.gap ?? 0.012}
-            min={0}
-            max={0.05}
-            step={0.001}
-            format={(v) => v.toFixed(3)}
-            onChange={(v) => patchStyle({ gap: v })}
-          />
-          {!isBar && (
-            <Slider
-              label="Sectores separados"
-              value={style?.explode ?? 0}
-              min={0}
+              label={isBar ? 'Altura' : 'Grosor'}
+              value={style?.height ?? 0.34}
+              min={0.05}
               max={1}
               step={0.01}
-              onChange={(v) => patchStyle({ explode: v })}
+              onChange={(v) => patchStyle({ height: v })}
             />
-          )}
-        </Group>
+            {isBar ? (
+              <Slider
+                label="Punta redondeada"
+                value={style?.cornerRadius ?? 0.2}
+                min={0}
+                max={1}
+                step={0.01}
+                onChange={(v) => patchStyle({ cornerRadius: v })}
+              />
+            ) : (
+              <Slider
+                label="Agujero central"
+                value={style?.innerRadius ?? 0.55}
+                min={0}
+                max={0.85}
+                step={0.01}
+                onChange={(v) => patchStyle({ innerRadius: v })}
+              />
+            )}
+            <Slider
+              label="Separación"
+              value={style?.gap ?? 0.012}
+              min={0}
+              max={0.05}
+              step={0.001}
+              format={(v) => v.toFixed(3)}
+              onChange={(v) => patchStyle({ gap: v })}
+            />
+            {!isBar && (
+              <Slider
+                label="Sectores separados"
+                value={style?.explode ?? 0}
+                min={0}
+                max={1}
+                step={0.01}
+                onChange={(v) => patchStyle({ explode: v })}
+              />
+            )}
+          </Group>
+        )}
 
-        <Group title="Acabado">
-          <Choices
-            label="Material"
-            options={MATERIALS.map((m) => ({
-              id: m.id,
-              label: m.label,
-              hint: m.hint,
-              preview: <span className="matball" data-material={m.id} aria-hidden />,
-            }))}
-            value={style?.material ?? 'physical'}
-            onChange={(id) => patchStyle({ material: id as never })}
-          />
-        </Group>
+        {/* Los marcadores del globo son emisivos a propósito: el material no
+            los toca, así que el selector engañaría. */}
+        {!isGlobe && (
+          <Group title="Acabado">
+            <Choices
+              label="Material"
+              options={MATERIALS.map((m) => ({
+                id: m.id,
+                label: m.label,
+                hint: m.hint,
+                preview: <span className="matball" data-material={m.id} aria-hidden />,
+              }))}
+              value={style?.material ?? 'physical'}
+              onChange={(id) => patchStyle({ material: id as never })}
+            />
+          </Group>
+        )}
 
         <Group title="Fondo">
           <Choices
@@ -465,6 +534,30 @@ export default function EditorPage() {
  * rectángulo vacío parece un fallo de carga. Los que sí existen van a color,
  * porque la miniatura es la promesa de lo que vas a obtener.
  */
+/** Una fila de color con nombre. Misma pinta que la lista de segmentos. */
+function ColorRow({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (color: string) => void;
+}) {
+  return (
+    <label className="segment">
+      <input
+        type="color"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={`Color: ${label}`}
+      />
+      <span>{label}</span>
+      <output>{value.toUpperCase()}</output>
+    </label>
+  );
+}
+
 function TypePreview({ id, ready }: { id: string; ready: boolean }) {
   if (id === 'donut' || id === 'pie') {
     return (

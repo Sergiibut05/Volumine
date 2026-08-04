@@ -72,6 +72,29 @@ export const styleSchema = z.object({
   explode: unit.optional(),
   cornerRadius: unit.optional(),
   shadow: z.boolean().optional(),
+  /**
+   * Ajustes propios del globo. Nadie más los mira.
+   *
+   * Van agrupados y no sueltos en `style` porque no significan nada en los otros
+   * tipos: un `landColor` en una gráfica de barras es ruido en el esquema, en el
+   * editor y en la URL.
+   */
+  globe: z
+    .object({
+      /** Color del planeta, bajo los puntos. */
+      base: hexColor.optional(),
+      /** Color de los puntos de tierra. */
+      land: hexColor.optional(),
+      /** Halo atmosférico. */
+      glow: hexColor.optional(),
+      /** Cuántos puntos. 0 = mínimo legible, 1 = máximo. */
+      density: unit.optional(),
+      /** Tamaño de los puntos de tierra. */
+      dotSize: unit.optional(),
+      /** Tamaño del marcador mayor. */
+      markerSize: unit.optional(),
+    })
+    .optional(),
 });
 
 // ── scene ───────────────────────────────────────────────────────────────────

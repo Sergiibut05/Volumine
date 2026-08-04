@@ -32,7 +32,16 @@ export type ResolvedChartConfig = {
       as: 'value' | 'percent';
     };
   };
-  style: Required<NonNullable<ChartConfig['style']>>;
+  style: Omit<Required<NonNullable<ChartConfig['style']>>, 'globe'> & {
+    globe: {
+      base: string;
+      land: string;
+      glow: string;
+      density: number;
+      dotSize: number;
+      markerSize: number;
+    };
+  };
   scene: {
     background: Required<NonNullable<NonNullable<ChartConfig['scene']>['background']>>;
     environment: NonNullable<NonNullable<ChartConfig['scene']>['environment']>;
@@ -67,6 +76,19 @@ export const defaults = {
     explode: 0,
     cornerRadius: 0.2,
     shadow: true,
+    globe: {
+      /* Azul de noche, no negro: sobre negro puro el planeta desaparece contra
+         un fondo oscuro y solo se ven los puntos flotando. */
+      base: '#111634',
+      land: '#8b7dff',
+      glow: '#5b3ce6',
+      /* Medido en pantalla: por debajo de ~0,65 de densidad las penínsulas se
+         deshacen, y el punto necesita ~0,7 para que los continentes se lean de
+         un vistazo en un embed de 400 px de alto, que es el tamaño típico. */
+      density: 0.72,
+      dotSize: 0.7,
+      markerSize: 0.62,
+    },
   },
   scene: {
     background: {
@@ -159,7 +181,11 @@ export function resolveConfig(config: ChartConfig): ResolvedChartConfig {
       })),
       format: { ...d.format, ...config.data.format },
     },
-    style: { ...d.style, ...config.style },
+    style: {
+      ...d.style,
+      ...config.style,
+      globe: { ...d.style.globe, ...config.style?.globe },
+    },
     scene: {
       ...d.scene,
       ...config.scene,
