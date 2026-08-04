@@ -2,7 +2,7 @@ import {
   Material,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
-  MeshToonMaterial,
+  MeshLambertMaterial,
 } from 'three';
 import type { ResolvedChartConfig } from '@/lib/config/defaults';
 
@@ -47,7 +47,19 @@ export function createMaterial(config: ResolvedChartConfig, color: string): Mate
         roughness: 0.1,
       });
     case 'toon':
-      return new MeshToonMaterial({ color });
+      /*
+        "Plano" NO es cel-shading.
+
+        Se probó `MeshToonMaterial` y da dos problemas a la vez: ignora la
+        iluminación de entorno —y nuestra escena se ilumina casi toda por IBL,
+        así que la pieza queda oscura y sin volumen— y cuantiza la luz en bandas,
+        que sobre una pared cilíndrica se ve como un escalonado serrado.
+
+        Lo que pide este acabado es "mate, sin brillos, para acompañar a un texto
+        largo", y eso es difuso puro: Lambert. Responde a la luz de entorno,
+        no tiene especular y no cuantiza nada.
+      */
+      return new MeshLambertMaterial({ color });
     case 'physical':
     default:
       return new MeshPhysicalMaterial({

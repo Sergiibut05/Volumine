@@ -136,18 +136,20 @@ export function sectorGeometry({
   curveSegments,
 }: SectorGeometryParams): BufferGeometry {
   /*
-    En una tarta `innerR` es 0 y la punta del sector es un punto: no hay sólido
-    que redondear ahí. Se usa un radio interior mínimo, invisible en la práctica
-    porque queda tapado por la separación entre sectores y por la propia
-    convergencia de las piezas en el centro.
-  */
-  const minInner = bevel > 0 ? Math.max(bevel * 1.05, outerR * 0.02) : 0;
-  const effectiveInner = Math.max(innerR, innerR === 0 ? minInner : 0);
+    `innerR` se pasa tal cual, también cuando es 0.
 
+    En una tarta la punta converge en el eje: el perfil llega a radio 0 y el
+    sector acaba en morro redondeado, como debe. Antes se forzaba aquí un radio
+    interior mínimo proporcional al canto para evitar geometría degenerada, y con
+    el canto grueso eso dejaba un agujero bien visible en el centro — la tarta
+    parecía un anillo de agujero pequeño. El caso degenerado se resuelve donde
+    corresponde: midiendo el arco en un radio de referencia con suelo, dentro de
+    `rounded-sector.ts`.
+  */
   return roundedSectorGeometry({
     a0: sector.a0,
     a1: sector.a1,
-    innerR: effectiveInner,
+    innerR,
     outerR,
     depth,
     radius: bevel,

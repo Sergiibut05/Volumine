@@ -116,6 +116,27 @@ function shrink(point: ProfilePoint, amount: number): { r: number; y: number } {
   return { r: point.r - point.nr * amount, y: point.y - point.ny * amount };
 }
 
+/**
+ * Acota el radio del canto.
+ *
+ * El techo respecto al GROSOR es 0.42, no 0.5, y el motivo es visual, no
+ * matemático: la cara de corte plana es el perfil encogido por el radio del
+ * canto, así que al acercarse a la mitad del grosor esa cara degenera a una
+ * línea, el casquete se convierte en medio cilindro y se pliega sobre sí mismo.
+ * En pantalla se ve como un mordisco cóncavo en el centro de cada cara lateral.
+ *
+ * Con 0.42 siempre queda una banda plana de al menos el 16% del grosor, que es
+ * lo que mantiene la cara reconocible como una cara.
+ */
+function clampRounding(
+  requested: number,
+  width: number,
+  depth: number,
+  arcLength: number,
+): number {
+  return Math.max(0, Math.min(requested, width * 0.45, depth * 0.42, arcLength * 0.42));
+}
+
 export function roundedSectorGeometry({
   a0,
   a1,
@@ -132,11 +153,10 @@ export function roundedSectorGeometry({
     el arco no se cierre sobre sí mismo.
   */
   const width = outerR - innerR;
-  const arcAtInner = Math.max(innerR, 1e-3) * (a1 - a0);
-  const b = Math.max(
-    0,
-    Math.min(radius, width / 2 - 1e-4, depth / 2 - 1e-4, arcAtInner / 2 - 1e-4),
-  );
+  /* Radio de referencia para medir el arco. En una tarta `innerR` es 0 y la
+     punta converge en el eje: medir ahí daría 0 y anularía el canto. */
+  const arcRef = Math.max(innerR, outerR * 0.12);
+  const b = clampRounding(radius, width, depth, arcRef * (a1 - a0));
 
   const profile = buildProfile(innerR, outerR, depth, b, Math.max(1, cornerSegments));
   const m = profile.length;
@@ -341,6 +361,6 @@ export function maxRoundingFor({
   sweep: number;
 }): number {
   const width = outerR - innerR;
-  const arcAtInner = Math.max(innerR, outerR * 0.12) * sweep;
-  return Math.max(0, Math.min(width / 2, depth / 2, arcAtInner / 2) * 0.98);
+  const arcRef = Math.max(innerR, outerR * 0.12);
+  return clampRounding(Infinity, width, depth, arcRef * sweep);
 }

@@ -110,10 +110,14 @@ display: none }` o el elemento oculto se ve.
   producción funciona. Sin diagnosticar. **Verificar siempre contra `npm run
 build` + `npm start`.**
 - **Muesca residual en las esquinas interiores de las caras de corte.** Mucho
-  menor que antes, pero está. El rebaje angular es constante (medido en el radio
-  medio) mientras que el encogido del perfil en el casquete es absoluto: en el
-  radio interior los dos no casan del todo y queda un pellizco. Se ve solo
-  ampliando y con el canto al máximo.
+  menor tras acotar el canto a 0.42·grosor, pero está. El rebaje angular es
+  constante (medido en el radio medio) mientras que el encogido del perfil en el
+  casquete es absoluto: en el radio interior los dos no casan del todo. Se ve
+  solo ampliando y con el canto al máximo.
+- **En tarta, el canto lo marca el sector más pequeño y queda sutil.** El arco
+  se mide en un radio de referencia con suelo (12% del exterior), así que una
+  porción pequeña limita el canto de todas. Es el mismo problema de los sectores
+  diminutos, agravado porque en tarta el radio de referencia es bajo.
 - **Sectores diminutos.** El bevel global lo marca el sector más restrictivo,
   así que una porción por debajo del ~2% deja a todo el donut casi sin canto.
   Opciones: suelo mínimo de bevel, o agrupar automáticamente en "Otros".

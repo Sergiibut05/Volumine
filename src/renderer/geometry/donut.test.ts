@@ -63,16 +63,17 @@ describe('límites del bevel', () => {
 
     expect(sinHueco).toBeCloseTo(conHueco, 6);
     expect(conHuecoEnorme).toBeCloseTo(conHueco, 6);
-    expect(conHueco).toBeGreaterThan(0.15);
+    expect(conHueco).toBeGreaterThan(0.14);
   });
 
   it('manda la menor de las tres dimensiones del sólido', () => {
     const [sector] = computeSectors([1], 0.012);
-    // Con estas medidas el techo es la altura: depth/2 = 0.17.
-    expect(maxBevelForSector(sector, limits)).toBeCloseTo(0.17 * 0.98, 4);
+    /* El techo respecto al grosor es 0.42 y no 0.5: por encima, la cara de
+       corte plana degenera y el casquete se pliega. Ver clampRounding(). */
+    expect(maxBevelForSector(sector, limits)).toBeCloseTo(0.34 * 0.42, 4);
     // Adelgaza el anillo y pasa a mandar el grosor radial.
     expect(maxBevelForSector(sector, { ...limits, innerR: 0.9 })).toBeCloseTo(
-      0.05 * 0.98,
+      0.1 * 0.45,
       4,
     );
   });

@@ -90,7 +90,10 @@ export const THEMES: Theme[] = [
         material: 'toon',
         shadow: false,
       },
-      scene: { environment: 'soft', lightIntensity: 0.5 },
+      /* Más luz que el resto de temas a propósito: un difuso puro no tiene
+         especular que rellene, así que con la intensidad de los temas brillantes
+         las paredes en sombra se van a negro. */
+      scene: { environment: 'soft', lightIntensity: 1.05 },
     },
   },
   {
