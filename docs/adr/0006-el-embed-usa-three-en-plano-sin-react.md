@@ -1,6 +1,6 @@
 # ADR 0006 — El renderer de `/embed` es three en plano, sin React
 
-**Fecha:** 2026-08-04 · **Estado:** propuesta (pendiente de implementar en Fase 3)
+**Fecha:** 2026-08-04 · **Estado:** aceptada e implementada
 
 ## Contexto
 
@@ -78,7 +78,36 @@ que dependen el render estático y los tests visuales.
 - El presupuesto de 180 KB se mantiene, ahora con la evidencia de que es
   alcanzable. Si tras implementarlo no se llega, se revisa **con números**.
 
+## Resultado, medido
+
+| Paso                                                                                                             | JS del embed (gzip) |
+| ---------------------------------------------------------------------------------------------------------------- | ------------------- |
+| Punto de partida, con R3F                                                                                        | 358 KB              |
+| Quitar drei                                                                                                      | −0,2 KB             |
+| Imports nombrados en vez de namespace                                                                            | −0 KB               |
+| **Quitar R3F**, escena en three plano                                                                            | 265 KB              |
+| **Sacar `/embed` del App Router**: route handler que devuelve HTML a mano, cliente como bundle propio de esbuild | **140,6 KB**        |
+
+**140,6 KB gz, el 78% del presupuesto.** 2,5× menos que el punto de partida.
+
+Los dos saltos vienen de sitios distintos y los dos hacían falta: quitar R3F
+libera el tree-shaking de three (227 → ~137 KB), y salir del App Router quita
+React, ReactDOM y el runtime de Next (~110 KB), que se cargan aunque la página
+no tenga un solo componente cliente.
+
+Piezas resultantes:
+
+- `src/renderer/core/` — la escena en three plano. Una sola implementación.
+- `src/renderer/ChartCanvas.tsx` — envoltorio de React de 60 líneas, solo para
+  el editor. Monta, actualiza y desmonta; nada más.
+- `src/embed/main.ts` + `scripts/build-embed.mjs` — el cliente del embed y su
+  bundle de esbuild.
+- `src/app/(embed)/embed/route.ts` — HTML escrito a mano, con el CSS inline y el
+  config ya resuelto en un `<script type="application/json">`. El cliente no
+  necesita ni Zod.
+
 ## Cómo se verifica
 
-`npm run perf:embed` tiene que pasar. Ese script ya existe, mide lo que el
-navegador descarga de verdad y falla el build si se pasa.
+`npm run perf:embed`, que corre dentro de `npm run build` y falla el build si se
+pasa. Mide el bundle servido y además busca URLs absolutas dentro de él, que es
+como se cuela una fuente remota o un HDRI de un CDN sin querer.

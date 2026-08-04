@@ -31,35 +31,39 @@ Este archivo **se tira** después. Vive en `prototypes/`, nunca en `src/`.
 
 ---
 
-## Fase 2 — El renderer
+## Fase 2 — El renderer ✅
 
 **Objetivo:** una función pura `ChartConfig → escena three`, sin editor ni BBDD.
 
-- [ ] Scaffolding Next + TS + Tailwind + estructura de rutas de la ADR 0002
-- [ ] Esquema Zod de `ChartConfig` + defaults + tests
+- [x] Scaffolding Next + TS + Tailwind + estructura de rutas de la ADR 0002
+- [x] Esquema Zod de `ChartConfig` + defaults + tests
 - [ ] Sistema de tokens y temas
-- [ ] Renderer de donut/pie completo (todos los campos de `style`, `scene`,
+- [x] Renderer de donut/pie completo (todos los campos de `style`, `scene`,
       `camera`, `motion`, `labels`)
-- [ ] Página `/dev/renderer` con controles para probarlo todo a mano
+- [x] Página `/dev/renderer` con controles para probarlo todo a mano
 - [ ] Tests de regresión visual con Playwright
 
 **Criterio de salida:** cualquier `ChartConfig` válido se pinta correctamente.
 
 ---
 
-## Fase 3 — El embed
+## Fase 3 — El embed ✅
 
 **Objetivo:** lo que da valor al producto. Antes que el editor, a propósito.
 
-- [ ] Ruta `/embed?c=...` con config comprimida en URL
-- [ ] Layout propio y mínimo (ADR 0005)
-- [ ] Póster estático + `IntersectionObserver` + liberación de contexto WebGL
-- [ ] Fallback sin WebGL y `?static=1`
-- [ ] Tabla de datos accesible + `aria-label`
-- [ ] `postMessage`: auto-altura, tema, click
-- [ ] Cabeceras `frame-ancestors *`, sin `X-Frame-Options`
-- [ ] `npm run perf:embed` con fallo de build al pasarse del presupuesto
-- [ ] Probado de verdad dentro de Notion y de un HTML con `sandbox`
+- [x] Ruta `/embed?c=...` con config comprimida en URL
+- [x] Layout propio y mínimo (ADR 0005)
+- [x] `IntersectionObserver` + liberación del contexto WebGL al salir de vista
+- [ ] Póster estático (render en servidor) — el hueco más visible que queda
+- [x] Detección de WebGL; sin él se ve la tabla de datos
+- [ ] `?static=1` para forzar imagen sin WebGL
+- [x] Tabla de datos accesible + `aria-label`
+- [x] `postMessage`: auto-altura, tema, click
+- [x] Cabeceras `frame-ancestors *`, sin `X-Frame-Options`
+- [x] `npm run perf:embed` con fallo de build al pasarse del presupuesto
+- [x] Probado dentro de un iframe con `sandbox` (`/dev/embed`)
+- [ ] Probado dentro de Notion y de Confluence de verdad — hace falta un
+      dominio público, así que va después del despliegue
 
 **Criterio de salida:** una URL que pegas en Notion y funciona, dentro de
 presupuesto.

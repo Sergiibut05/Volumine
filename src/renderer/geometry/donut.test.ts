@@ -252,11 +252,11 @@ describe('sectorGeometry', () => {
     geo.dispose();
   });
 
-  it('el bevel expande el radio hacia fuera, y como mucho su propio tamaño', () => {
-    /* Contraintuitivo pero medido: ExtrudeGeometry NO mete el bevel hacia
-       dentro, saca la franja central hacia fuera. De ahí sale el límite del
-       hueco en maxBevelForSector. Este test fija ese comportamiento: si una
-       versión de three lo cambia, nos enteramos aquí y no en producción. */
+  it('el encogido previo mantiene el radio dentro de outerR', () => {
+    /* ExtrudeGeometry expande la franja central hacia fuera por bevelSize. La
+       forma se encoge antes justamente para compensarlo. Este test fija el
+       resultado: si una versión de three cambia el comportamiento del bevel,
+       nos enteramos aquí y no en producción. */
     const bevel = 0.03;
     const geo = sectorGeometry({
       sector,
@@ -276,11 +276,10 @@ describe('sectorGeometry', () => {
       if (Math.abs(pos.getY(i) - 0.34) < 1e-4) radioEnTapa = Math.max(radioEnTapa, r);
     }
 
-    expect(radioEnTapa).toBeCloseTo(1, 3); // la tapa sí respeta outerR
-    expect(maxR).toBeGreaterThan(1); // la franja central se sale
-    // Un pelo más que `bevel`: en las esquinas el desplazamiento va por la
-    // normal del vértice, que es más larga que la de una cara.
-    expect(maxR).toBeLessThanOrEqual(1 + bevel * 1.1);
+    // La tapa queda encogida por el bevel; la franja central vuelve a outerR.
+    expect(radioEnTapa).toBeCloseTo(1 - bevel, 2);
+    expect(maxR).toBeGreaterThan(1 - bevel);
+    expect(maxR).toBeLessThanOrEqual(1.005);
     geo.dispose();
   });
 

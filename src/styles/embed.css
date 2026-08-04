@@ -46,6 +46,66 @@ canvas {
   height: 100%;
 }
 
+.tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 11px;
+  border-radius: 10px;
+  background: rgb(16 16 24 / 0.82);
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 8px 32px rgb(0 0 0 / 0.45),
+    inset 0 0 0 1px rgb(255 255 255 / 0.09);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* `display: flex` gana al `[hidden] { display: none }` del navegador, así que
+   el tooltip vacío se quedaba visible como una píldora negra. Hay que decirlo
+   explícitamente. */
+.tooltip[hidden] {
+  display: none;
+}
+
+.tooltip b {
+  font-weight: 600;
+}
+
+.tooltip span {
+  opacity: 0.62;
+}
+
+/* Marca de agua del plan gratuito. La decide el SERVIDOR al servir el config:
+   si la decidiera el cliente sería trivial quitarla (ADR 0005). */
+/* El fondo puede ser cualquier cosa —transparente sobre la página del cliente,
+   claro, oscuro—, así que la marca no puede fiarse de un color de texto: lleva
+   su propia píldora translúcida para tener contraste siempre. */
+.watermark {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgb(16 16 24 / 0.42);
+  backdrop-filter: blur(6px);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: rgb(255 255 255 / 0.82);
+  text-decoration: none;
+  transition: background 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.watermark:hover {
+  background: rgb(16 16 24 / 0.72);
+}
+
 /* Los datos siempre están en el DOM, visibles o no: accesibilidad, SEO y
    lectores de pantalla (ADR 0005). Oculto visualmente, nunca display:none. */
 .sr-only {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ChartStage } from '@/renderer/ChartStage';
+import { ChartCanvas } from '@/renderer/ChartCanvas';
 import { parseConfig } from '@/lib/config/parse';
 import type { ChartConfig } from '@/lib/config/schema';
 
@@ -139,11 +139,8 @@ export default function RendererDevPage() {
         </div>
       </aside>
 
-      {/* `minHeight: 0` no es decorativo: los items de un grid llevan
-          min-height:auto, la celda mide 0 en el primer paint y R3F se queda con
-          un canvas de 300×150 que ya no vuelve a medir. */}
       <div style={{ position: 'relative', minHeight: 0, height: '100%' }}>
-        {result.ok && <ChartStage config={result.config} />}
+        {result.ok && <ChartCanvas config={result.config} />}
       </div>
     </main>
   );

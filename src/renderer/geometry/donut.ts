@@ -61,18 +61,15 @@ export type BevelLimits = {
  * Máximo bevel absoluto admisible para un sector. Cuatro restricciones, las
  * cuatro descubiertas viendo artefactos en pantalla:
  *
- *  1-3. Por encima de ~45% de la menor de sus tres dimensiones (grosor radial,
- *       arco interior, altura) el contorno se autointersecta.
- *  4.   La SEPARACIÓN entre vecinos. Y esta es más dura de lo que parece: el
- *       bevel de ExtrudeGeometry **expande** la forma hacia fuera, no hacia
- *       dentro. A media altura el sector ocupa `bevel` más en todas
- *       direcciones, también tangencialmente. Dos vecinos que se expanden cada
- *       uno `bevel` se tocan cuando `2·bevel ≥ hueco`, así que el techo real es
- *       `hueco / 2`, con un margen del 10%.
- *
- * La restricción 4 se había estimado a ojo en `0.85 × hueco` viendo artefactos
- * en pantalla; medir la geometría dio el porqué y el número correcto. Encaja con
- * lo observado: a ratio 0.45 se veía limpio y a 0.6 aparecía costura.
+ *  1-3. La forma se **encoge** por `bevel` antes de extruir (ver
+ *       `sectorGeometry`), así que el sector debe seguir existiendo después de
+ *       encogerlo: no más de la mitad del grosor radial, del arco interior ni
+ *       de la altura. Con un 90% de margen para no llegar a lo degenerado.
+ *  4.   La SEPARACIÓN entre vecinos, ya solo como red de seguridad. Al encoger
+ *       la forma primero, el bevel la devuelve al contorno nominal y deja de
+ *       comerse el hueco. Queda un error residual porque el encogido angular usa
+ *       el radio medio: en el radio interior se queda corto en ~0.3·bevel por
+ *       lado. De ahí el techo de 1.2·hueco.
  */
 export function maxBevelForSector(sector: Sector, limits: BevelLimits): number {
   const radial = limits.outerR - limits.innerR;
@@ -81,7 +78,7 @@ export function maxBevelForSector(sector: Sector, limits: BevelLimits): number {
 
   return Math.max(
     0,
-    Math.min(radial * 0.45, arcLen * 0.45, limits.depth * 0.45, gapArc * 0.45),
+    Math.min(radial * 0.45, arcLen * 0.45, limits.depth * 0.45, gapArc * 1.2),
   );
 }
 
@@ -168,9 +165,8 @@ export type SectorGeometryParams = {
  * Devuelve la geometría con la base en y=0 y creciendo hacia +Y, centrada en el
  * origen del plano XZ.
  *
- * OJO: el radio real supera `outerR` en hasta `bevel`, porque ExtrudeGeometry
- * expande el contorno hacia fuera en la franja central. Las tapas sí quedan
- * exactamente en `outerR`. Tenlo en cuenta al encuadrar la cámara.
+ * El radio máximo queda en `outerR`: la forma se encoge por `bevel` antes de
+ * extruir precisamente para que la expansión del bevel la devuelva ahí.
  *
  * Las superficies curvas salen con sombreado suave; las tapas y las caras
  * radiales, planas. Ver `smoothCurvedSurfaces()`.
@@ -186,9 +182,37 @@ export function sectorGeometry({
   const b = Math.max(0, Math.min(bevel, depth / 2 - 0.001));
   const hasBevel = b > 0.0005;
 
+  /*
+    Se ENCOGE la forma por `b` antes de extruir.
+
+    ExtrudeGeometry no mete el bevel hacia dentro: expande la franja central
+    hacia fuera por `bevelSize`. Si se le pasa el contorno nominal, el sector
+    acaba ocupando `b` de más en todas direcciones y se come el hueco con sus
+    vecinos, que era lo que producía costuras en las juntas y obligaba a limitar
+    el canto a la mitad del hueco.
+
+    Encogiendo primero, la expansión devuelve la geometría exactamente al
+    contorno pedido y el hueco se respeta entero. El encogido angular usa el
+    radio medio: exacto ahí, con un error pequeño en los extremos.
+  */
+  const inset = hasBevel ? b : 0;
+  const midRadius = (innerR + outerR) / 2;
+  const dAngle = inset / midRadius;
+
+  const a0 = sector.a0 + dAngle;
+  const a1 = sector.a1 - dAngle;
+  const rInner = innerR + inset;
+  const rOuter = outerR - inset;
+
   const shape = new Shape();
-  shape.absarc(0, 0, outerR, sector.a0, sector.a1, false);
-  shape.absarc(0, 0, innerR, sector.a1, sector.a0, true);
+  if (a1 > a0 && rOuter > rInner) {
+    shape.absarc(0, 0, rOuter, a0, a1, false);
+    shape.absarc(0, 0, rInner, a1, a0, true);
+  } else {
+    // Encogerlo lo dejaría degenerado: se dibuja sin encoger y sin bevel.
+    shape.absarc(0, 0, outerR, sector.a0, sector.a1, false);
+    shape.absarc(0, 0, innerR, sector.a1, sector.a0, true);
+  }
   shape.closePath();
 
   const geometry = new ExtrudeGeometry(shape, {

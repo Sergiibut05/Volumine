@@ -26,6 +26,11 @@ se la lleva su página y nos quitan.
 `RoomEnvironment`— son **137 KB gz**. Ese es el suelo real y no hay forma de
 bajarlo sin renunciar a WebGL. El presupuesto deja ~43 KB para nuestro renderer.
 
+**Estado actual: 140,6 KB gz — el 78% del presupuesto.** Se llegó ahí sacando
+`/embed` del App Router (ADR 0006): es un route handler que devuelve HTML
+escrito a mano, con el CSS inline y el cliente como bundle propio de esbuild.
+Una sola petición de JS, cero peticiones a terceros.
+
 Lo que **no** cabe, comprobado con `npm run perf:embed`:
 
 |                                                       | gzip       |
@@ -37,6 +42,10 @@ Lo que **no** cabe, comprobado con `npm run perf:embed`:
 
 Por eso `/embed` no usa React (ADR 0006). Y por eso tampoco lleva editor, auth,
 store ni router de cliente.
+
+Dos cosas que se probaron y **no** sirvieron de nada, para que nadie las repita:
+quitar drei ahorró 0,2 KB, y cambiar `import * as THREE` por imports nombrados
+ahorró 0. Mientras R3F estuviera dentro, three viajaba entero igual.
 
 ### Reglas que se derivan del presupuesto
 

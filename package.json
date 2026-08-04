@@ -5,18 +5,17 @@
   "description": "Gráficas 3D interactivas que se incrustan en cualquier sitio con un link",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/build-embed.mjs && next build",
     "start": "next start",
     "lint": "eslint . && tsc --noEmit",
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "perf:embed": "node scripts/perf-embed.mjs"
+    "perf:embed": "node scripts/perf-embed.mjs",
+    "build:embed": "node scripts/build-embed.mjs"
   },
   "dependencies": {
-    "@react-three/drei": "^10.7.7",
-    "@react-three/fiber": "^9.3.0",
     "lz-string": "^1.5.0",
     "next": "16.3.0",
     "react": "19.2.8",
@@ -33,6 +32,7 @@
     "@types/react-dom": "^19",
     "@types/three": "^0.180.0",
     "@vitejs/plugin-react": "^5.0.4",
+    "esbuild": "^0.28.1",
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
     "prettier": "^3.6.2",
