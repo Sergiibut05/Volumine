@@ -1,0 +1,72 @@
+# Presupuesto de rendimiento
+
+Dos productos distintos con dos listones distintos. No los mezcles.
+
+## `/embed` — el listón duro
+
+Es código que corre dentro de la página de otra persona. Si es lento, la culpa
+se la lleva su página y nos quitan.
+
+| Métrica | Presupuesto | Cómo se mide |
+|---|---|---|
+| JS transferido (gzip), ruta `/embed` | **≤ 180 KB** | `npm run perf:embed` |
+| CSS transferido | ≤ 8 KB | idem |
+| Peticiones antes del primer frame | ≤ 3 | Playwright, HAR |
+| Fuentes remotas | **0** | subset local, `.woff2`, inline si <8 KB |
+| Peticiones a terceros | **0** | ninguna. Ni analytics, ni CDN, ni fuentes |
+| LCP (móvil simulado, 4G) | ≤ 1.8 s | Lighthouse en CI |
+| CLS | **0** | el contenedor reserva ratio desde el primer byte |
+| Frame time con 8 segmentos | ≤ 8 ms | perfilado manual |
+| Draw calls | ≤ 12 | `renderer.info.render.calls` |
+| Contextos WebGL por embed | 1, liberado fuera de viewport | `IntersectionObserver` |
+
+Notas de los ~180 KB: `three` va sobre 150 KB gzip con tree-shaking agresivo.
+Ese es el suelo real. Todo lo demás (React, R3F, el renderer) tiene que caber en
+el resto — **de ahí que el embed no lleve editor, ni auth, ni store, ni router
+del lado cliente**.
+
+### Reglas que se derivan del presupuesto
+
+- Imports de three siempre nombrados desde `three` (nunca `three/examples` sin
+  medir). Nada de `three-stdlib` entero.
+- Post-proceso (bloom) es **opt-in** y se carga con `import()` dinámico. Sin
+  bloom no se descarga el `EffectComposer`.
+- Nada de `drei` en el embed salvo lo que se pueda tree-shakear a coste medido.
+  Si `drei` no cabe, el embed usa R3F pelado o three directo. Se mide, no se
+  opina.
+- Sin WebGL disponible o `?static=1` → se sirve la imagen y **no se descarga
+  three** (split por ruta, decidido en servidor cuando sea posible).
+- El póster estático se pinta primero, siempre. El canvas lo sustituye cuando
+  está listo. Nunca hay hueco en blanco.
+
+### Multi-embed en una página
+
+Los navegadores limitan los contextos WebGL simultáneos (~8-16). Una página de
+Notion con 6 gráficas nuestras debe funcionar:
+
+- Póster estático hasta que el embed entra en viewport.
+- Al salir del viewport más de N segundos, `renderer.dispose()` y volver al
+  póster.
+- `powerPreference: "low-power"`, `antialias` solo si `devicePixelRatio < 2`.
+- `dpr` limitado a `Math.min(devicePixelRatio, 2)`.
+
+## App y marketing — el listón normal
+
+Aquí sí se puede ser generoso: es nuestra página, la gente ha decidido venir y
+el listón es visual (ver `docs/DESIGN.md`).
+
+| Métrica | Presupuesto |
+|---|---|
+| LCP landing (móvil, 4G) | ≤ 2.5 s |
+| INP | ≤ 200 ms |
+| CLS | ≤ 0.05 |
+| JS inicial landing (gzip) | ≤ 250 KB (excluyendo el 3D del hero, que es lazy) |
+| Editor: primer frame interactivo | ≤ 3 s |
+
+El 3D de la landing se monta tras el primer render y solo si hay WebGL y no hay
+`prefers-reduced-motion`. La landing tiene que ser legible y bonita sin él.
+
+## Cuándo se comprueba
+
+- `npm run perf:embed` en cada PR que toque `app/embed/**` o `src/renderer/**`.
+- Falla el build si se pasa el presupuesto. No es un aviso, es un error.

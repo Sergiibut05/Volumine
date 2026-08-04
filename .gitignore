@@ -1,0 +1,48 @@
+# dependencias
+node_modules/
+.pnp
+.pnp.js
+
+# builds
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+
+# entorno — nunca, jamás
+.env
+.env.*
+!.env.example
+
+# tests
+/coverage
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# despliegue
+.vercel
+
+# supabase local
+.branches
+.temp
+supabase/.temp
+
+# editores y SO
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# claude code — la config compartida SÍ va al repo; lo personal no
+.claude/settings.local.json
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
