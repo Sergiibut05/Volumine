@@ -7,7 +7,7 @@
 > Sé concreto. "Avanzando en el renderer" no vale.
 
 **Última actualización:** 2026-08-04
-**Fase actual:** 3 — El embed, funcionando de punta a punta
+**Fase actual:** 4 — Landing y editor
 
 ## Qué funciona hoy
 
@@ -26,19 +26,37 @@ verificado con `sandbox` puesto, que es lo que hace Confluence Cloud.
 - Renderer de donut/pie en three plano: bevel uniforme, sombreado suave, sombra
   de contacto, hover con elevación y tooltip, órbita.
 - Tabla de datos accesible y `aria-label` generado, siempre en el DOM.
-- **38 tests** unitarios de geometría y de contrato.
+- **40 tests** unitarios de geometría y de contrato.
+
+## Interfaz
+
+- **`/`** — landing. Dirección "estudio": superficie clara de papel de
+  fotografía de producto, con las gráficas como objetos que proyectan sombra
+  real. Elemento firma: la tira de URL del héroe, que cambia en vivo al tocar el
+  tema, porque el producto es el link. Dispositivo estructural: ficha técnica
+  (PESO / PETICIONES / TERCEROS / REGISTRO), no 01/02/03.
+- **Galería de tipos** — cada tarjeta dice a qué pregunta responde el tipo y
+  **cuándo no usarlo**. Los dos que existen montan 3D al entrar en viewport; los
+  que no, silueta en CSS. Cinco canvas a la vez rompen una página de gama media.
+- **`/crear`** — editor. Personalización por tarjetas en tres niveles: tema,
+  ajustes, avanzado (plegado). Temas con muestra de paleta, tipos, color por
+  segmento, material con bola de muestra, fondo, forma y movimiento. El rango
+  del slider de canto se calcula con `globalBevel()`, la misma función que usa
+  la geometría: el control no puede llegar a un estado roto.
+- **6 temas** en `src/lib/themes/`, que rellenan sin bloquear.
+- Radix para los sliders: accesibilidad y comportamiento, cero estética
+  impuesta. El estilo es nuestro, en `src/styles/editor.css`.
+- Superficie clara en marketing y oscura en el editor, a propósito: el editor es
+  un modo de taller y el 3D con IBL se lee mejor sobre oscuro.
 
 ## Qué toca ahora
 
-Fase 4, el editor. El renderer y el contrato están listos; falta la interfaz
-que produce el config. Plantear los paneles siguiendo `docs/CUSTOMIZATION.md`
-(tres niveles de profundidad, rangos seguros calculados).
-
-Antes de eso, dos cosas cortas que quedaron a medias:
-
-- Los temas de `src/lib/themes/` no existen todavía. El esquema los admite
-  (`theme`) pero no hay ninguno.
-- No hay tests de regresión visual con Playwright. El andamiaje está.
+1. **Entrada de datos en el editor.** Hoy los datos están fijos en el código:
+   se puede cambiar todo el aspecto pero no los números. Es el hueco más grande.
+   Tabla editable + pegar desde Excel/Sheets.
+2. **Deshacer/rehacer**, barato porque el config es la única fuente de verdad.
+3. Tests de regresión visual con Playwright. El andamiaje está.
+4. Póster estático en servidor, para el fallback sin WebGL y las OG images.
 
 ## Decisiones pendientes de Manuel
 

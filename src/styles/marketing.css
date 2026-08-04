@@ -1,0 +1,347 @@
+/*
+  Superficie de marketing: "estudio".
+
+  Fondo de papel de fotografía de producto, no fondo de SaaS. La tesis del
+  producto es que una gráfica de Voluma es un OBJETO —tiene volumen, canto y
+  luz encima—, así que la página se comporta como el set donde se fotografía:
+  papel pálido frío, barrido de sombra abajo, y las gráficas apoyadas encima.
+
+  Deliberadamente NO es la landing oscura con un acento neón: eso es el default
+  del sector y no dice nada sobre este producto en concreto (docs/DESIGN.md).
+*/
+
+.studio {
+  --paper: #ededf0;
+  --paper-deep: #dfdfe6;
+  --paper-edge: #cfcfd9;
+  --ink: #14141a;
+  --ink-soft: #55555f;
+  --ink-faint: #8a8a96;
+  --spark: #5b3ce6;
+
+  min-height: 100dvh;
+  background: radial-gradient(
+    120% 70% at 50% 0%,
+    #f6f6f8 0%,
+    var(--paper) 46%,
+    var(--paper-deep) 100%
+  );
+  color: var(--ink);
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+.studio ::selection {
+  background: var(--spark);
+  color: #fff;
+}
+
+.shell {
+  width: min(1180px, 100% - 2.5rem);
+  margin-inline: auto;
+}
+
+/* ── tipografía ─────────────────────────────────────────────────────────── */
+
+.display {
+  font-family: var(--font-display), ui-sans-serif, sans-serif;
+  font-weight: 700;
+  line-height: 0.94;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+/* Etiqueta de ficha técnica. El dispositivo estructural de la página: las
+   specs SON el diferenciador, así que se presentan como specs. */
+.spec-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-ligatures: none;
+}
+
+/* ── hero ───────────────────────────────────────────────────────────────── */
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  align-items: center;
+  gap: clamp(1.5rem, 4vw, 4rem);
+  padding-block: clamp(3rem, 8vh, 6rem) clamp(2rem, 5vh, 3.5rem);
+}
+
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(2.75rem, 1rem + 6.4vw, 5.25rem);
+}
+
+.hero p {
+  margin: 1.25rem 0 0;
+  max-width: 34ch;
+  font-size: clamp(1rem, 0.94rem + 0.3vw, 1.1875rem);
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+/* El objeto, apoyado sobre el papel. La sombra la pinta el propio renderer. */
+.stagebox {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  min-height: 340px;
+  border-radius: 1.25rem;
+}
+
+/* ── la tira de URL: el elemento firma ──────────────────────────────────── */
+
+/* El producto es el link, así que el link es el héroe. Cambia carácter a
+   carácter mientras tocas la gráfica. */
+.urlstrip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.6875rem 0.6875rem 0.6875rem 1rem;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgb(20 20 26 / 0.06),
+    0 12px 32px -12px rgb(20 20 26 / 0.22);
+}
+
+.urlstrip code {
+  overflow: hidden;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.urlstrip code b {
+  font-weight: 500;
+  color: var(--spark);
+}
+
+.copy {
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--p-dur-2) var(--p-ease-out);
+}
+
+.copy:hover {
+  background: var(--spark);
+}
+
+/* ── ficha técnica ──────────────────────────────────────────────────────── */
+
+.specsheet {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 1px;
+  margin-block: clamp(3rem, 7vh, 5rem);
+  background: var(--paper-edge);
+  border-block: 1px solid var(--paper-edge);
+}
+
+.specsheet > div {
+  padding: 1.25rem 1.25rem 1.375rem;
+  background: var(--paper);
+}
+
+.specsheet strong {
+  display: block;
+  margin-top: 0.5rem;
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.specsheet span {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+/* ── galería de tipos ───────────────────────────────────────────────────── */
+
+/* Tres columnas como máximo: con cinco tipos, cuatro columnas dejan una tarjeta
+   huérfana en la segunda fila. 3 + 2 se lee mucho mejor. */
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: 1.25rem;
+  margin-top: 2rem;
+}
+
+@media (min-width: 1000px) {
+  .gallery {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.card {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  border-radius: 1.125rem;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgb(20 20 26 / 0.05),
+    0 16px 40px -20px rgb(20 20 26 / 0.25);
+  overflow: hidden;
+  transition:
+    transform var(--p-dur-3) var(--p-ease-out),
+    box-shadow var(--p-dur-3) var(--p-ease-out);
+}
+
+.card:hover,
+.card:focus-within {
+  transform: translateY(-3px);
+  box-shadow:
+    0 1px 2px rgb(20 20 26 / 0.05),
+    0 28px 56px -24px rgb(20 20 26 / 0.32);
+}
+
+.card-stage {
+  position: relative;
+  aspect-ratio: 16 / 11;
+  background: linear-gradient(180deg, #fafafc 0%, #f0f0f4 100%);
+}
+
+.card-body {
+  display: grid;
+  align-content: start;
+  gap: 0.5rem;
+  padding: 1.125rem 1.25rem 1.375rem;
+}
+
+.card-body h3 {
+  margin: 0;
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.card-body p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.card-body .avoid {
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--paper-edge);
+  color: var(--ink-faint);
+  font-size: 0.8125rem;
+}
+
+.tag {
+  align-self: start;
+  justify-self: start;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tag[data-status='listo'] {
+  background: color-mix(in oklab, var(--spark) 12%, transparent);
+  color: var(--spark);
+}
+
+.tag[data-status='en-camino'] {
+  background: rgb(20 20 26 / 0.06);
+  color: var(--ink-faint);
+}
+
+/* Marcador de posición para los tipos que aún no existen: se dibuja con CSS,
+   no monta WebGL. Un navegador aguanta pocos contextos a la vez. */
+.ghost {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 6px;
+  grid-auto-flow: column;
+  align-items: end;
+  opacity: 0.24;
+}
+
+.ghost i {
+  display: block;
+  width: 16px;
+  border-radius: 4px 4px 2px 2px;
+  background: var(--ink);
+}
+
+/* ── cierre ─────────────────────────────────────────────────────────────── */
+
+.closer {
+  display: grid;
+  gap: 1.5rem;
+  justify-items: center;
+  padding-block: clamp(4rem, 12vh, 7rem);
+  text-align: center;
+}
+
+.closer h2 {
+  margin: 0;
+  font-size: clamp(2rem, 1.2rem + 3vw, 3.5rem);
+}
+
+.cta {
+  display: inline-block;
+  padding: 0.9375rem 1.75rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background var(--p-dur-2) var(--p-ease-out),
+    transform var(--p-dur-2) var(--p-ease-out);
+}
+
+.cta:hover {
+  background: var(--spark);
+  transform: translateY(-2px);
+}
+
+.studio a:focus-visible,
+.studio button:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--paper),
+    0 0 0 4px var(--spark);
+}
+
+footer.studio-foot {
+  padding-block: 2rem 3rem;
+  border-top: 1px solid var(--paper-edge);
+  color: var(--ink-faint);
+  font-size: 0.8125rem;
+}

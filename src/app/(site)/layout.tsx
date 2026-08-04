@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Bricolage_Grotesque, Instrument_Sans } from 'next/font/google';
+import { Bricolage_Grotesque, Instrument_Sans, JetBrains_Mono } from 'next/font/google';
 import '@/styles/site.css';
 
 /*
@@ -24,6 +24,14 @@ const body = Instrument_Sans({
   display: 'swap',
 });
 
+// Rol de utilidad: la URL del héroe y las cifras de la ficha técnica. Una URL
+// en proporcional se lee mal y deja de parecer una URL.
+const mono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
   title: {
     default: 'Voluma — gráficas 3D que se incrustan con un link',
@@ -35,7 +43,7 @@ export const metadata: Metadata = {
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${display.variable} ${body.variable}`}>
+    <html lang="es" className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <body>{children}</body>
     </html>
   );
