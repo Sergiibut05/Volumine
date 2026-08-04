@@ -48,13 +48,32 @@ describe('computeSectors', () => {
 });
 
 describe('límites del bevel', () => {
-  it('con la separación por defecto, el hueco domina y todos los sectores empatan', () => {
-    // No es un accidente: con gap 0.012 e innerR 0.55 la restricción del hueco
-    // (0.0353) es más dura que la del arco incluso para un sector del 10%. Por
-    // eso el donut queda con el canto uniforme sin necesidad de nada más.
-    const [grande, pequeno] = computeSectors([90, 10], 0.012);
-    expect(maxBevelForSector(pequeno, limits)).toBeCloseTo(
-      maxBevelForSector(grande, limits),
+  it('la separación ya NO acota el canto', () => {
+    /* Regresión de la refactorización. Con ExtrudeGeometry el canto crecía hacia
+       fuera y se comía el hueco con los vecinos, así que había que limitarlo a
+       la mitad de la separación. La geometría propia redondea hacia DENTRO: los
+       vecinos se separan en vez de acercarse, y la restricción sobra.
+
+       Consecuencia práctica: el canto máximo pasó de ~0.019 a ~0.167 con la
+       separación por defecto. Nueve veces más. */
+    const [sector] = computeSectors([1], 0.012);
+    const conHueco = maxBevelForSector(sector, limits);
+    const sinHueco = maxBevelForSector(sector, { ...limits, gapAngle: 0.0001 });
+    const conHuecoEnorme = maxBevelForSector(sector, { ...limits, gapAngle: 0.4 });
+
+    expect(sinHueco).toBeCloseTo(conHueco, 6);
+    expect(conHuecoEnorme).toBeCloseTo(conHueco, 6);
+    expect(conHueco).toBeGreaterThan(0.15);
+  });
+
+  it('manda la menor de las tres dimensiones del sólido', () => {
+    const [sector] = computeSectors([1], 0.012);
+    // Con estas medidas el techo es la altura: depth/2 = 0.17.
+    expect(maxBevelForSector(sector, limits)).toBeCloseTo(0.17 * 0.98, 4);
+    // Adelgaza el anillo y pasa a mandar el grosor radial.
+    expect(maxBevelForSector(sector, { ...limits, innerR: 0.9 })).toBeCloseTo(
+      0.05 * 0.98,
+      4,
     );
   });
 
@@ -68,11 +87,11 @@ describe('límites del bevel', () => {
     );
   });
 
-  it('la separación acota el bevel aunque el sector dé de sobra', () => {
-    const [s] = computeSectors([1], 0.012);
-    const holgado = maxBevelForSector(s, limits);
-    const apretado = maxBevelForSector(s, { ...limits, gapAngle: 0.004 });
-    expect(apretado).toBeLessThan(holgado);
+  it('un sector estrecho admite menos canto que uno ancho', () => {
+    const [grande, pequeno] = computeSectors([90, 10], 0.012);
+    expect(maxBevelForSector(pequeno, limits)).toBeLessThan(
+      maxBevelForSector(grande, limits),
+    );
   });
 
   it('nunca es negativo, ni con dimensiones degeneradas', () => {
@@ -367,5 +386,105 @@ describe('tarta (innerRadius = 0)', () => {
       expect(geo.attributes.position.count).toBeGreaterThan(0);
       geo.dispose();
     }
+  });
+});
+
+describe('sólido sin defectos (regresión de la refactorización)', () => {
+  const cases = [
+    { name: 'anillo', innerR: 0.55, depth: 0.34 },
+    { name: 'tarta', innerR: 0, depth: 0.34 },
+    { name: 'anillo fino', innerR: 0.78, depth: 0.18 },
+    { name: 'disco grueso', innerR: 0.2, depth: 0.9 },
+  ];
+
+  for (const c of cases) {
+    it(`${c.name}: la superficie no se sale del sólido pedido`, () => {
+      /* El defecto del bevel anterior era que el contorno desplazado se
+         autointersectaba y sobresalía: se veía como un canto arrugado y como
+         cortes en las caras laterales. Si vuelve, estos límites saltan. */
+      const sectors = computeSectors([42, 26, 17, 9, 6], 0.012);
+      const lim = { innerR: c.innerR, outerR: 1, depth: c.depth, gapAngle: 0.0754 };
+      const bevel = globalBevel(sectors, lim, 1); // al máximo, que es lo peor
+
+      for (const sector of sectors) {
+        const geo = sectorGeometry({
+          sector,
+          innerR: c.innerR,
+          outerR: 1,
+          depth: c.depth,
+          bevel,
+          curveSegments: curveSegmentsFor(sector),
+        });
+        const pos = geo.attributes.position;
+
+        for (let i = 0; i < pos.count; i += 1) {
+          const x = pos.getX(i);
+          const y = pos.getY(i);
+          const z = pos.getZ(i);
+          const r = Math.hypot(x, z);
+
+          expect(r).toBeLessThanOrEqual(1 + 1e-6);
+          expect(y).toBeGreaterThanOrEqual(-1e-6);
+          expect(y).toBeLessThanOrEqual(c.depth + 1e-6);
+          expect(Number.isFinite(r)).toBe(true);
+        }
+        geo.dispose();
+      }
+    });
+
+    it(`${c.name}: las normales son unitarias y no hay NaN`, () => {
+      const [sector] = computeSectors([1], 0.012);
+      const lim = { innerR: c.innerR, outerR: 1, depth: c.depth, gapAngle: 0.0754 };
+      const geo = sectorGeometry({
+        sector,
+        innerR: c.innerR,
+        outerR: 1,
+        depth: c.depth,
+        bevel: globalBevel([sector], lim, 0.8),
+        curveSegments: 40,
+      });
+      const n = geo.attributes.normal;
+
+      for (let i = 0; i < n.count; i += 1) {
+        const len = Math.hypot(n.getX(i), n.getY(i), n.getZ(i));
+        expect(len).toBeCloseTo(1, 4);
+      }
+      geo.dispose();
+    });
+  }
+
+  it('los sectores no invaden la separación con el canto al máximo', () => {
+    /* Antes el canto crecía hacia fuera y dos vecinos se tocaban. Ahora crece
+       hacia dentro, así que el hueco angular se respeta siempre. */
+    const sectors = computeSectors([50, 50], 0.02);
+    const lim = { innerR: 0.55, outerR: 1, depth: 0.34, gapAngle: 0.02 * Math.PI * 2 };
+    const bevel = globalBevel(sectors, lim, 1);
+
+    const anglesOf = (i: number) => {
+      const geo = sectorGeometry({
+        sector: sectors[i],
+        innerR: 0.55,
+        outerR: 1,
+        depth: 0.34,
+        bevel,
+        curveSegments: 40,
+      });
+      const pos = geo.attributes.position;
+      let min = Infinity;
+      let max = -Infinity;
+      for (let k = 0; k < pos.count; k += 1) {
+        // La geometría usa Z invertida respecto al ángulo.
+        const a = Math.atan2(-pos.getZ(k), pos.getX(k));
+        min = Math.min(min, a);
+        max = Math.max(max, a);
+      }
+      geo.dispose();
+      return { min, max };
+    };
+
+    const a = anglesOf(0);
+    // Ningún vértice del sector se sale de su rango angular nominal.
+    expect(a.min).toBeGreaterThanOrEqual(sectors[0].a0 - 1e-6);
+    expect(a.max).toBeLessThanOrEqual(sectors[0].a1 + 1e-6);
   });
 });

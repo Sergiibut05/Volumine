@@ -73,18 +73,25 @@ Todo esto salió de mirar píxeles o de medir, no de razonar.
    (0 KB) sirven de nada. Ver ADR 0006.
 2. **El App Router carga React aunque no haya componentes cliente.** Sacar
    `/embed` a un route handler con bundle propio quitó ~110 KB.
-3. **El bevel de `ExtrudeGeometry` expande el contorno hacia fuera**, no hacia
-   dentro. Por eso se comía el hueco entre sectores. Se arregla encogiendo la
-   forma por `bevel` antes de extruir.
+3. **`ExtrudeGeometry` no sirve para redondear este sólido, y era la raíz de
+   casi todo.** Desplaza el contorno 2D por bisectrices de vértice: en el arco
+   interior, que es cóncavo, los puntos convergen y se cruzan — de ahí el canto
+   arrugado. Además expande hacia fuera y se come el hueco entre vecinos.
+   Compensarlo encogiendo antes no funciona porque un encogido uniforme no es el
+   inverso de un desplazamiento por bisectriz, y la diferencia se ve como cortes
+   en las caras laterales. Sustituido por geometría propia en
+   `geometry/rounded-sector.ts`.
 4. **El bevel tiene que ser uno solo para todo el donut.** Por sector, un
    segmento del 42% tiene el canto del doble que uno del 6% y las juntas no
    casan: parece que las piezas se traspasan.
 5. **La geometría se gira −90° sobre X**, lo que mapea `(x,y,z) → (x, z, −y)`.
    La dirección radial de un sector es `(cos θ, 0, −sin θ)`. Con el signo
    positivo sale espejada y los sectores se desplazan de lado.
-6. **`toCreasedNormals` contamina las normales de la tapa** y su triangulación
-   en abanico lo propaga en estrías. Hay que devolverle a las tapas su normal
-   exacta después de suavizar.
+6. **Suavizar normales a posteriori siempre deja artefactos.** `toCreasedNormals`
+   contamina las tapas y su triangulación en abanico lo propaga en estrías; y
+   promediar en una pared cilíndrica poligonal deja bandas. La solución no es
+   suavizar mejor: es calcular las normales analíticamente al construir, que es
+   lo que hace la geometría propia.
 7. **Doble conversión sRGB**: `new Color(hex).convertSRGBToLinear()` con la
    gestión de color activada convierte dos veces y lava los colores.
 8. **El IBL blanco por encima de ~0.7 vuelve todo pastel.** Valores buenos:
@@ -102,6 +109,11 @@ display: none }` o el elemento oculto se ve.
   su WebSocket de HMR falla; la página no hidrata con `npm run dev`. En
   producción funciona. Sin diagnosticar. **Verificar siempre contra `npm run
 build` + `npm start`.**
+- **Muesca residual en las esquinas interiores de las caras de corte.** Mucho
+  menor que antes, pero está. El rebaje angular es constante (medido en el radio
+  medio) mientras que el encogido del perfil en el casquete es absoluto: en el
+  radio interior los dos no casan del todo y queda un pellizco. Se ve solo
+  ampliando y con el canto al máximo.
 - **Sectores diminutos.** El bevel global lo marca el sector más restrictivo,
   así que una porción por debajo del ~2% deja a todo el donut casi sin canto.
   Opciones: suelo mínimo de bevel, o agrupar automáticamente en "Otros".

@@ -1,13 +1,13 @@
-import { BufferGeometry, ExtrudeGeometry, MathUtils, Shape, Vector3 } from 'three';
-import { toCreasedNormals } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { BufferGeometry, Vector3 } from 'three';
+import { roundedSectorGeometry, maxRoundingFor } from './rounded-sector';
 
 /*
   Geometría del donut/pie. Funciones puras: entran números, sale un
   BufferGeometry. Sin React, sin escena, sin estado — así se puede testear y
   memoizar (ADR 0004).
 
-  Casi todos los números de este archivo salieron de mirar píxeles en
-  prototypes/donut.html, no de razonar. Ver docs/STATE.md.
+  La construcción del sólido vive en `rounded-sector.ts`. Aquí solo está el
+  reparto de sectores y el cálculo del canto.
 */
 
 /** Radio exterior en unidades de escena. Todo lo demás es relativo a esto. */
@@ -54,58 +54,39 @@ export type BevelLimits = {
   innerR: number;
   outerR: number;
   depth: number;
+  /** Se conserva por compatibilidad; ya no restringe. Ver abajo. */
   gapAngle: number;
 };
 
 /**
- * Máximo bevel absoluto admisible para un sector. Cuatro restricciones, las
- * cuatro descubiertas viendo artefactos en pantalla:
+ * Máximo canto admisible para un sector.
  *
- *  1-3. La forma se **encoge** por `bevel` antes de extruir (ver
- *       `sectorGeometry`), así que el sector debe seguir existiendo después de
- *       encogerlo: no más de la mitad del grosor radial, del arco interior ni
- *       de la altura. Con un 90% de margen para no llegar a lo degenerado.
- *  4.   La SEPARACIÓN entre vecinos, ya solo como red de seguridad. Al encoger
- *       la forma primero, el bevel la devuelve al contorno nominal y deja de
- *       comerse el hueco. Queda un error residual porque el encogido angular usa
- *       el radio medio: en el radio interior se queda corto en ~0.3·bevel por
- *       lado. De ahí el techo de 1.2·hueco.
+ * Tres límites, y los tres son "que el sólido siga existiendo": no más de la
+ * mitad del grosor radial, de la altura, ni del arco interior.
+ *
+ * La restricción del hueco entre vecinos **ya no existe**. Con la geometría
+ * propia el redondeo mete la superficie HACIA DENTRO, así que separa a los
+ * vecinos en lugar de acercarlos. Antes hacía falta porque el bevel de
+ * ExtrudeGeometry expandía el contorno hacia fuera y se comía la separación.
  */
 export function maxBevelForSector(sector: Sector, limits: BevelLimits): number {
-  const radial = limits.outerR - limits.innerR;
-
-  /*
-    Radio de referencia para las medidas angulares.
-
-    En una TARTA `innerR` es 0, y tanto el arco como el hueco se miden
-    multiplicando por él: los dos daban 0 y el bevel desaparecía por completo.
-    Se veía a simple vista — la tarta salía con aristas vivas.
-
-    El suelo del 12% del radio exterior es una decisión estética: la punta de un
-    sector de tarta es degenerada por definición (converge en un punto), y son
-    unos pocos píxeles junto al centro. Medir ahí en vez de en la punta da un
-    canto correcto en el 95% de la pieza a cambio de un bevel ligeramente
-    optimista en la punta, que además queda tapada por los sectores vecinos.
-  */
-  const referenceR = Math.max(limits.innerR, limits.outerR * 0.12);
-  const arcLen = referenceR * (sector.a1 - sector.a0);
-  const gapArc = referenceR * limits.gapAngle;
-
-  return Math.max(
-    0,
-    Math.min(radial * 0.45, arcLen * 0.45, limits.depth * 0.45, gapArc * 1.2),
-  );
+  return maxRoundingFor({
+    innerR: limits.innerR,
+    outerR: limits.outerR,
+    depth: limits.depth,
+    sweep: sector.a1 - sector.a0,
+  });
 }
 
 /**
- * UN SOLO bevel para todo el donut, el mínimo admisible entre todos los sectores.
+ * UN SOLO canto para todo el donut, el mínimo admisible entre todos los sectores.
  *
  * Calcularlo por sector daba al segmento del 42% un canto del doble de grueso
  * que al del 6%: en la junta los perfiles no casan y visualmente parece que las
- * piezas se traspasan. Fue el defecto más evidente del primer prototipo.
+ * piezas se traspasan.
  *
- * Contrapartida conocida y sin resolver: un sector diminuto deja a todo el donut
- * casi sin canto. Ver "Problemas abiertos" en docs/STATE.md.
+ * Contrapartida conocida: un sector diminuto reduce el canto de todos los demás.
+ * Ver "Problemas abiertos" en docs/STATE.md.
  */
 export function globalBevel(
   sectors: Sector[],
@@ -120,82 +101,14 @@ export function globalBevel(
 /**
  * Cuántos segmentos necesita el arco de un sector.
  *
- * Medido en el prototipo: con 64 y con 24 el resultado es idéntico a simple
- * vista, y 24 gasta 3× menos geometría; por debajo de ~14 se ve el polígono en
- * la silueta exterior. Aquí se escala con el ángulo, porque un sector del 6% no
- * necesita los mismos segmentos que uno del 42%.
+ * Medido: 160 por vuelta completa (2,25° por segmento) es donde deja de verse
+ * el polígono en la silueta. Escala con el ángulo porque un sector del 6% no
+ * necesita los mismos que uno del 42%.
  */
 export function curveSegmentsFor(sector: Sector, quality = 1): number {
   const sweep = sector.a1 - sector.a0;
-  /* 160 por vuelta completa = 2,25° por segmento. El sombreado suave disimula
-     el facetado del interior, pero la SILUETA sigue siendo un polígono y en un
-     sector grande se nota: por debajo de ~120 se ven los planos en el borde. */
   const forFullCircle = 160 * quality;
   return Math.max(8, Math.ceil((sweep / (Math.PI * 2)) * forFullCircle));
-}
-
-/**
- * Sombreado suave en las superficies curvas, manteniendo planas las tapas.
- *
- * `ExtrudeGeometry` produce normales planas: cada faceta del arco y del bevel se
- * ve como una banda. `toCreasedNormals` las promedia donde el ángulo entre caras
- * es pequeño, que es justo lo que queremos en el arco y en el canto.
- *
- * El problema —y por qué el primer intento se descartó— es que también promedia
- * en el borde entre la tapa y el bevel. Como la tapa se trianguliza en abanico,
- * ese error se propaga en estrías radiales por toda la cara superior. La
- * solución es suavizar todo y luego devolver a las tapas su normal exacta: son
- * los vértices que están justo en y=0 y en y=depth.
- */
-function smoothCurvedSurfaces(
-  geometry: BufferGeometry,
-  depth: number,
-  innerR: number,
-  outerR: number,
-): BufferGeometry {
-  const smooth = toCreasedNormals(geometry, MathUtils.degToRad(60));
-
-  const position = smooth.attributes.position;
-  const normal = smooth.attributes.normal;
-  const flat = 1e-4;
-  const wall = 2e-3;
-
-  for (let i = 0; i < position.count; i += 1) {
-    const x = position.getX(i);
-    const y = position.getY(i);
-    const z = position.getZ(i);
-
-    // Tapas: normal exacta hacia arriba o hacia abajo.
-    if (Math.abs(y - depth) < flat) {
-      normal.setXYZ(i, 0, 1, 0);
-      continue;
-    }
-    if (Math.abs(y) < flat) {
-      normal.setXYZ(i, 0, -1, 0);
-      continue;
-    }
-
-    /*
-      Paredes: la normal de un cilindro ES la radial, no hay nada que promediar.
-      Dejar que toCreasedNormals la calcule produce estrías verticales en cada
-      división del arco, porque interpola entre triángulos de un cilindro que en
-      realidad es un polígono. Aquí se pone el valor exacto.
-
-      También cubre la unión pared–bevel: ahí la superficie del bevel es tangente
-      al cilindro, así que su normal es radial igualmente.
-    */
-    const r = Math.hypot(x, z);
-    if (r < 1e-6) continue;
-
-    if (Math.abs(r - outerR) < wall) {
-      normal.setXYZ(i, x / r, 0, z / r);
-    } else if (innerR > 1e-6 && Math.abs(r - innerR) < wall) {
-      normal.setXYZ(i, -x / r, 0, -z / r);
-    }
-  }
-  normal.needsUpdate = true;
-
-  return smooth;
 }
 
 export type SectorGeometryParams = {
@@ -203,22 +116,16 @@ export type SectorGeometryParams = {
   innerR: number;
   outerR: number;
   depth: number;
-  /** Bevel absoluto, ya calculado con globalBevel(). */
+  /** Canto absoluto, ya calculado con globalBevel(). */
   bevel: number;
   curveSegments: number;
 };
 
 /**
- * Sector anular extruido con el canto redondeado. El rasgo de marca.
+ * Sector anular con el canto redondeado. El rasgo de marca.
  *
- * Devuelve la geometría con la base en y=0 y creciendo hacia +Y, centrada en el
- * origen del plano XZ.
- *
- * El radio máximo queda en `outerR`: la forma se encoge por `bevel` antes de
- * extruir precisamente para que la expansión del bevel la devuelva ahí.
- *
- * Las superficies curvas salen con sombreado suave; las tapas y las caras
- * radiales, planas. Ver `smoothCurvedSurfaces()`.
+ * Base en y=0, creciendo hacia +Y, centrado en el origen del plano XZ. Normales
+ * analíticas: no hay nada que suavizar después.
  */
 export function sectorGeometry({
   sector,
@@ -228,74 +135,36 @@ export function sectorGeometry({
   bevel,
   curveSegments,
 }: SectorGeometryParams): BufferGeometry {
-  const b = Math.max(0, Math.min(bevel, depth / 2 - 0.001));
-  const hasBevel = b > 0.0005;
-
   /*
-    Se ENCOGE la forma por `b` antes de extruir.
-
-    ExtrudeGeometry no mete el bevel hacia dentro: expande la franja central
-    hacia fuera por `bevelSize`. Si se le pasa el contorno nominal, el sector
-    acaba ocupando `b` de más en todas direcciones y se come el hueco con sus
-    vecinos, que era lo que producía costuras en las juntas y obligaba a limitar
-    el canto a la mitad del hueco.
-
-    Encogiendo primero, la expansión devuelve la geometría exactamente al
-    contorno pedido y el hueco se respeta entero. El encogido angular usa el
-    radio medio: exacto ahí, con un error pequeño en los extremos.
+    En una tarta `innerR` es 0 y la punta del sector es un punto: no hay sólido
+    que redondear ahí. Se usa un radio interior mínimo, invisible en la práctica
+    porque queda tapado por la separación entre sectores y por la propia
+    convergencia de las piezas en el centro.
   */
-  const inset = hasBevel ? b : 0;
-  const midRadius = (innerR + outerR) / 2;
-  const dAngle = inset / midRadius;
+  const minInner = bevel > 0 ? Math.max(bevel * 1.05, outerR * 0.02) : 0;
+  const effectiveInner = Math.max(innerR, innerR === 0 ? minInner : 0);
 
-  const a0 = sector.a0 + dAngle;
-  const a1 = sector.a1 - dAngle;
-  const rInner = innerR + inset;
-  const rOuter = outerR - inset;
-
-  const shape = new Shape();
-  if (a1 > a0 && rOuter > rInner) {
-    shape.absarc(0, 0, rOuter, a0, a1, false);
-    shape.absarc(0, 0, rInner, a1, a0, true);
-  } else {
-    // Encogerlo lo dejaría degenerado: se dibuja sin encoger y sin bevel.
-    shape.absarc(0, 0, outerR, sector.a0, sector.a1, false);
-    shape.absarc(0, 0, innerR, sector.a1, sector.a0, true);
-  }
-  shape.closePath();
-
-  const geometry = new ExtrudeGeometry(shape, {
-    curveSegments,
-    steps: 1,
-    depth: Math.max(0.001, depth - b * 2),
-    bevelEnabled: hasBevel,
-    bevelThickness: b,
-    bevelSize: b,
-    bevelOffset: 0,
-    bevelSegments: 12,
+  return roundedSectorGeometry({
+    a0: sector.a0,
+    a1: sector.a1,
+    innerR: effectiveInner,
+    outerR,
+    depth,
+    radius: bevel,
+    arcSegments: curveSegments,
+    // Ocho tramos por cuarto de círculo: por debajo se ve la faceta en el canto
+    // cuando el redondeo es grueso.
+    cornerSegments: 8,
   });
-
-  // Extruido en +Z desde z=0. Con bevel el sólido ocupa z ∈ [-b, depth-b], así
-  // que su centro está en depth/2 - b, no en depth/2.
-  geometry.translate(0, 0, b - depth / 2);
-  geometry.rotateX(-Math.PI / 2);
-  geometry.translate(0, depth / 2, 0);
-
-  const smooth = smoothCurvedSurfaces(geometry, depth, innerR, outerR);
-  geometry.dispose();
-  return smooth;
 }
 
 /**
  * Dirección radial media de un sector, EN COORDENADAS DE MUNDO.
  * Para explode, hover y colocar etiquetas.
  *
- * Ojo con el signo de Z. La forma se dibuja en el plano XY y luego se gira -90°
- * sobre X, lo que mapea (x, y, z) → (x, z, -y). Un punto del ángulo θ de la
- * forma, que está en (cos θ, sin θ), acaba en el mundo en (cos θ, 0, -sin θ).
- *
- * Con el signo positivo la dirección sale espejada respecto a la geometría: al
- * separar un sector se mete dentro de un vecino y deja hueco con el otro.
+ * Ojo con el signo de Z: la geometría se construye con Z invertida respecto al
+ * ángulo, así que el ángulo θ cae en (cos θ, 0, −sin θ). Con el signo positivo
+ * la dirección sale espejada y al separar un sector se mete dentro de un vecino.
  */
 export function sectorDirection(sector: Sector): Vector3 {
   const mid = (sector.a0 + sector.a1) / 2;
