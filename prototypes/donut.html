@@ -96,7 +96,7 @@ const PALETTES = {
 const P = {
   // style
   palette: 'aurora',
-  bevel: 0.35,          // 0..1 → el rasgo de marca
+  bevel: 0.6,           // 0..1 sobre el máximo seguro → el rasgo de marca
   height: 0.34,
   innerRadius: 0.55,    // 0 = tarta
   gap: 0.012,           // separación entre segmentos (radianes normalizados)
@@ -104,7 +104,9 @@ const P = {
   roughness: 0.32,
   metalness: 0.06,
   clearcoat: 0.3,
-  curveSegments: 64,
+  // Medido: 64 y 24 son visualmente idénticos y 24 gasta 3× menos geometría.
+  // Por debajo de ~14 se ve el polígono en la silueta exterior.
+  curveSegments: 24,
   // scene
   background: '#0b0b12',
   // El IBL de estudio es blanco: pasado de intensidad lava todo el color y
@@ -190,22 +192,33 @@ scene.add(floor);
 const OUTER = 1.0;
 
 /**
- * Sector anular en el plano XY, extruido en Z con bevel.
+ * Máximo bevel admisible para un sector. Cuatro restricciones, y las cuatro
+ * salieron de ver artefactos en pantalla:
  *
- * El bevel de ExtrudeGeometry desplaza el contorno hacia dentro `bevelSize`.
- * Si `bevelSize` supera la mitad del grosor radial o de la cuerda del arco, el
- * contorno se autointersecta y aparecen artefactos. Por eso se acota abajo:
- * ese límite es exactamente el problema que este prototipo tiene que resolver.
+ *  1-3. Por encima de ~45% de la menor de sus tres dimensiones (grosor radial,
+ *       arco interior, altura) el contorno se autointersecta.
+ *  4.   Y aunque el sector por sí solo aguante, si el bevel se acerca al tamaño
+ *       de la SEPARACIÓN entre sectores, los cantos redondeados de dos vecinos
+ *       quedan tan juntos que la junta se lee como una costura sucia. Esta es
+ *       la que faltaba: sin ella, la mitad superior del slider no era usable.
  */
-function annularSector({ a0, a1, innerR, outerR, depth, bevel, curveSegments }) {
+function maxBevelFor({ a0, a1, innerR, outerR, depth, gapAngle }) {
   const radial = outerR - innerR;
   const arcLen = innerR * (a1 - a0);           // el arco más corto, el interior
+  const gapArc = innerR * gapAngle;            // hueco entre vecinos, en el radio interior
+  return Math.max(0, Math.min(radial * 0.45, arcLen * 0.45, depth * 0.45, gapArc * 0.85));
+}
 
-  // Límite de seguridad del bevel: nunca más de ~45% de la dimensión menor,
-  // ni más de la mitad del grosor.
-  const maxBevel = Math.max(0, Math.min(radial, arcLen, depth) * 0.45);
-  const b = Math.min(bevel * maxBevel * 2, maxBevel);
-
+/**
+ * Sector anular en el plano XY, extruido en Z con bevel.
+ *
+ * `b` es el bevel absoluto y viene calculado desde fuera, IGUAL PARA TODOS LOS
+ * SEGMENTOS. Calcularlo por segmento (acotándolo por su propio arco) hace que
+ * un segmento grande tenga el canto el doble de gordo que su vecino pequeño: en
+ * la junta los perfiles no casan y visualmente parece que las piezas se
+ * traspasan. Es el defecto más evidente de la primera versión.
+ */
+function annularSector({ a0, a1, innerR, outerR, depth, b, curveSegments }) {
   const shape = new THREE.Shape();
   shape.absarc(0, 0, outerR, a0, a1, false);
   shape.absarc(0, 0, innerR, a1, a0, true);
@@ -219,14 +232,21 @@ function annularSector({ a0, a1, innerR, outerR, depth, bevel, curveSegments }) 
     bevelThickness: b,
     bevelSize: b,
     bevelOffset: 0,
-    bevelSegments: Math.max(2, Math.round(3 + bevel * 5)),
+    bevelSegments: 12,
   });
 
   // Extruido en +Z desde z=0; lo centramos y lo tumbamos para que crezca en +Y.
-  geo.translate(0, 0, -(depth - b * 2) / 2 - b);
+  // El bevel hace que el sólido ocupe z ∈ [-b, depth-b], así que el centro está
+  // en depth/2 - b, no en depth/2.
+  geo.translate(0, 0, b - depth / 2);
   geo.rotateX(-Math.PI / 2);
   geo.translate(0, depth / 2, 0);
-  geo.computeVertexNormals();
+
+  // Normales planas a propósito. Se probó toCreasedNormals para suavizar el
+  // canto y el resultado fue peor: mezcla las normales del bevel con las de la
+  // tapa, y como la tapa se trianguliza en abanico, ese error se propaga en
+  // estrías radiales por toda la cara superior. La solución que sí funciona es
+  // subir bevelSegments hasta que las facetas dejen de verse.
   return geo;
 }
 
@@ -255,23 +275,34 @@ function build() {
   const colors = PALETTES[P.palette];
   const total = DATA.reduce((sum, d) => sum + d.value, 0);
   const gapAngle = P.gap * Math.PI * 2;
+  const innerR = P.innerRadius * OUTER;
 
+  // Primera pasada: ángulos de cada sector.
+  const sectors = [];
   let angle = -Math.PI / 2;   // arranca arriba, como cualquier gráfica decente
-
   DATA.forEach((d, i) => {
     const sweep = (d.value / total) * Math.PI * 2;
     const a0 = angle + gapAngle / 2;
     const a1 = angle + sweep - gapAngle / 2;
     angle += sweep;
+    if (a1 > a0) sectors.push({ d, i, a0, a1 });   // descarta los más finos que la separación
+  });
 
-    if (a1 <= a0) return;   // segmento más pequeño que la separación
+  // UN SOLO bevel para todo el donut, acotado por el sector más restrictivo.
+  // Esto es lo que hace que las juntas casen. Contrapartida conocida: un sector
+  // diminuto reduce el canto de todos los demás.
+  const limit = Math.min(
+    ...sectors.map((s) => maxBevelFor({ ...s, innerR, outerR: OUTER, depth: P.height, gapAngle })),
+  );
+  const bevelAbs = P.bevel * limit;
 
+  sectors.forEach(({ d, i, a0, a1 }) => {
     const geometry = annularSector({
       a0, a1,
-      innerR: P.innerRadius * OUTER,
+      innerR,
       outerR: OUTER,
       depth: P.height,
-      bevel: P.bevel,
+      b: bevelAbs,
       curveSegments: P.curveSegments,
     });
 
@@ -388,6 +419,9 @@ addEventListener('resize', () => {
 /* ────────────────────────────────────────────────────────────────────────────
    Panel de control — solo para juzgar el look, no forma parte del producto
    ──────────────────────────────────────────────────────────────────────────── */
+
+// Expuesto para poder trastear y automatizar pruebas desde la consola.
+Object.assign(window, { P, build, scene, renderer, camera, group, segments: () => segments });
 
 const gui = new GUI({ title: 'Voluma · prototipo' });
 

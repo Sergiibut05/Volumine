@@ -38,30 +38,48 @@ Si lo aprueba → Fase 2 (renderer): scaffolding Next + esquema Zod de
 - [ ] Dominio, cuando el nombre esté cerrado.
 - [ ] **Validar visualmente el prototipo** antes de pasar a Fase 2.
 
-## Problemas conocidos
+## Lecciones del prototipo — llevar al renderer de verdad
 
-Descubiertos en el prototipo, hay que resolverlos bien en el renderer de verdad:
+Todo esto salió de mirar píxeles, no de razonar. Es el valor real de la Fase 1.
 
 1. **Doble conversión de color.** `new THREE.Color(hex).convertSRGBToLinear()`
    con la gestión de color de three activada convierte dos veces y deja los
-   colores lavados. El hex se pasa tal cual. Ver `prototypes/donut.html` en el
-   comentario sobre `MeshPhysicalMaterial`.
+   colores lavados. El hex se pasa tal cual.
 2. **El IBL blanco se come la saturación.** `environmentIntensity` por encima de
-   ~0.7 con clearcoat alto vuelve todo pastel y de aspecto barato. Defaults
-   actuales que funcionan: env 0.55, exposure 0.95, clearcoat 0.3, key 1.1.
-   Esto hay que codificarlo en los presets de `scene.environment`.
-3. **El bevel se autointersecta** en segmentos estrechos: `bevelSize` no puede
-   superar ~45% de la menor de (grosor radial, arco interior, altura). Está
-   acotado en `annularSector()`, pero el efecto secundario es que **el bevel se
-   ve distinto en segmentos grandes y pequeños**. En el renderer real hay que
-   decidir: ¿bevel uniforme acotado por el segmento más pequeño, o bevel
-   proporcional como ahora? Afecta al aspecto y no está resuelto.
-4. **Contraste de paleta.** En la paleta `aurora`, menta y cian se distinguen
-   mal en 3D con luz encima. Las paletas hay que validarlas *renderizadas*, no
-   como muestras planas de color.
-5. El grupo se separa del suelo (`group.position.y = 0.26`) porque apoyado sobre
+   ~0.7 con clearcoat alto vuelve todo pastel y de aspecto barato. Valores que
+   funcionan: env 0.55, exposure 0.95, clearcoat 0.3, key 1.1. Hay que
+   codificarlos en los presets de `scene.environment`.
+3. **El bevel tiene que ser UNO SOLO para todo el donut.** Calcularlo por
+   segmento (acotado por el arco de cada uno) daba al segmento del 42% un canto
+   del doble de grueso que al del 6%: en la junta los perfiles no casan y
+   visualmente parece que las piezas se traspasan. Fue el defecto más evidente.
+   Se calcula el máximo admisible de cada sector y se usa el mínimo global.
+4. **El bevel también está limitado por la separación entre segmentos**, no solo
+   por las dimensiones del sector. Si se acerca al hueco entre vecinos, la junta
+   se lee como una costura sucia. Restricción: `bevel ≤ 0.85 × innerR × gap`.
+   Con esta cuarta restricción, todo el rango del slider es usable.
+5. **`toCreasedNormals` es peor que las normales planas aquí.** Mezcla las
+   normales del bevel con las de la tapa y, como la tapa se trianguliza en
+   abanico, propaga estrías radiales por toda la cara superior. La solución
+   buena es subir `bevelSegments` (12 va bien) y dejar las normales planas.
+6. **Coste de geometría, medido.** `curveSegments` 64 → 24 no cambia nada
+   visualmente y baja de 67k a ~21k triángulos con 5 segmentos. Por debajo de
+   ~14 se ve el polígono en la silueta. **Pendiente para el renderer real:
+   `curveSegments` adaptativo al ángulo del sector** — un sector del 6% no
+   necesita los mismos que uno del 42%. Con 5 segmentos vamos a 6 draw calls,
+   dentro de presupuesto.
+7. **Contraste de paleta.** En `aurora`, menta y cian se distinguen mal en 3D con
+   luz encima. Las paletas se validan *renderizadas*, no como muestras planas.
+8. El grupo se separa del suelo (`group.position.y = 0.26`) porque apoyado sobre
    el plano la sombra queda oculta bajo el propio objeto. Hay que parametrizar
    esa elevación en función del grosor.
+
+## Problemas abiertos
+
+- **Sectores diminutos.** El bevel global lo marca el sector más restrictivo, así
+  que una porción del 1% deja a todo el donut casi sin canto. Sin resolver.
+  Opciones a evaluar: suelo mínimo de bevel, o agrupar automáticamente los
+  sectores por debajo de un umbral en "Otros".
 
 ## Notas para la próxima sesión
 
