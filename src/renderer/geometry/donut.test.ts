@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
+import { Vector3 } from 'three';
 import {
   computeSectors,
   maxBevelForSector,
   globalBevel,
   curveSegmentsFor,
   sectorGeometry,
+  sectorDirection,
   OUTER_RADIUS,
 } from './donut';
 
@@ -57,10 +59,10 @@ describe('límites del bevel', () => {
   });
 
   it('a partir de un sector suficientemente pequeño, manda su propio arco', () => {
-    // Con un 3% el arco interior ya es más restrictivo que el hueco, y ese
-    // sector pasa a marcar el bevel de todo el donut. Es el "problema abierto"
-    // de docs/STATE.md hecho test: aquí se ve cuándo empieza a doler.
-    const [grande, pequeno] = computeSectors([97, 3], 0.012);
+    // Por debajo del ~2% el arco interior ya es más restrictivo que el hueco, y
+    // ese sector pasa a marcar el bevel de todo el donut. Es el "problema
+    // abierto" de docs/STATE.md hecho test: aquí se ve cuándo empieza a doler.
+    const [grande, pequeno] = computeSectors([982, 18], 0.012);
     expect(maxBevelForSector(pequeno, limits)).toBeLessThan(
       maxBevelForSector(grande, limits),
     );
@@ -122,8 +124,116 @@ describe('curveSegmentsFor', () => {
   });
 });
 
+describe('sectorDirection', () => {
+  /* La forma se dibuja en XY y se gira -90° sobre X: (x,y,z) → (x, z, -y).
+     Si la dirección no lleva ese signo, al separar un sector se mete dentro de
+     un vecino y deja hueco con el otro. Pasó, y se veía. */
+  it('apunta al centro real del sector en coordenadas de mundo', () => {
+    const sectors = computeSectors([25, 25, 25, 25], 0);
+
+    for (const sector of sectors) {
+      const mid = (sector.a0 + sector.a1) / 2;
+      // Punto del centroide del arco, transformado igual que la geometría.
+      const worldX = Math.cos(mid);
+      const worldZ = -Math.sin(mid);
+
+      const dir = sectorDirection(sector);
+      expect(dir.x).toBeCloseTo(worldX, 6);
+      expect(dir.z).toBeCloseTo(worldZ, 6);
+      expect(dir.y).toBe(0);
+    }
+  });
+
+  it('la dirección coincide con dónde está de verdad la geometría', () => {
+    // Prueba independiente del cálculo: se compara contra el centro del
+    // bounding box real de la malla, que no puede mentir.
+    const sectors = computeSectors([50, 30, 20], 0.012);
+
+    for (const sector of sectors) {
+      const geo = sectorGeometry({
+        sector,
+        innerR: 0.55,
+        outerR: 1,
+        depth: 0.34,
+        bevel: 0.02,
+        curveSegments: 24,
+      });
+      geo.computeBoundingBox();
+      const center = geo.boundingBox!.getCenter(new Vector3());
+      geo.dispose();
+
+      const dir = sectorDirection(sector);
+      // Mismo cuadrante: el producto escalar en XZ tiene que ser positivo.
+      const dot = dir.x * center.x + dir.z * center.z;
+      expect(dot).toBeGreaterThan(0);
+    }
+  });
+});
+
 describe('sectorGeometry', () => {
   const [sector] = computeSectors([1], 0.012);
+
+  it('las tapas conservan la normal plana tras el suavizado', () => {
+    const geo = sectorGeometry({
+      sector,
+      innerR: 0.55,
+      outerR: 1,
+      depth: 0.34,
+      bevel: 0.03,
+      curveSegments: 24,
+    });
+    const pos = geo.attributes.position;
+    const nrm = geo.attributes.normal;
+    let arriba = 0;
+    let abajo = 0;
+
+    for (let i = 0; i < pos.count; i += 1) {
+      const y = pos.getY(i);
+      if (Math.abs(y - 0.34) < 1e-4) {
+        expect(nrm.getY(i)).toBeCloseTo(1, 5);
+        arriba += 1;
+      } else if (Math.abs(y) < 1e-4) {
+        expect(nrm.getY(i)).toBeCloseTo(-1, 5);
+        abajo += 1;
+      }
+    }
+    expect(arriba).toBeGreaterThan(0);
+    expect(abajo).toBeGreaterThan(0);
+    geo.dispose();
+  });
+
+  it('las superficies curvas sí quedan suavizadas', () => {
+    const geo = sectorGeometry({
+      sector,
+      innerR: 0.55,
+      outerR: 1,
+      depth: 0.34,
+      bevel: 0.03,
+      curveSegments: 32,
+    });
+    const pos = geo.attributes.position;
+    const nrm = geo.attributes.normal;
+
+    // En la pared exterior (a media altura, radio ≈ 1) la normal tiene que ser
+    // radial: si fuera plana por faceta, no coincidiría con la posición.
+    let comprobados = 0;
+    for (let i = 0; i < pos.count && comprobados < 40; i += 1) {
+      const x = pos.getX(i);
+      const y = pos.getY(i);
+      const z = pos.getZ(i);
+      const r = Math.hypot(x, z);
+      // La pared recta va de y=bevel a y=depth-bevel y está EXPANDIDA hacia
+      // fuera por el bevel, así que su radio es ~1.03, no 1. Y con steps:1 solo
+      // hay vértices en sus dos extremos: tampoco vale filtrar por altura media.
+      if (r > 1.0 && y > 0.02 && y < 0.32) {
+        const dot = (nrm.getX(i) * x + nrm.getZ(i) * z) / r;
+        expect(dot).toBeGreaterThan(0.9);
+        comprobados += 1;
+      }
+    }
+    expect(comprobados).toBeGreaterThan(0);
+    geo.dispose();
+  });
 
   it('deja la base en y=0 y respeta la altura pedida', () => {
     const geo = sectorGeometry({
@@ -142,18 +252,35 @@ describe('sectorGeometry', () => {
     geo.dispose();
   });
 
-  it('no se sale del radio exterior', () => {
+  it('el bevel expande el radio hacia fuera, y como mucho su propio tamaño', () => {
+    /* Contraintuitivo pero medido: ExtrudeGeometry NO mete el bevel hacia
+       dentro, saca la franja central hacia fuera. De ahí sale el límite del
+       hueco en maxBevelForSector. Este test fija ese comportamiento: si una
+       versión de three lo cambia, nos enteramos aquí y no en producción. */
+    const bevel = 0.03;
     const geo = sectorGeometry({
       sector,
       innerR: 0.55,
       outerR: 1,
       depth: 0.34,
-      bevel: 0.02,
+      bevel,
       curveSegments: 24,
     });
-    geo.computeBoundingSphere();
-    // El sector completo: su radio en XZ no puede superar el exterior.
-    expect(Math.max(Math.abs(geo.boundingBox?.max.x ?? 0), 0)).toBeLessThanOrEqual(1.001);
+
+    const pos = geo.attributes.position;
+    let maxR = 0;
+    let radioEnTapa = 0;
+    for (let i = 0; i < pos.count; i += 1) {
+      const r = Math.hypot(pos.getX(i), pos.getZ(i));
+      maxR = Math.max(maxR, r);
+      if (Math.abs(pos.getY(i) - 0.34) < 1e-4) radioEnTapa = Math.max(radioEnTapa, r);
+    }
+
+    expect(radioEnTapa).toBeCloseTo(1, 3); // la tapa sí respeta outerR
+    expect(maxR).toBeGreaterThan(1); // la franja central se sale
+    // Un pelo más que `bevel`: en las esquinas el desplazamiento va por la
+    // normal del vértice, que es más larga que la de una cara.
+    expect(maxR).toBeLessThanOrEqual(1 + bevel * 1.1);
     geo.dispose();
   });
 

@@ -102,6 +102,24 @@ Todo esto salió de mirar píxeles, no de razonar. Es el valor real de la Fase 1
    el plano la sombra queda oculta bajo el propio objeto. Hay que parametrizar
    esa elevación en función del grosor.
 
+## Mejora identificada y no hecha: encoger la forma antes de extruir
+
+El bevel de `ExtrudeGeometry` **expande** el contorno hacia fuera (medido: con
+`outerR=1` y `bevel=0.03` el radio real llega a 1.031). Por eso el canto se come
+el hueco entre sectores y hay que limitarlo a `hueco/2`, que con separaciones
+pequeñas deja el canto bastante fino.
+
+Arreglo: **encoger la forma por `bevel` antes de extruir** (radio exterior
+`−b`, interior `+b`, ángulos metidos hacia dentro). Al expandirse, la geometría
+vuelve exactamente al contorno nominal, el hueco se respeta entero y la cuarta
+restricción casi desaparece — se podrían permitir cantos bastante más gruesos
+con el mismo hueco. Cuidado: el encogido tangencial exacto no es un simple
+delta de ángulo (depende del radio); con `b / radioMedio` la aproximación es
+buena y el error queda en los extremos.
+
+Merece la pena porque el canto es el rasgo de marca. Hacerlo al escribir el
+núcleo en three plano (ADR 0006), no antes.
+
 ## Problemas abiertos
 
 - **El presupuesto del embed no se cumple:** 358 KB gz contra 180. ADR 0006.

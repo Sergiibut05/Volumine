@@ -27,7 +27,7 @@ no un descuido. No competimos con Metabase y no fingimos hacerlo.
 ## Principios de producto
 
 1. **Cero fricción para empezar.** Se puede crear y compartir una gráfica sin
-   registrarse. La cuenta sirve para *guardar y editar después*, no para probar.
+   registrarse. La cuenta sirve para _guardar y editar después_, no para probar.
 2. **El embed nunca molesta.** Carga rápido, no pide permisos, no rompe la
    página anfitriona, degrada con elegancia si no hay WebGL.
 3. **Personalización de verdad.** No 5 temas y 3 colores: temas + control fino
@@ -74,11 +74,11 @@ Secundarias: creada→publicada (%), p75 de LCP del embed, dominios anfitriones
 
 ## Riesgos conocidos y respuesta
 
-| Riesgo | Respuesta |
-|---|---|
+| Riesgo                                                   | Respuesta                                                                                      |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | Confluence sandboxea iframes y exige allowlist del admin | El embed funciona bajo `sandbox` sin excepciones; documentar el allowlist; snippet alternativo |
-| Notion/Canva pasan embeds por Iframely | Darse de alta en Iframely pronto; mientras tanto el bloque "Embed" genérico funciona |
-| Límite de ~8-16 contextos WebGL por pestaña | `IntersectionObserver`: póster estático hasta entrar en viewport, liberar contexto al salir |
-| WebGL lento o ausente en gama baja | Fallback a imagen estática automático; detección antes de montar el canvas |
-| Gráfica 3D = mala accesibilidad | `<table>` con los datos siempre presente en el DOM del embed |
-| Mercado saturado de "chart makers" | No competimos ahí: competimos en embed vivo + calidad visual |
+| Notion/Canva pasan embeds por Iframely                   | Darse de alta en Iframely pronto; mientras tanto el bloque "Embed" genérico funciona           |
+| Límite de ~8-16 contextos WebGL por pestaña              | `IntersectionObserver`: póster estático hasta entrar en viewport, liberar contexto al salir    |
+| WebGL lento o ausente en gama baja                       | Fallback a imagen estática automático; detección antes de montar el canvas                     |
+| Gráfica 3D = mala accesibilidad                          | `<table>` con los datos siempre presente en el DOM del embed                                   |
+| Mercado saturado de "chart makers"                       | No competimos ahí: competimos en embed vivo + calidad visual                                   |

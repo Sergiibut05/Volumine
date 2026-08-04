@@ -43,6 +43,7 @@ las secciones no van todas centradas al mismo ancho. Respiración generosa: el
 espacio en blanco es la señal de precio más barata que existe.
 
 **Movimiento.** Es la mitad del efecto y la parte que más fácil se hace mal.
+
 - Duraciones cortas (150-350 ms) para UI, largas (600-1200 ms) para narrativa.
 - Easing propio, nunca `ease` del navegador.
 - Animaciones ligadas al scroll con **scroll-driven animations de CSS** donde se

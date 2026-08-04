@@ -25,7 +25,7 @@ scripts si falta `allow-scripts`.
   `rel="noopener"`, y se degradan sin romper si el sandbox lo impide.
 - Sin peticiones a terceros de ningún tipo.
 - Cabeceras: **no** enviar `X-Frame-Options`; `Content-Security-Policy:
-  frame-ancestors *` explícito en esa ruta y solo en esa ruta.
+frame-ancestors *` explícito en esa ruta y solo en esa ruta.
 - Toda la comunicación con la página anfitriona es por `postMessage`:
   altura para auto-resize, tema heredado, evento de click en segmento.
 

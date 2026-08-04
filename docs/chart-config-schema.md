@@ -43,15 +43,13 @@ a mano. **Un link publicado debe seguir funcionando para siempre.**
 ```jsonc
 {
   "labels": ["Suscripciones", "Servicios", "Licencias"],
-  "series": [
-    { "name": "2026", "values": [45, 30, 25], "colors": ["#ff4d6d", null, null] }
-  ],
+  "series": [{ "name": "2026", "values": [45, 30, 25], "colors": ["#ff4d6d", null, null] }],
   "format": {
-    "unit": "€",              // sufijo/prefijo según locale
+    "unit": "€", // sufijo/prefijo según locale
     "decimals": 0,
     "locale": "es-ES",
-    "as": "value"             // "value" | "percent"
-  }
+    "as": "value", // "value" | "percent"
+  },
 }
 ```
 
@@ -65,17 +63,17 @@ a mano. **Un link publicado debe seguir funcionando para siempre.**
 ```jsonc
 {
   "palette": ["#7c5cff", "#00d4ff", "#ff4d6d", "#ffd166", "#06d6a0"],
-  "paletteMode": "cycle",      // "cycle" | "gradient" (interpola entre extremos)
-  "material": "physical",      // "physical" | "matte" | "glass" | "metal" | "toon"
+  "paletteMode": "cycle", // "cycle" | "gradient" (interpola entre extremos)
+  "material": "physical", // "physical" | "matte" | "glass" | "metal" | "toon"
   "roughness": 0.35,
   "metalness": 0.1,
-  "bevel": 0.35,               // 0..1 → redondeo de bordes. EL rasgo de marca.
-  "gap": 0.02,                 // separación entre segmentos, en radianes normalizados
-  "innerRadius": 0.55,         // donut; 0 = pie
-  "height": 0.35,              // extrusión (grosor)
-  "explode": 0,                // 0..1 desplazamiento radial de segmentos
-  "cornerRadius": 0.2,         // barras: redondeo de las esquinas superiores
-  "shadow": true
+  "bevel": 0.35, // 0..1 → redondeo de bordes. EL rasgo de marca.
+  "gap": 0.02, // separación entre segmentos, en radianes normalizados
+  "innerRadius": 0.55, // donut; 0 = pie
+  "height": 0.35, // extrusión (grosor)
+  "explode": 0, // 0..1 desplazamiento radial de segmentos
+  "cornerRadius": 0.2, // barras: redondeo de las esquinas superiores
+  "shadow": true,
 }
 ```
 
@@ -84,17 +82,17 @@ a mano. **Un link publicado debe seguir funcionando para siempre.**
 ```jsonc
 {
   "background": {
-    "kind": "gradient",        // "transparent" | "solid" | "gradient" | "grid" | "dots"
+    "kind": "gradient", // "transparent" | "solid" | "gradient" | "grid" | "dots"
     "from": "#0b0b12",
     "to": "#1a1030",
-    "angle": 135
+    "angle": 135,
   },
-  "environment": "studio",     // preset de iluminación IBL: studio|sunset|city|night|soft
+  "environment": "studio", // preset de iluminación IBL: studio|sunset|city|night|soft
   "lightIntensity": 1,
   "ambient": 0.4,
   "fog": 0,
-  "bloom": 0.25,               // 0 = sin post-proceso (más barato: preferido en móvil)
-  "vignette": 0
+  "bloom": 0.25, // 0 = sin post-proceso (más barato: preferido en móvil)
+  "vignette": 0,
 }
 ```
 
@@ -105,12 +103,12 @@ con la página anfitriona.
 
 ```jsonc
 {
-  "preset": "hero",            // "hero" | "top" | "front" | "isometric" | "custom"
-  "polar": 62,                 // grados desde el eje Y (solo custom)
+  "preset": "hero", // "hero" | "top" | "front" | "isometric" | "custom"
+  "polar": 62, // grados desde el eje Y (solo custom)
   "azimuth": -35,
-  "distance": 1,               // multiplicador sobre el encuadre automático
+  "distance": 1, // multiplicador sobre el encuadre automático
   "fov": 35,
-  "orthographic": false
+  "orthographic": false,
 }
 ```
 
@@ -119,11 +117,11 @@ con la página anfitriona.
 ```jsonc
 {
   "autoRotate": true,
-  "speed": 0.35,               // vueltas por minuto
-  "entrance": "grow",          // "none" | "grow" | "sweep" | "stagger"
-  "entranceDuration": 900,     // ms
-  "hover": "lift",             // "none" | "lift" | "glow" | "explode"
-  "reducedMotion": "respect"   // "respect" | "force-off" | "ignore"
+  "speed": 0.35, // vueltas por minuto
+  "entrance": "grow", // "none" | "grow" | "sweep" | "stagger"
+  "entranceDuration": 900, // ms
+  "hover": "lift", // "none" | "lift" | "glow" | "explode"
+  "reducedMotion": "respect", // "respect" | "force-off" | "ignore"
 }
 ```
 
@@ -135,13 +133,13 @@ con la página anfitriona.
 ```jsonc
 {
   "show": true,
-  "mode": "outside",           // "none" | "outside" | "inside" | "legend"
+  "mode": "outside", // "none" | "outside" | "inside" | "legend"
   "showValues": true,
   "showPercent": false,
-  "font": "inter",             // fuente del set local; NUNCA una URL remota
+  "font": "inter", // fuente del set local; NUNCA una URL remota
   "size": 1,
-  "color": "auto",             // "auto" = contraste calculado contra el fondo
-  "title": { "show": true, "position": "top" }
+  "color": "auto", // "auto" = contraste calculado contra el fondo
+  "title": { "show": true, "position": "top" },
 }
 ```
 
@@ -149,11 +147,11 @@ con la página anfitriona.
 
 ```jsonc
 {
-  "orbit": true,               // arrastrar para rotar
-  "zoom": false,               // desactivado por defecto: roba el scroll de la página
+  "orbit": true, // arrastrar para rotar
+  "zoom": false, // desactivado por defecto: roba el scroll de la página
   "tooltip": true,
-  "clickAction": "none",       // "none" | "isolate" | "link"
-  "links": [null, null, "https://..."]   // por segmento, si clickAction="link"
+  "clickAction": "none", // "none" | "isolate" | "link"
+  "links": [null, null, "https://..."], // por segmento, si clickAction="link"
 }
 ```
 
@@ -164,10 +162,10 @@ ratón dentro de una página ajena es un embed que la gente quita.
 
 ```jsonc
 {
-  "aspect": "16:9",            // "16:9" | "4:3" | "1:1" | "auto"
+  "aspect": "16:9", // "16:9" | "4:3" | "1:1" | "auto"
   "padding": 0.1,
-  "fit": "contain",            // "contain" | "cover"
-  "watermark": true            // free = true; el renderer NO decide esto, lo decide el servidor
+  "fit": "contain", // "contain" | "cover"
+  "watermark": true, // free = true; el renderer NO decide esto, lo decide el servidor
 }
 ```
 

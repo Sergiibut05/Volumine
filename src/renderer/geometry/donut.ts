@@ -1,4 +1,5 @@
-import { BufferGeometry, ExtrudeGeometry, Shape, Vector3 } from 'three';
+import { BufferGeometry, ExtrudeGeometry, MathUtils, Shape, Vector3 } from 'three';
+import { toCreasedNormals } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 /*
   Geometría del donut/pie. Funciones puras: entran números, sale un
@@ -62,9 +63,16 @@ export type BevelLimits = {
  *
  *  1-3. Por encima de ~45% de la menor de sus tres dimensiones (grosor radial,
  *       arco interior, altura) el contorno se autointersecta.
- *  4.   Aunque el sector aguante por sí solo, si el bevel se acerca al tamaño de
- *       la SEPARACIÓN entre vecinos, los cantos redondeados quedan tan juntos
- *       que la junta se lee como una costura sucia.
+ *  4.   La SEPARACIÓN entre vecinos. Y esta es más dura de lo que parece: el
+ *       bevel de ExtrudeGeometry **expande** la forma hacia fuera, no hacia
+ *       dentro. A media altura el sector ocupa `bevel` más en todas
+ *       direcciones, también tangencialmente. Dos vecinos que se expanden cada
+ *       uno `bevel` se tocan cuando `2·bevel ≥ hueco`, así que el techo real es
+ *       `hueco / 2`, con un margen del 10%.
+ *
+ * La restricción 4 se había estimado a ojo en `0.85 × hueco` viendo artefactos
+ * en pantalla; medir la geometría dio el porqué y el número correcto. Encaja con
+ * lo observado: a ratio 0.45 se veía limpio y a 0.6 aparecía costura.
  */
 export function maxBevelForSector(sector: Sector, limits: BevelLimits): number {
   const radial = limits.outerR - limits.innerR;
@@ -73,7 +81,7 @@ export function maxBevelForSector(sector: Sector, limits: BevelLimits): number {
 
   return Math.max(
     0,
-    Math.min(radial * 0.45, arcLen * 0.45, limits.depth * 0.45, gapArc * 0.85),
+    Math.min(radial * 0.45, arcLen * 0.45, limits.depth * 0.45, gapArc * 0.45),
   );
 }
 
@@ -107,8 +115,41 @@ export function globalBevel(
  */
 export function curveSegmentsFor(sector: Sector, quality = 1): number {
   const sweep = sector.a1 - sector.a0;
-  const forFullCircle = 96 * quality;
-  return Math.max(6, Math.ceil((sweep / (Math.PI * 2)) * forFullCircle));
+  /* 160 por vuelta completa = 2,25° por segmento. El sombreado suave disimula
+     el facetado del interior, pero la SILUETA sigue siendo un polígono y en un
+     sector grande se nota: por debajo de ~120 se ven los planos en el borde. */
+  const forFullCircle = 160 * quality;
+  return Math.max(8, Math.ceil((sweep / (Math.PI * 2)) * forFullCircle));
+}
+
+/**
+ * Sombreado suave en las superficies curvas, manteniendo planas las tapas.
+ *
+ * `ExtrudeGeometry` produce normales planas: cada faceta del arco y del bevel se
+ * ve como una banda. `toCreasedNormals` las promedia donde el ángulo entre caras
+ * es pequeño, que es justo lo que queremos en el arco y en el canto.
+ *
+ * El problema —y por qué el primer intento se descartó— es que también promedia
+ * en el borde entre la tapa y el bevel. Como la tapa se trianguliza en abanico,
+ * ese error se propaga en estrías radiales por toda la cara superior. La
+ * solución es suavizar todo y luego devolver a las tapas su normal exacta: son
+ * los vértices que están justo en y=0 y en y=depth.
+ */
+function smoothCurvedSurfaces(geometry: BufferGeometry, depth: number): BufferGeometry {
+  const smooth = toCreasedNormals(geometry, MathUtils.degToRad(60));
+
+  const position = smooth.attributes.position;
+  const normal = smooth.attributes.normal;
+  const epsilon = 1e-4;
+
+  for (let i = 0; i < position.count; i += 1) {
+    const y = position.getY(i);
+    if (Math.abs(y - depth) < epsilon) normal.setXYZ(i, 0, 1, 0);
+    else if (Math.abs(y) < epsilon) normal.setXYZ(i, 0, -1, 0);
+  }
+  normal.needsUpdate = true;
+
+  return smooth;
 }
 
 export type SectorGeometryParams = {
@@ -127,10 +168,12 @@ export type SectorGeometryParams = {
  * Devuelve la geometría con la base en y=0 y creciendo hacia +Y, centrada en el
  * origen del plano XZ.
  *
- * Nota sobre normales: se dejan planas a propósito. Se probó `toCreasedNormals`
- * y fue peor — mezcla las normales del bevel con las de la tapa y, como la tapa
- * se trianguliza en abanico, propaga estrías radiales por toda la cara superior.
- * Lo que sí funciona es subir `bevelSegments` hasta que las facetas no se vean.
+ * OJO: el radio real supera `outerR` en hasta `bevel`, porque ExtrudeGeometry
+ * expande el contorno hacia fuera en la franja central. Las tapas sí quedan
+ * exactamente en `outerR`. Tenlo en cuenta al encuadrar la cámara.
+ *
+ * Las superficies curvas salen con sombreado suave; las tapas y las caras
+ * radiales, planas. Ver `smoothCurvedSurfaces()`.
  */
 export function sectorGeometry({
   sector,
@@ -165,11 +208,23 @@ export function sectorGeometry({
   geometry.rotateX(-Math.PI / 2);
   geometry.translate(0, depth / 2, 0);
 
-  return geometry;
+  const smooth = smoothCurvedSurfaces(geometry, depth);
+  geometry.dispose();
+  return smooth;
 }
 
-/** Dirección radial media de un sector. Para explode, hover y colocar etiquetas. */
+/**
+ * Dirección radial media de un sector, EN COORDENADAS DE MUNDO.
+ * Para explode, hover y colocar etiquetas.
+ *
+ * Ojo con el signo de Z. La forma se dibuja en el plano XY y luego se gira -90°
+ * sobre X, lo que mapea (x, y, z) → (x, z, -y). Un punto del ángulo θ de la
+ * forma, que está en (cos θ, sin θ), acaba en el mundo en (cos θ, 0, -sin θ).
+ *
+ * Con el signo positivo la dirección sale espejada respecto a la geometría: al
+ * separar un sector se mete dentro de un vecino y deja hueco con el otro.
+ */
 export function sectorDirection(sector: Sector): Vector3 {
   const mid = (sector.a0 + sector.a1) / 2;
-  return new Vector3(Math.cos(mid), 0, Math.sin(mid));
+  return new Vector3(Math.cos(mid), 0, -Math.sin(mid));
 }

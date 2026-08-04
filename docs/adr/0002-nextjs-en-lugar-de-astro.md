@@ -9,7 +9,7 @@ espectacular), editor (SPA pesada con WebGL y estado complejo) y embed
 (mínimo absoluto, sin estado, dentro de páginas ajenas).
 
 Astro brilla enviando cero JS en páginas de contenido. El editor es lo contrario
-de una página de contenido, y el embed no se beneficia de islas porque *todo* él
+de una página de contenido, y el embed no se beneficia de islas porque _todo_ él
 es la isla.
 
 ## Decisión
