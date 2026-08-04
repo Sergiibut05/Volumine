@@ -11,7 +11,17 @@
 ---
 
 **Última actualización:** 2026-08-04
-**Fase actual:** 1 — Prototipo (hecho, pendiente de visto bueno de Manuel)
+**Fase actual:** 2 — Renderer (a medias; decisión de arquitectura abierta)
+
+## Lo importante ahora mismo
+
+**El renderer con React Three Fiber funciona pero no cabe en el presupuesto del
+embed: 358 KB gz contra 180 KB.** Está medido y las causas están aisladas (ADR
+0006). La propuesta es reescribir el núcleo de la escena en three plano, sin
+React, y que el editor use ese mismo núcleo. R3F saldría del proyecto.
+
+Eso es lo siguiente a hacer, y es una decisión que conviene que Manuel confirme
+porque cambia el stack: el ADR 0006 está en `propuesta`, no en `aceptada`.
 
 ## Qué hay hecho
 
@@ -26,11 +36,29 @@
   rotación automática, hover con elevación + separación + tooltip, y panel de
   control con todos los parámetros. Sin build ni framework, three desde CDN.
 
+- **Scaffolding Next 16 + TS + Tailwind v4** con la estructura de la ADR 0002:
+  `(site)` y `(embed)` como route groups con **root layout propio cada uno** (no
+  existe `app/layout.tsx`, es lo que impide que el embed herede nada).
+- **`src/lib/config/`**: esquema Zod de `ChartConfig` v1, defaults en un único
+  sitio, saneado que nunca revienta, andamiaje de migraciones, config en URL con
+  lz-string. 15 tests.
+- **`src/renderer/geometry/donut.ts`**: geometría pura y sin framework, con las
+  cuatro restricciones del bevel del prototipo. 19 tests.
+- **`src/renderer/`**: `ChartStage` + `DonutChart` en R3F. **Funciona y está
+  verificado con captura real** (`/dev/renderer`).
+- **`src/styles/tokens.css`**: tokens en tres capas, claro y oscuro.
+- **`scripts/perf-embed.mjs`**: mide lo que el navegador descarga de verdad y
+  falla si se pasa del presupuesto. Ya ha servido para algo (ver arriba).
+- Cabeceras de `/embed` (`frame-ancestors *`, sin `X-Frame-Options`), tabla de
+  datos accesible, detección de WebGL, `IntersectionObserver`, `postMessage`.
+
 ## Qué toca ahora
 
-Esperando visto bueno visual de Manuel sobre `prototypes/donut.html`.
-Si lo aprueba → Fase 2 (renderer): scaffolding Next + esquema Zod de
-`ChartConfig` + tokens + renderer de donut + `/dev/renderer` + Playwright.
+1. Que Manuel confirme la ADR 0006 (three plano en el embed, fuera R3F).
+2. Si sí: `src/renderer/core/` en three plano, migrar el editor a ese núcleo,
+   quitar `@react-three/fiber` y `@react-three/drei`, y volver a medir.
+3. Sigue pendiente el visto bueno visual del look (`prototypes/donut.html` y
+   `/dev/renderer` renderizan lo mismo).
 
 ## Decisiones pendientes de Manuel
 
@@ -69,12 +97,26 @@ Todo esto salió de mirar píxeles, no de razonar. Es el valor real de la Fase 1
    necesita los mismos que uno del 42%. Con 5 segmentos vamos a 6 draw calls,
    dentro de presupuesto.
 7. **Contraste de paleta.** En `aurora`, menta y cian se distinguen mal en 3D con
-   luz encima. Las paletas se validan *renderizadas*, no como muestras planas.
+   luz encima. Las paletas se validan _renderizadas_, no como muestras planas.
 8. El grupo se separa del suelo (`group.position.y = 0.26`) porque apoyado sobre
    el plano la sombra queda oculta bajo el propio objeto. Hay que parametrizar
    esa elevación en función del grosor.
 
 ## Problemas abiertos
+
+- **El presupuesto del embed no se cumple:** 358 KB gz contra 180. ADR 0006.
+- **`min-height: auto` de los items de grid.** Un `<Canvas>` dentro de una celda
+  de grid mide 0 en el primer paint y R3F se queda con 300×150 para siempre,
+  sin ningún error. Arreglado con `minHeight: 0` en `/dev/renderer`, pero es una
+  trampa que va a repetirse: cualquier contenedor del canvas la lleva.
+- **El dev server de Next devolvió 403 en todos los chunks** y su WebSocket de
+  HMR falla con `ERR_INVALID_HTTP_RESPONSE`, así que la página no hidrata en
+  `npm run dev`. En producción (`build` + `start`) funciona bien. Sin
+  diagnosticar; probablemente algo local de la máquina interceptando el puerto.
+  **Mientras dure, verificar siempre contra un build de producción.**
+- **El lector de consola de la extensión de Chrome se traga los logs** tras
+  navegar. Playwright sí los captura, junto con `pageerror` y los fallos de red.
+  Para depurar, Playwright.
 
 - **Sectores diminutos.** El bevel global lo marca el sector más restrictivo, así
   que una porción del 1% deja a todo el donut casi sin canto. Sin resolver.

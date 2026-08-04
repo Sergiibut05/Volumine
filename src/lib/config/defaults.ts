@@ -1,0 +1,173 @@
+import type { ChartConfig } from './schema';
+
+/*
+  EL único sitio donde vive un valor por defecto.
+
+  Ningún componente puede inventarse el suyo. Si el renderer necesita un valor
+  que no está en el config, sale de aquí y de ningún otro lado — es lo que hace
+  que "mismo config → mismos píxeles" sea cierto y que los tests visuales y el
+  render estático tengan sentido (CLAUDE.md).
+
+  Varios de estos números están medidos, no elegidos. Ver docs/STATE.md.
+*/
+
+/** Config con todos los campos resueltos. Es lo que consume el renderer. */
+export type ResolvedChartConfig = {
+  v: number;
+  type: ChartConfig['type'];
+  title: string | null;
+  data: {
+    labels: string[];
+    series: {
+      name: string | null;
+      values: number[];
+      colors: (string | null)[];
+    }[];
+    format: {
+      unit: string;
+      decimals: number;
+      locale: string;
+      as: 'value' | 'percent';
+    };
+  };
+  style: Required<NonNullable<ChartConfig['style']>>;
+  scene: {
+    background: Required<NonNullable<NonNullable<ChartConfig['scene']>['background']>>;
+    environment: NonNullable<NonNullable<ChartConfig['scene']>['environment']>;
+    lightIntensity: number;
+    ambient: number;
+    fog: number;
+    bloom: number;
+    vignette: number;
+  };
+  camera: Required<NonNullable<ChartConfig['camera']>>;
+  motion: Required<NonNullable<ChartConfig['motion']>>;
+  labels: Omit<Required<NonNullable<ChartConfig['labels']>>, 'title'> & {
+    title: { show: boolean; position: 'top' | 'bottom' };
+  };
+  interaction: Required<NonNullable<ChartConfig['interaction']>>;
+  layout: Required<NonNullable<ChartConfig['layout']>>;
+};
+
+export const DEFAULT_PALETTE = ['#7c5cff', '#00d4ff', '#41ffc9', '#ffd166', '#ff4d6d'];
+
+export const defaults = {
+  style: {
+    palette: DEFAULT_PALETTE,
+    paletteMode: 'cycle',
+    material: 'physical',
+    roughness: 0.32,
+    metalness: 0.06,
+    bevel: 0.6,
+    gap: 0.012,
+    innerRadius: 0.55,
+    height: 0.34,
+    explode: 0,
+    cornerRadius: 0.2,
+    shadow: true,
+  },
+  scene: {
+    background: {
+      kind: 'transparent',
+      from: '#0b0b12',
+      to: '#1a1030',
+      angle: 135,
+    },
+    environment: 'studio',
+    /* Medido: por encima de ~0.7 el IBL blanco lava el color y todo parece
+       plastilina pastel. No subas esto sin mirar el resultado. */
+    lightIntensity: 0.55,
+    ambient: 0.4,
+    fog: 0,
+    bloom: 0,
+    vignette: 0,
+  },
+  camera: {
+    preset: 'hero',
+    polar: 62,
+    azimuth: -35,
+    distance: 1,
+    fov: 34,
+    orthographic: false,
+  },
+  motion: {
+    autoRotate: true,
+    speed: 0.9,
+    entrance: 'grow',
+    entranceDuration: 900,
+    hover: 'lift',
+    /* No negociable como default (docs/chart-config-schema.md). */
+    reducedMotion: 'respect',
+  },
+  labels: {
+    show: true,
+    mode: 'outside',
+    showValues: true,
+    showPercent: false,
+    font: 'inter',
+    size: 1,
+    color: 'auto',
+    title: { show: true, position: 'top' },
+  },
+  interaction: {
+    orbit: true,
+    /* false a propósito: no le robamos el scroll a la página anfitriona. */
+    zoom: false,
+    tooltip: true,
+    clickAction: 'none',
+    links: [],
+  },
+  layout: {
+    aspect: '16:9',
+    padding: 0.1,
+    fit: 'contain',
+    watermark: true,
+  },
+  format: {
+    unit: '',
+    decimals: 0,
+    locale: 'es-ES',
+    as: 'value',
+  },
+} as const;
+
+/**
+ * Rellena un `ChartConfig` validado con los defaults hasta dejarlo completo.
+ *
+ * Mezcla superficial por sección a propósito: las secciones son pequeñas y
+ * planas, y un deep-merge genérico haría difícil razonar sobre qué gana.
+ * La única sección anidada (`scene.background`, `labels.title`) se trata a mano.
+ */
+export function resolveConfig(config: ChartConfig): ResolvedChartConfig {
+  const d = defaults;
+
+  return {
+    v: config.v,
+    type: config.type,
+    title: config.title ?? null,
+    data: {
+      labels: config.data.labels,
+      series: config.data.series.map((s) => ({
+        name: s.name ?? null,
+        values: s.values,
+        colors: s.colors ?? [],
+      })),
+      format: { ...d.format, ...config.data.format },
+    },
+    style: { ...d.style, ...config.style },
+    scene: {
+      ...d.scene,
+      ...config.scene,
+      background: { ...d.scene.background, ...config.scene?.background },
+    },
+    camera: { ...d.camera, ...config.camera },
+    motion: { ...d.motion, ...config.motion },
+    labels: {
+      ...d.labels,
+      ...config.labels,
+      title: { ...d.labels.title, ...config.labels?.title },
+    },
+    interaction: { ...d.interaction, ...config.interaction },
+    layout: { ...d.layout, ...config.layout },
+  } as ResolvedChartConfig;
+}
