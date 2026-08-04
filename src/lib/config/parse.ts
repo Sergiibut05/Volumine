@@ -1,6 +1,7 @@
 import { chartConfigSchema, CURRENT_VERSION, type ChartConfig } from './schema';
 import { resolveConfig, type ResolvedChartConfig } from './defaults';
 import { migrate } from './migrations';
+import { applyTheme } from '../themes';
 
 /*
   Un config inválido NUNCA revienta el embed.
@@ -13,7 +14,8 @@ import { migrate } from './migrations';
     1. migrar         config antiguo → versión actual
     2. sanear         arreglar lo arreglable, anotando cada arreglo
     3. validar        Zod; si falla ahora, el config es irrecuperable
-    4. resolver       rellenar con defaults
+    4. tema           el preset rellena style y scene
+    5. resolver       rellenar el resto con defaults
 */
 
 export type IssueLevel = 'warning' | 'error';
@@ -88,13 +90,14 @@ function sanitize(input: unknown, issues: ConfigIssue[]): unknown {
     });
   }
 
-  // labels y values descuadrados: se recorta al mínimo común y se avisa.
+  // labels y values descuadrados
   if (Array.isArray(data.labels) && Array.isArray(data.series)) {
     const seriesLengths = (data.series as { values?: unknown[] }[])
       .map((s) => (Array.isArray(s?.values) ? s.values.length : 0))
       .filter((n) => n > 0);
 
-    if (seriesLengths.length > 0) {
+    if (seriesLengths.length > 0 && isRadial) {
+      // Al mínimo común: el anillo solo usa una serie y no hay hueco que dibujar.
       const n = Math.min(data.labels.length, ...seriesLengths);
       const mismatched = data.labels.length !== n || seriesLengths.some((len) => len !== n);
 
@@ -111,17 +114,43 @@ function sanitize(input: unknown, issues: ConfigIssue[]): unknown {
           colors: Array.isArray(s.colors) ? s.colors.slice(0, n) : s.colors,
         }));
       }
+    } else if (seriesLengths.length > 0) {
+      /* En barras manda `labels`, que es lo que fija cuántas categorías hay. Una
+         serie corta se rellena con ceros —un hueco, que se ve— en vez de recortar
+         a la más corta: eso borraría categorías buenas de las demás series por
+         culpa de una incompleta. */
+      const n = (data.labels as unknown[]).length;
+      if (seriesLengths.some((len) => len !== n)) {
+        issues.push({
+          level: 'warning',
+          path: 'data',
+          message: `hay series con menos de ${n} valores; los que falten cuentan como 0`,
+        });
+        data.series = (data.series as Record<string, unknown>[]).map((s) => {
+          const values = s.values;
+          if (!Array.isArray(values)) return s;
+          return { ...s, values: Array.from({ length: n }, (_, i) => values[i] ?? 0) };
+        });
+      }
     }
   }
 
-  // donut/pie con todo a cero: no hay gráfica posible.
-  if (isRadial && Array.isArray(data.series)) {
-    const first = (data.series as { values?: number[] }[])[0];
-    if (Array.isArray(first?.values) && first.values.every((v) => v === 0)) {
+  // Todo a cero: no hay reparto ni escala que dibujar.
+  if (Array.isArray(data.series)) {
+    const series = data.series as { values?: number[] }[];
+    // El anillo solo mira la primera serie; las barras, todas.
+    const relevant = isRadial ? series.slice(0, 1) : series;
+    const allZero =
+      relevant.length > 0 &&
+      relevant.every((s) => Array.isArray(s?.values) && s.values.every((v) => v === 0));
+
+    if (allZero) {
       issues.push({
         level: 'error',
-        path: 'data.series[0].values',
-        message: 'todos los valores son 0: no se puede dibujar un donut',
+        path: isRadial ? 'data.series[0].values' : 'data.series',
+        message: isRadial
+          ? 'todos los valores son 0: no se puede dibujar un donut'
+          : 'todos los valores son 0: no hay escala con la que dibujar barras',
       });
     }
   }
@@ -153,9 +182,17 @@ export function parseConfig(input: unknown): ParseResult {
     return { ok: false, config: null, issues };
   }
 
+  /* El tema se resuelve AQUÍ, no en el editor.
+     `theme` es un preset y lo de abajo lo sobreescribe punto a punto
+     (docs/chart-config-schema.md). Resolverlo al renderizar es lo que hace que
+     un link con `{"theme":"papel"}` y nada más se vea como papel, y que mejorar
+     un tema mejore las gráficas ya publicadas. */
+  const validated = result.data as ChartConfig;
+  const themed = validated.theme ? applyTheme(validated, validated.theme) : validated;
+
   return {
     ok: true,
-    config: resolveConfig(result.data as ChartConfig),
+    config: resolveConfig(themed),
     issues,
   };
 }

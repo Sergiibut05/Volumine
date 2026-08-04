@@ -50,3 +50,8 @@ yarn-error.log*
 # bundle del embed (generado por scripts/build-embed.mjs)
 public/embed-bundle/
 probe.tmp.mjs
+
+# capturas y scratch de sesiones de trabajo
+public/_shots/
+urls.txt
+scripts/_*.mjs

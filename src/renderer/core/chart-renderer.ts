@@ -2,9 +2,11 @@ import {
   ACESFilmicToneMapping,
   Color,
   DirectionalLight,
+  DoubleSide,
   Group,
   Mesh,
   MathUtils,
+  MeshBasicMaterial,
   PCFSoftShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
@@ -29,8 +31,8 @@ import {
   sectorDirection,
   sectorGeometry,
   OUTER_RADIUS,
-  type Sector,
 } from '../geometry/donut';
+import { barGeometry, computeBars, cornerSegmentsFor, PLOT_WIDTH } from '../geometry/bar';
 import { colorForSegment, createMaterial } from './materials';
 
 /*
@@ -45,14 +47,133 @@ import { colorForSegment, createMaterial } from './materials';
   contexto WebGL, y un navegador solo aguanta entre 8 y 16 a la vez.
 */
 
-const CAMERA_PRESETS = {
+type CameraPlacement = { polar: number; azimuth: number; distance: number };
+
+const CAMERA_PRESETS: Record<string, CameraPlacement> = {
   hero: { polar: 62, azimuth: -35, distance: 1 },
   top: { polar: 5, azimuth: 0, distance: 0.95 },
   front: { polar: 82, azimuth: 0, distance: 1.15 },
   isometric: { polar: 54.7, azimuth: -45, distance: 1.05 },
-} as const;
+};
 
-export type HoverInfo = { sector: Sector; label: string; value: number } | null;
+/**
+ * Encuadres propios de las barras.
+ *
+ * El anillo es redondo y le da igual el azimut. Una fila de barras no: desde
+ * −35° la fila se ve en diagonal, las barras se tapan entre ellas y comparar
+ * alturas —que es TODO lo que hace una barra— se vuelve difícil. Casi de frente.
+ *
+ * La distancia no está aquí: las barras se encuadran midiendo lo que ocupan
+ * (`fitDistance`), porque su alto va de 0,16 a 3,2 según `style.height` y un
+ * radio fijo se sale de plano por arriba en la mitad del rango.
+ */
+const BAR_CAMERA_PRESETS: Record<string, CameraPlacement> = {
+  hero: { polar: 68, azimuth: -16, distance: 1 },
+  isometric: { polar: 58, azimuth: -32, distance: 1 },
+};
+
+/**
+ * Con más de una serie hay una fila detrás de otra, y casi de frente la de
+ * delante tapa la de detrás entera. Hay que subir y abrir: desde arriba las
+ * filas se separan en pantalla, y con más azimut se ven las dos caras. Se pierde
+ * algo de precisión al comparar alturas, pero ver una barra mal es mejor que no
+ * verla.
+ */
+const BAR_CAMERA_MULTI: Record<string, CameraPlacement> = {
+  hero: { polar: 52, azimuth: -30, distance: 1 },
+  isometric: { polar: 48, azimuth: -38, distance: 1 },
+};
+
+/** Amplitud del vaivén de una gráfica de barras, en grados. Ver el bucle. */
+const BAR_SWAY_DEGREES = 13;
+
+/** Caja que ocupa lo dibujado, centrada en el eje Y. Para encuadrar. */
+type PlotBox = { width: number; height: number; depth: number };
+
+/**
+ * Aire alrededor de la gráfica al encuadrarla. 1 = pegada al borde.
+ *
+ * No es solo estética: cuanto más cerca está la cámara, más se abren las barras
+ * de los extremos y peor se comparan sus alturas, que es lo único que hace una
+ * barra. Este valor es lo más cerca que se puede estar sin que la fila se abanique.
+ */
+const FIT_MARGIN = 1.3;
+
+/**
+ * A qué distancia del centro de la caja hay que ponerse para que quepa entera.
+ *
+ * Se resuelve proyectando las ocho esquinas y corrigiendo: el error de la
+ * estimación es casi lineal en 1/distancia, así que converge en tres o cuatro
+ * pasos. Hacerlo con trigonometría a mano obliga a inventarse un factor para la
+ * perspectiva —las esquinas de delante se agrandan— y ese factor siempre falla
+ * en algún caso; esto no falla en ninguno.
+ */
+const fitProbe = new PerspectiveCamera();
+const fitCorners = Array.from({ length: 8 }, () => new Vector3());
+const fitPoint = new Vector3();
+
+function fitDistance(
+  box: PlotBox,
+  camera: PerspectiveCamera,
+  target: Vector3,
+  direction: Vector3,
+): number {
+  let corner = 0;
+  for (const sx of [-1, 1]) {
+    for (const sy of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        fitCorners[corner++].set(
+          target.x + (sx * box.width) / 2,
+          target.y + (sy * box.height) / 2,
+          target.z + (sz * box.depth) / 2,
+        );
+      }
+    }
+  }
+
+  fitProbe.fov = camera.fov;
+  fitProbe.aspect = camera.aspect;
+  fitProbe.near = camera.near;
+  fitProbe.far = camera.far;
+  fitProbe.updateProjectionMatrix();
+
+  const wanted = 1 / FIT_MARGIN;
+  let distance = Math.max(box.width, box.height, box.depth) * 1.5 + 0.5;
+
+  for (let pass = 0; pass < 5; pass++) {
+    fitProbe.position.copy(direction).multiplyScalar(distance).add(target);
+    fitProbe.lookAt(target);
+    fitProbe.updateMatrixWorld();
+
+    let worst = 0;
+    for (const point of fitCorners) {
+      fitPoint.copy(point).project(fitProbe);
+      worst = Math.max(worst, Math.abs(fitPoint.x), Math.abs(fitPoint.y));
+    }
+
+    if (worst <= 0 || Math.abs(worst - wanted) < 0.004) break;
+    distance *= worst / wanted;
+  }
+
+  return distance;
+}
+
+/**
+ * Lo que se sabe de la pieza señalada, sin hablar de sectores ni de barras.
+ *
+ * Antes era el `Sector` entero, y eso ataba el tooltip a la geometría del
+ * anillo: al llegar las barras no había nada que pasarle.
+ */
+export type HoverInfo = {
+  /** Índice en `data.labels`. */
+  index: number;
+  label: string;
+  value: number;
+  /** Fracción del total, 0..1. `null` si el tipo no reparte un total. */
+  fraction: number | null;
+  /** Nombre de la serie. `null` cuando solo hay una. */
+  series: string | null;
+} | null;
 
 export type ChartRendererHandle = {
   /** Reemplaza el config. Reconstruye solo lo que de verdad haya cambiado. */
@@ -65,17 +186,42 @@ export type ChartRendererHandle = {
 };
 
 type Piece = {
-  sector: Sector;
+  info: NonNullable<HoverInfo>;
   mesh: Mesh;
+  /** Sitio de la pieza en el grupo. El realce y el explode se suman a esto. */
+  base: Vector3;
+  /** Hacia dónde se aparta al realzarla. Nula si el realce es solo vertical. */
   direction: Vector3;
   hoverAmount: number;
 };
 
+function cameraPlacement(config: ResolvedChartConfig): CameraPlacement {
+  if (config.camera.preset === 'custom') {
+    return { polar: config.camera.polar, azimuth: config.camera.azimuth, distance: 1 };
+  }
+  const bars = config.type === 'bar' ? BAR_CAMERA_PRESETS : null;
+  const byType = bars
+    ? (config.data.series.length > 1 ? BAR_CAMERA_MULTI : bars)[config.camera.preset]
+    : undefined;
+
+  return byType ?? CAMERA_PRESETS[config.camera.preset] ?? CAMERA_PRESETS.hero;
+}
+
+/** Vector unitario hacia la cámara, desde lo que mira. */
+function cameraDirection(config: ResolvedChartConfig): Vector3 {
+  const preset = cameraPlacement(config);
+  const polar = MathUtils.degToRad(preset.polar);
+  const azimuth = MathUtils.degToRad(preset.azimuth);
+
+  return new Vector3(
+    Math.sin(polar) * Math.sin(azimuth),
+    Math.cos(polar),
+    Math.sin(polar) * Math.cos(azimuth),
+  );
+}
+
 function cameraPosition(config: ResolvedChartConfig): Vector3 {
-  const preset =
-    config.camera.preset === 'custom'
-      ? { polar: config.camera.polar, azimuth: config.camera.azimuth, distance: 1 }
-      : CAMERA_PRESETS[config.camera.preset];
+  const preset = cameraPlacement(config);
 
   const polar = MathUtils.degToRad(preset.polar);
   const azimuth = MathUtils.degToRad(preset.azimuth);
@@ -93,11 +239,13 @@ function geometryKey(config: ResolvedChartConfig): string {
   const s = config.style;
   return [
     config.type,
-    config.data.series[0]?.values.join(','),
+    // Todas las series: las barras usan más de una.
+    config.data.series.map((serie) => serie.values.join(',')).join(';'),
     s.innerRadius,
     s.height,
     s.gap,
     s.bevel,
+    s.cornerRadius,
   ].join('|');
 }
 
@@ -168,12 +316,46 @@ export function createChartRenderer(
   const group = new Group();
   scene.add(group);
 
+  /*
+    Plano de cero. Solo aparece cuando hay valores negativos, y entonces es
+    obligatorio: una barra negativa cuelga de la línea de cero, y sin esa línea
+    dibujada lo que se ve es una barra corta flotando. El primer render de
+    negativos era exactamente eso.
+
+    Gris, no un color del tema —es una guía, no un dato—, y con el tono elegido
+    según el fondo: sobre papel tiene que oscurecer y sobre negro aclarar, o no
+    se ve. Con fondo transparente no sabemos qué hay detrás y se usa un gris
+    medio, que es lo único que funciona en los dos casos.
+
+    Material sin iluminación a propósito: si le diera la luz, competiría con las
+    barras.
+
+    Se crea UNA vez y se reposiciona; nada de geometrías nuevas por build.
+  */
+  const zeroPlaneGeometry = new PlaneGeometry(1, 1);
+  const zeroPlaneMaterial = new MeshBasicMaterial({
+    transparent: true,
+    depthWrite: false,
+    side: DoubleSide,
+  });
+  const zeroPlane = new Mesh(zeroPlaneGeometry, zeroPlaneMaterial);
+  zeroPlane.rotation.x = -Math.PI / 2;
+  zeroPlane.visible = false;
+  // Invisible al puntero: si no, tapa el hover de las barras que hay detrás.
+  zeroPlane.raycast = () => {};
+  group.add(zeroPlane);
+
   const controls = new OrbitControls(camera, canvas);
   controls.enableDamping = true;
   controls.dampingFactor = 0.06;
   controls.enablePan = false;
   controls.minPolarAngle = 0.12;
   controls.maxPolarAngle = Math.PI / 2 - 0.04;
+
+  let userMovedCamera = false;
+  controls.addEventListener('start', () => {
+    userMovedCamera = true;
+  });
 
   let pieces: Piece[] = [];
   let currentGeometryKey = '';
@@ -198,13 +380,32 @@ export function createChartRenderer(
     hovered = null;
   }
 
-  function build() {
-    disposePieces();
+  /** Lo que ocupa el sólido que hay en el grupo. Para encuadrar y para orbitar. */
+  let plotBox: PlotBox = { width: 0, height: 0, depth: 0 };
 
+  function addPiece(
+    geometry: BufferGeometry,
+    colorIndex: number,
+    info: NonNullable<HoverInfo>,
+    base: Vector3,
+    direction: Vector3,
+  ) {
+    const material = createMaterial(config, colorForSegment(config, colorIndex));
+    const mesh = new Mesh(geometry, material);
+    mesh.position.copy(base);
+    mesh.castShadow = config.style.shadow;
+    mesh.receiveShadow = config.style.shadow;
+
+    group.add(mesh);
+    pieces.push({ info, mesh, base, direction, hoverAmount: 0 });
+  }
+
+  function buildRing() {
     const { innerRadius, height, gap, bevel } = config.style;
     const innerR = innerRadius * OUTER_RADIUS;
     const values = config.data.series[0]?.values ?? [];
     const sectors = computeSectors(values, gap);
+    plotBox = { width: OUTER_RADIUS * 2, height, depth: OUTER_RADIUS * 2 };
     if (sectors.length === 0) return;
 
     const limits = {
@@ -217,22 +418,86 @@ export function createChartRenderer(
     const bevelAbs = globalBevel(sectors, limits, bevel);
 
     for (const sector of sectors) {
-      const geometry: BufferGeometry = sectorGeometry({
-        sector,
-        innerR,
-        outerR: OUTER_RADIUS,
-        depth: height,
-        bevel: bevelAbs,
-        curveSegments: curveSegmentsFor(sector),
-      });
-      const material = createMaterial(config, colorForSegment(config, sector.index));
-      const mesh = new Mesh(geometry, material);
-      mesh.castShadow = config.style.shadow;
-      mesh.receiveShadow = config.style.shadow;
-
-      group.add(mesh);
-      pieces.push({ sector, mesh, direction: sectorDirection(sector), hoverAmount: 0 });
+      addPiece(
+        sectorGeometry({
+          sector,
+          innerR,
+          outerR: OUTER_RADIUS,
+          depth: height,
+          bevel: bevelAbs,
+          curveSegments: curveSegmentsFor(sector),
+        }),
+        sector.index,
+        {
+          index: sector.index,
+          label: config.data.labels[sector.index] ?? '',
+          value: values[sector.index] ?? 0,
+          fraction: sector.fraction,
+          series: null,
+        },
+        new Vector3(0, 0, 0),
+        sectorDirection(sector),
+      );
     }
+  }
+
+  function buildBars() {
+    const { height, gap, bevel, cornerRadius } = config.style;
+    const layout = computeBars(
+      config.data.series.map((serie) => serie.values),
+      { gap, height },
+    );
+    plotBox = { width: PLOT_WIDTH, height: layout.totalHeight, depth: layout.totalDepth };
+    if (layout.bars.length === 0) return;
+
+    /* Sobresale un poco de la parrilla: una línea que acaba justo donde acaba la
+       última barra no se lee como referencia, se lee como parte de la barra. */
+    zeroPlane.visible = layout.baseline > 0;
+    zeroPlane.scale.set(PLOT_WIDTH * 1.08, layout.totalDepth * 1.12, 1);
+    /* Un pelo por encima del cero: la cara superior de una barra negativa acaba
+       exactamente ahí, y coplanares se pelean por el mismo píxel. */
+    zeroPlane.position.y = layout.baseline + 0.004;
+
+    const cornerSegments = cornerSegmentsFor(layout.bars.length);
+    const multi = config.data.series.length > 1;
+
+    for (const bar of layout.bars) {
+      addPiece(
+        barGeometry({
+          height: bar.height,
+          layout,
+          style: { bevel, cornerRadius },
+          cornerSegments,
+        }),
+        bar.colorIndex,
+        {
+          index: bar.index,
+          label: config.data.labels[bar.index] ?? '',
+          value: bar.value,
+          fraction: bar.fraction,
+          series: multi ? config.data.series[bar.series]?.name ?? null : null,
+        },
+        new Vector3(bar.x, bar.y, bar.z),
+        /* Sin dirección: una barra realzada sube, no se aparta. Apartarla la
+           sacaría de su celda y dejaría de estar donde dice su categoría. */
+        new Vector3(0, 0, 0),
+      );
+    }
+  }
+
+  /* Un tipo, una función de construcción. Es el registro que pide la skill
+     `add-chart-type`, en la forma que permite la ADR 0006: nada de componentes,
+     porque aquí no hay React. */
+  const BUILDERS: Record<ResolvedChartConfig['type'], () => void> = {
+    donut: buildRing,
+    pie: buildRing,
+    bar: buildBars,
+  };
+
+  function build() {
+    disposePieces();
+    zeroPlane.visible = false;
+    (BUILDERS[config.type] ?? buildRing)();
   }
 
   function applySceneSettings() {
@@ -242,18 +507,67 @@ export function createChartRenderer(
     key.castShadow = config.style.shadow;
     floor.visible = config.style.shadow;
 
-    /* Separado del suelo: apoyada sobre el plano, la sombra queda oculta debajo
-       de la propia gráfica y se pierde la sensación de peso. Proporcional al
-       grosor para que se mantenga al cambiarlo. */
-    group.position.y = config.style.height * 0.75;
+    if (transparent()) {
+      zeroPlaneMaterial.color.setHex(0x8a8a95);
+      zeroPlaneMaterial.opacity = 0.3;
+    } else {
+      // Luminancia relativa del fondo, ya en lineal: es como three guarda el color.
+      const bg = new Color(config.scene.background.from);
+      const light = 0.2126 * bg.r + 0.7152 * bg.g + 0.0722 * bg.b > 0.2;
+      zeroPlaneMaterial.color.setHex(light ? 0x3a3a44 : 0xdcdce6);
+      zeroPlaneMaterial.opacity = light ? 0.22 : 0.26;
+    }
 
-    camera.fov = config.camera.fov;
-    camera.position.copy(cameraPosition(config));
-    camera.updateProjectionMatrix();
+    /* El anillo se separa del suelo: apoyado sobre el plano, su sombra queda
+       oculta debajo de él y se pierde la sensación de peso. Proporcional al
+       grosor para que aguante al cambiarlo.
+
+       Las barras no se separan. Una barra flotando deja de leerse como barra, y
+       su sombra se ve de todas formas porque son altas. */
+    const standing = config.type === 'bar';
+    group.position.y = standing ? 0 : config.style.height * 0.75;
+
+    /* Sin rotación automática, el ángulo vuelve a cero. Si no, apagarla deja la
+       pieza girada donde estuviera y el mismo config da píxeles distintos, que es
+       justo lo que rompe el render estático y las capturas de test. */
+    if (!config.motion.autoRotate) {
+      group.rotation.y = 0;
+      swayPhase = 0;
+    }
 
     controls.enabled = config.interaction.orbit;
     controls.enableZoom = config.interaction.zoom;
-    controls.target.set(0, group.position.y, 0);
+
+    placeCamera();
+  }
+
+  /*
+    Colocar la cámara depende del aspecto del hueco, así que también hay que
+    hacerlo al redimensionar — antes solo se hacía al aplicar el config. Lo que
+    NO se hace es reencuadrar después de que el usuario haya girado o hecho zoom:
+    que la gráfica te vuelva a su sitio porque has cambiado el tamaño de la
+    ventana se siente como perder el trabajo.
+  */
+  function placeCamera() {
+    const standing = config.type === 'bar';
+
+    camera.fov = config.camera.fov;
+    camera.updateProjectionMatrix();
+
+    // Se orbita alrededor del centro de lo que hay, no del suelo.
+    const target = new Vector3(0, standing ? plotBox.height / 2 : group.position.y, 0);
+    controls.target.copy(target);
+
+    if (standing) {
+      /* Las barras se miden: su alto cambia veinte veces entre los extremos de
+         `style.height`, y el usuario ajusta desde `camera.distance`. */
+      const direction = cameraDirection(config);
+      const distance = fitDistance(plotBox, camera, target, direction) * config.camera.distance;
+      camera.position.copy(direction).multiplyScalar(distance).add(target);
+    } else {
+      camera.position.copy(cameraPosition(config));
+    }
+
     controls.update();
   }
 
@@ -263,6 +577,7 @@ export function createChartRenderer(
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
+    if (!userMovedCamera) placeCamera();
   }
 
   // ── interacción ───────────────────────────────────────────────────────────
@@ -293,15 +608,7 @@ export function createChartRenderer(
     canvas.style.cursor = next ? 'pointer' : '';
 
     if (!hoverCallback) return;
-    if (!next) {
-      hoverCallback(null);
-      return;
-    }
-    hoverCallback({
-      sector: next.sector,
-      label: config.data.labels[next.sector.index] ?? '',
-      value: config.data.series[0]?.values[next.sector.index] ?? 0,
-    });
+    hoverCallback(next ? next.info : null);
   }
 
   // ── bucle ─────────────────────────────────────────────────────────────────
@@ -318,6 +625,7 @@ export function createChartRenderer(
 
   let lastTime = 0;
   let frame = 0;
+  let swayPhase = 0;
 
   function tick(now: number) {
     frame = requestAnimationFrame(tick);
@@ -325,7 +633,20 @@ export function createChartRenderer(
     lastTime = now;
 
     if (motionEnabled() && config.motion.autoRotate) {
-      group.rotation.y += (config.motion.speed / 60) * Math.PI * 2 * delta;
+      const rate = (config.motion.speed / 60) * Math.PI * 2 * delta;
+
+      if (config.type === 'bar') {
+        /* Las barras NO dan la vuelta.
+           Media vuelta pone la fila de canto —cinco barras convertidas en una— y
+           una vuelta entera la deja del revés, con la primera categoría a la
+           derecha. Las dos cosas mienten sobre los datos. `autoRotate` en barras
+           es un vaivén: mantiene la pieza viva y no cambia nunca el orden de
+           lectura. */
+        swayPhase += rate;
+        group.rotation.y = Math.sin(swayPhase) * MathUtils.degToRad(BAR_SWAY_DEGREES);
+      } else {
+        group.rotation.y += rate;
+      }
     }
 
     updateHover();
@@ -339,7 +660,11 @@ export function createChartRenderer(
 
       const push = config.style.explode * 0.35 + piece.hoverAmount * 0.05;
       tmpVector.copy(piece.direction).multiplyScalar(push);
-      piece.mesh.position.set(tmpVector.x, piece.hoverAmount * 0.09, tmpVector.z);
+      piece.mesh.position.set(
+        piece.base.x + tmpVector.x,
+        piece.base.y + piece.hoverAmount * 0.09,
+        piece.base.z + tmpVector.z,
+      );
     }
 
     controls.update();
@@ -402,6 +727,8 @@ export function createChartRenderer(
 
       floorGeometry.dispose();
       floorMaterial.dispose();
+      zeroPlaneGeometry.dispose();
+      zeroPlaneMaterial.dispose();
 
       scene.environment = null;
       envTarget?.texture.dispose();

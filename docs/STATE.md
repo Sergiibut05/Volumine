@@ -24,9 +24,11 @@ verificado con `sandbox` puesto, que es lo que hace Confluence Cloud.
   nunca revienta el embed, migraciones, config en URL (289 caracteres para una
   gráfica de 5 sectores).
 - Renderer de donut/pie en three plano: bevel uniforme, sombreado suave, sombra
-  de contacto, hover con elevación y tooltip, órbita.
+  de contacto, hover con elevación y tooltip, órbita. El canto al máximo se ve
+  bien **con la separación a 0**: los extremos son un redondeo convexo de
+  verdad, así que dos vecinos pegados dejan un surco limpio.
 - Tabla de datos accesible y `aria-label` generado, siempre en el DOM.
-- **40 tests** unitarios de geometría y de contrato.
+- **53 tests** unitarios de geometría y de contrato.
 
 ## Interfaz
 
@@ -102,6 +104,29 @@ Todo esto salió de mirar píxeles o de medir, no de razonar.
 display: none }` o el elemento oculto se ve.
 11. **`export const dynamic = 'force-static'` en un route handler descarta el
     query string.** El embed respondía siempre "falta el parámetro".
+12. **Por dos puntos pasan DOS cuartos de circunferencia, y solo uno redondea.**
+    El casquete del extremo iba del cuerpo a la cara de corte por el arco
+    centrado en la esquina viva en vez de por el centrado dentro del material:
+    los extremos coincidían, así que parecía correcto, pero la superficie salía
+    CÓNCAVA y cada extremo tenía un mordisco redondo de radio igual al canto
+    (0,79·b² de material en vez de 0,21·b²). Con el canto grueso se veía como un
+    agujero circular en cada junta, y obligaba a abrir mucha separación para
+    disimularlo. Un arco mal elegido no da NaN ni revienta ningún test: se ve.
+13. **`scene.environment` solo llega a los materiales PBR.** En three es
+    literalmente `material.isMeshStandardMaterial ? scene.environment : null`
+    (WebGLPrograms). Nuestra escena se ilumina casi entera por IBL y no tiene luz
+    ambiente, así que cualquier material que no sea Standard/Physical se queda
+    con una sola direccional y sale casi negro. Le pasó a `MeshToonMaterial` y
+    después a `MeshLambertMaterial`, que se eligió como recambio creyendo que sí
+    respondía al entorno. El acabado "Plano" es hoy Standard con rugosidad 1,
+    metalness 0 y un emisivo bajo del propio color, que es lo que lo deja plano
+    sin apagarlo.
+14. **Una normal reflejada solo se nota en algunos ángulos.** La componente
+    tangencial iba con la X al revés, o sea reflejada en el plano X=0: correcta
+    en θ≈0, invertida del todo en θ≈±90°. Las caras de corte miraban hacia
+    dentro del sólido y se renderizaban negras. Cualquier test con un solo
+    sector, según dónde cayera, lo daba por bueno. Los sectores de prueba tienen
+    que cubrir los cuatro cuadrantes.
 
 ## Problemas abiertos
 
@@ -109,11 +134,13 @@ display: none }` o el elemento oculto se ve.
   su WebSocket de HMR falla; la página no hidrata con `npm run dev`. En
   producción funciona. Sin diagnosticar. **Verificar siempre contra `npm run
 build` + `npm start`.**
-- **Muesca residual en las esquinas interiores de las caras de corte.** Mucho
-  menor tras acotar el canto a 0.42·grosor, pero está. El rebaje angular es
-  constante (medido en el radio medio) mientras que el encogido del perfil en el
-  casquete es absoluto: en el radio interior los dos no casan del todo. Se ve
-  solo ampliando y con el canto al máximo.
+- **La muesca de las esquinas interiores de las caras de corte ya no se ve** en
+  capturas ampliadas con el canto al máximo, y lo más probable es que fuera un
+  síntoma del arco equivocado del casquete (lección 12). Sigue siendo cierto que
+  el rebaje angular es constante (medido en el radio medio) mientras que el
+  encogido del perfil es absoluto, así que el canto es un pelo más grueso por
+  dentro que por fuera; eso es a propósito, porque mantiene la cara de corte
+  plana.
 - **En tarta, el canto lo marca el sector más pequeño y queda sutil.** El arco
   se mide en un radio de referencia con suelo (12% del exterior), así que una
   porción pequeña limita el canto de todas. Es el mismo problema de los sectores

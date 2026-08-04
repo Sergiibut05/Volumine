@@ -1,9 +1,4 @@
-import {
-  Material,
-  MeshPhysicalMaterial,
-  MeshStandardMaterial,
-  MeshLambertMaterial,
-} from 'three';
+import { Material, MeshPhysicalMaterial, MeshStandardMaterial } from 'three';
 import type { ResolvedChartConfig } from '@/lib/config/defaults';
 
 /*
@@ -48,18 +43,30 @@ export function createMaterial(config: ResolvedChartConfig, color: string): Mate
       });
     case 'toon':
       /*
-        "Plano" NO es cel-shading.
+        "Plano" NO es cel-shading, y tampoco puede ser un material sin PBR.
 
-        Se probó `MeshToonMaterial` y da dos problemas a la vez: ignora la
-        iluminación de entorno —y nuestra escena se ilumina casi toda por IBL,
-        así que la pieza queda oscura y sin volumen— y cuantiza la luz en bandas,
-        que sobre una pared cilíndrica se ve como un escalonado serrado.
+        Se descartó `MeshToonMaterial` porque cuantiza la luz en bandas y sobre
+        una pared cilíndrica eso se ve como un escalonado serrado. Se sustituyó
+        por Lambert, y ese cambio traía un problema peor: three solo conecta
+        `scene.environment` a los materiales PBR — literalmente
+        `material.isMeshStandardMaterial ? scene.environment : null`, en
+        WebGLPrograms. Nuestra escena se ilumina casi entera por IBL y no tiene
+        luz ambiente, así que Lambert se quedaba con una sola direccional y sin
+        relleno: el acabado salía casi negro.
 
         Lo que pide este acabado es "mate, sin brillos, para acompañar a un texto
-        largo", y eso es difuso puro: Lambert. Responde a la luz de entorno,
-        no tiene especular y no cuantiza nada.
+        largo". Eso es difuso puro, que en PBR es rugosidad 1 y metalness 0. El
+        emisivo bajo, del color del propio segmento, levanta las zonas en sombra:
+        es lo que lo deja PLANO de verdad —poco recorrido entre luz y sombra— en
+        vez de solo mate.
       */
-      return new MeshLambertMaterial({ color });
+      return new MeshStandardMaterial({
+        color,
+        roughness: 1,
+        metalness: 0,
+        emissive: color,
+        emissiveIntensity: 0.35,
+      });
     case 'physical':
     default:
       return new MeshPhysicalMaterial({

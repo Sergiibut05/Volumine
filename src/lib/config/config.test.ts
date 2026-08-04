@@ -106,6 +106,128 @@ describe('saneado: un config raro no revienta el embed', () => {
   });
 });
 
+describe('contrato de barras', () => {
+  const bars: ChartConfig = {
+    v: 1,
+    type: 'bar',
+    data: { labels: ['Ene', 'Feb'], series: [{ values: [10, 20] }] },
+  };
+
+  it('el config mínimo de barras vale y hereda los mismos defaults', () => {
+    const r = parseConfig(bars);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    expect(r.config.type).toBe('bar');
+    // Reutiliza los campos que ya existían: no hay defaults propios del tipo.
+    expect(r.config.style.bevel).toBe(defaults.style.bevel);
+    expect(r.config.style.cornerRadius).toBe(defaults.style.cornerRadius);
+  });
+
+  it('los negativos SÍ se conservan en barras', () => {
+    const r = parseConfig({
+      ...bars,
+      data: { labels: ['Ene', 'Feb'], series: [{ values: [10, -20] }] },
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    expect(r.config.data.series[0].values).toEqual([10, -20]);
+    expect(r.issues).toEqual([]);
+  });
+
+  it('admite varias series y las conserva enteras', () => {
+    const r = parseConfig({
+      ...bars,
+      data: {
+        labels: ['Ene', 'Feb'],
+        series: [
+          { name: '2025', values: [10, 20] },
+          { name: '2026', values: [15, 25] },
+        ],
+      },
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    expect(r.config.data.series).toHaveLength(2);
+    expect(r.config.data.series[1].name).toBe('2026');
+  });
+
+  it('una serie corta se rellena con ceros sin recortar las demás', () => {
+    const r = parseConfig({
+      ...bars,
+      data: {
+        labels: ['Ene', 'Feb', 'Mar'],
+        series: [{ values: [10, 20, 30] }, { values: [5] }],
+      },
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    expect(r.config.data.labels).toHaveLength(3);
+    expect(r.config.data.series[0].values).toEqual([10, 20, 30]);
+    expect(r.config.data.series[1].values).toEqual([5, 0, 0]);
+    expect(r.issues[0].message).toContain('cuentan como 0');
+  });
+
+  it('falla explícitamente si todas las barras son cero', () => {
+    const r = parseConfig({
+      ...bars,
+      data: { labels: ['Ene', 'Feb'], series: [{ values: [0, 0] }] },
+    });
+    expect(r.ok).toBe(false);
+    expect(r.issues.some((i) => i.level === 'error')).toBe(true);
+  });
+
+  it('un config de anillo publicado sigue validando igual', () => {
+    // El tipo nuevo no ha tocado el esquema: no hay versión nueva ni migración.
+    const r = parseConfig(minimal);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.config.v).toBe(1);
+    expect(r.issues).toEqual([]);
+  });
+});
+
+describe('tema: preset que rellena, no que bloquea', () => {
+  it('un config con solo el nombre del tema se renderiza con el tema', () => {
+    // Es el caso de un link corto escrito a mano y el de una gráfica publicada
+    // antes de mejorar el tema: si esto no pasa, `theme` no significa nada.
+    const r = parseConfig({ ...minimal, theme: 'papel' });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    expect(r.config.style.material).toBe('toon');
+    expect(r.config.style.palette[0]).toBe('#264653');
+    expect(r.config.scene.environment).toBe('soft');
+  });
+
+  it('lo que el usuario toca gana al tema, campo a campo', () => {
+    const r = parseConfig({
+      ...minimal,
+      theme: 'papel',
+      style: { material: 'metal' },
+      scene: { background: { kind: 'solid', from: '#000000' } },
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    expect(r.config.style.material).toBe('metal');
+    // El resto del tema sigue en pie.
+    expect(r.config.style.palette[0]).toBe('#264653');
+    expect(r.config.scene.environment).toBe('soft');
+    expect(r.config.scene.background.from).toBe('#000000');
+  });
+
+  it('un tema que no existe no rompe nada', () => {
+    const r = parseConfig({ ...minimal, theme: 'no-existe' });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.config.style.material).toBe(defaults.style.material);
+  });
+});
+
 describe('config en URL', () => {
   it('ida y vuelta sin pérdida', () => {
     const full: ChartConfig = {

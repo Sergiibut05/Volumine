@@ -167,16 +167,6 @@ export function roundedSectorGeometry({
   const normals: number[] = [];
   const indices: number[] = [];
 
-  /** Añade un vértice ya en coordenadas de mundo y devuelve su índice. */
-  const push = (r: number, y: number, theta: number, nr: number, ny: number) => {
-    const cos = Math.cos(theta);
-    const sin = Math.sin(theta);
-    // El sector se dibuja en XZ con Z invertida, igual que el resto del renderer.
-    positions.push(r * cos, y, -r * sin);
-    normals.push(nr * cos, ny, -nr * sin);
-    return positions.length / 3 - 1;
-  };
-
   /**
    * Rejilla de un tramo. `angleAt` y `shrinkAt` describen cómo varía el barrido:
    * en el cuerpo son constantes, y en los casquetes giran un cuarto de vuelta.
@@ -210,7 +200,11 @@ export function roundedSectorGeometry({
         const radial = Math.cos((mix * Math.PI) / 2);
         const tangential = Math.sin((mix * Math.PI) / 2) * tangentSign;
 
-        const nx = point.nr * radial * cos - tangential * -sin;
+        /* Ojo con el signo de la X: la componente tangencial va sobre θ̂, que
+           con la Z negada es (−sin θ, 0, −cos θ). Con la X al revés la normal
+           queda reflejada en el plano X=0 — correcta en θ≈0 e invertida en
+           θ≈±90°, así que las caras de corte se renderizan negras. */
+        const nx = point.nr * radial * cos - tangential * sin;
         const ny = point.ny * radial;
         const nz = -(point.nr * radial * sin) - tangential * cos;
         const len = Math.hypot(nx, ny, nz) || 1;
@@ -282,11 +276,39 @@ export function roundedSectorGeometry({
   stitch(body, true);
 
   if (nCap > 0) {
-    // Casquete inicial: del borde del cuerpo a la cara de corte plana.
+    /*
+      Casquete: del borde del cuerpo a la cara de corte plana.
+
+      OJO CON CUÁL DE LOS DOS CUARTOS DE CIRCUNFERENCIA ES.
+
+      Llama `g` al avance angular desde la cara de corte (medido en arco) y `w`
+      a lo que se hunde el perfil. El casquete va de (g=b, w=0) —donde empieza
+      el cuerpo, con el perfil entero— a (g=0, w=b) —la cara de corte, con el
+      perfil encogido. Por esos dos puntos pasan DOS arcos de radio b, y solo
+      uno redondea:
+
+      · Centro en (b, b), dentro del material: `g = b(1−sin τ)`, `w = b(1−cos τ)`.
+        Pasa por (0,29b, 0,29b), abraza la esquina y quita 0,21·b² de material.
+        Es el redondeo de toda la vida, convexo.
+      · Centro en (0, 0), que es la esquina viva: `g = b·cos τ`, `w = b·sin τ`.
+        Pasa por (0,71b, 0,71b) y quita 0,79·b² — casi cuatro veces más — con la
+        superficie CÓNCAVA.
+
+      El segundo es el que estaba escrito: cada extremo salía con un mordisco
+      redondo de radio b, que con el canto grueso se veía como un agujero
+      circular en cada junta y obligaba a abrir mucha separación. Las normales,
+      en cambio, ya estaban calculadas para el arco bueno (`mix` gira un cuarto
+      de vuelta de la normal del perfil a la de la cara de corte), y por eso el
+      sombreado no delataba del todo la forma.
+    */
+    /** Fracción de `bodyInset` que queda por recorrer. */
+    const capSweep = (t: number) => 1 - Math.sin((t * Math.PI) / 2);
+    const capSink = (t: number) => b * (1 - Math.cos((t * Math.PI) / 2));
+
     const capStart = buildGrid(
       nCap,
-      (t) => a0 + bodyInset() * Math.cos((t * Math.PI) / 2),
-      (t) => b * Math.sin((t * Math.PI) / 2),
+      (t) => a0 + bodyInset() * capSweep(t),
+      capSink,
       (t) => t,
       -1,
     );
@@ -294,8 +316,8 @@ export function roundedSectorGeometry({
 
     const capEnd = buildGrid(
       nCap,
-      (t) => a1 - bodyInset() * Math.cos((t * Math.PI) / 2),
-      (t) => b * Math.sin((t * Math.PI) / 2),
+      (t) => a1 - bodyInset() * capSweep(t),
+      capSink,
       (t) => t,
       1,
     );
@@ -319,7 +341,9 @@ export function roundedSectorGeometry({
     }
     const cos = Math.cos(theta);
     const sin = Math.sin(theta);
-    const nx = -sign * -sin;
+    // Normal de la cara: sign·θ̂ = sign·(−sin θ, 0, −cos θ). Misma X invertida
+    // que en buildGrid, y por el mismo motivo.
+    const nx = -sign * sin;
     const nz = -sign * cos;
 
     positions.push((sumR / m) * cos, sumY / m, -(sumR / m) * sin);

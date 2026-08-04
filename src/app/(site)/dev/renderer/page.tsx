@@ -21,6 +21,8 @@ const BASE: ChartConfig = {
   },
 };
 
+const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May'];
+
 const PRESETS: Record<string, Partial<ChartConfig>> = {
   'por defecto': {},
   'sin canto': { style: { bevel: 0 } },
@@ -30,6 +32,7 @@ const PRESETS: Record<string, Partial<ChartConfig>> = {
   explotado: { style: { explode: 0.5 } },
   mate: { style: { material: 'matte' } },
   metal: { style: { material: 'metal' } },
+  plano: { style: { material: 'toon' } },
   'sector diminuto': {
     data: {
       labels: ['A', 'B', 'C'],
@@ -40,25 +43,75 @@ const PRESETS: Record<string, Partial<ChartConfig>> = {
     data: { labels: ['Sí', 'No'], series: [{ values: [70, 30] }] },
   },
   quieto: { motion: { autoRotate: false } },
+
+  // ── barras ────────────────────────────────────────────────────────────────
+  barras: {
+    type: 'bar',
+    data: { labels: MESES, series: [{ name: '2026', values: [42, 26, 34, 19, 48] }] },
+  },
+  'barras: punta abombada': {
+    type: 'bar',
+    data: { labels: MESES, series: [{ values: [42, 26, 34, 19, 48] }] },
+    style: { cornerRadius: 1 },
+  },
+  'barras: dos series': {
+    type: 'bar',
+    data: {
+      labels: ['Ene', 'Feb', 'Mar', 'Abr'],
+      series: [
+        { name: '2025', values: [42, 26, 34, 19] },
+        { name: '2026', values: [30, 38, 22, 44] },
+      ],
+    },
+  },
+  'barras: negativos': {
+    type: 'bar',
+    data: { labels: MESES, series: [{ values: [42, -18, 34, -9, 48] }] },
+  },
+  'barras: muchas': {
+    type: 'bar',
+    data: {
+      labels: Array.from({ length: 16 }, (_, i) => `S${i + 1}`),
+      series: [
+        {
+          values: [12, 19, 26, 22, 31, 28, 35, 30, 42, 38, 45, 40, 48, 44, 52, 47],
+        },
+      ],
+    },
+  },
+  'barras: una sola': {
+    type: 'bar',
+    data: { labels: ['Total'], series: [{ values: [42] }] },
+  },
+  'barras: casi cero': {
+    type: 'bar',
+    data: { labels: MESES, series: [{ values: [100, 0.4, 50, 0.1, 80] }] },
+  },
 };
 
 export default function RendererDevPage() {
   const [preset, setPreset] = useState('por defecto');
+  const [type, setType] = useState<ChartConfig['type']>('donut');
   const [bevel, setBevel] = useState(0.6);
   const [height, setHeight] = useState(0.34);
   const [innerRadius, setInnerRadius] = useState(0.55);
   const [gap, setGap] = useState(0.012);
+  const [cornerRadius, setCornerRadius] = useState(0.2);
 
   const result = useMemo(() => {
     const override = PRESETS[preset] ?? {};
     return parseConfig({
       ...BASE,
       ...override,
+      // El preset manda sobre el selector: hay presets que son de un tipo.
+      type: override.type ?? type,
       data: override.data ?? BASE.data,
-      style: { bevel, height, innerRadius, gap, ...override.style },
+      style: { bevel, height, innerRadius, gap, cornerRadius, ...override.style },
       scene: { background: { kind: 'solid', from: '#0b0b12' } },
     });
-  }, [preset, bevel, height, innerRadius, gap]);
+  }, [preset, type, bevel, height, innerRadius, gap, cornerRadius]);
+
+  const isBar = (PRESETS[preset]?.type ?? type) === 'bar';
 
   return (
     <main
@@ -92,6 +145,18 @@ export default function RendererDevPage() {
           </select>
         </label>
 
+        <label style={{ display: 'grid', gap: 'var(--p-space-1)' }}>
+          <span style={{ color: 'var(--text-secondary)' }}>Tipo</span>
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value as ChartConfig['type'])}
+          >
+            <option value="donut">anillo</option>
+            <option value="pie">tarta</option>
+            <option value="bar">barras</option>
+          </select>
+        </label>
+
         <Slider
           label="bevel"
           value={bevel}
@@ -101,15 +166,17 @@ export default function RendererDevPage() {
           onChange={setBevel}
         />
         <Slider
-          label="grosor"
+          label={isBar ? 'altura' : 'grosor'}
           value={height}
           min={0.05}
           max={1}
           step={0.01}
           onChange={setHeight}
         />
+        {/* Los dos campos que solo significan algo en un tipo se marcan, en vez
+            de esconderlos: en el banco interesa ver que el otro tipo los ignora. */}
         <Slider
-          label="radio interior"
+          label={isBar ? 'radio interior (no aplica)' : 'radio interior'}
           value={innerRadius}
           min={0}
           max={0.85}
@@ -117,7 +184,15 @@ export default function RendererDevPage() {
           onChange={setInnerRadius}
         />
         <Slider
-          label="hueco"
+          label={isBar ? 'punta redondeada' : 'punta redondeada (no aplica)'}
+          value={cornerRadius}
+          min={0}
+          max={1}
+          step={0.01}
+          onChange={setCornerRadius}
+        />
+        <Slider
+          label={isBar ? 'separación' : 'hueco'}
           value={gap}
           min={0}
           max={0.05}

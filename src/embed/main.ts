@@ -72,11 +72,18 @@ function main() {
       }
       tooltip.hidden = false;
       const value = `${format.format(info.value)}${config!.data.format.unit}`;
-      const percent = `${(info.sector.fraction * 100).toFixed(1)}%`;
+      /* El porcentaje solo si el tipo reparte un total, y la serie solo si hay
+         más de una: en una barra suelta, "100%" no dice nada. */
+      const detail = [
+        value,
+        info.fraction === null ? null : `${(info.fraction * 100).toFixed(1)}%`,
+        info.series,
+      ]
+        .filter((part): part is string => Boolean(part))
+        .join(' · ');
       // Las etiquetas son del usuario y llegan por URL: se escapan siempre.
       tooltip.innerHTML =
-        `<b>${escapeHtml(info.label)}</b>` +
-        `<span>${escapeHtml(value)} · ${percent}</span>`;
+        `<b>${escapeHtml(info.label)}</b><span>${escapeHtml(detail)}</span>`;
     });
   }
 

@@ -58,7 +58,12 @@ export const CHART_TYPES: ChartTypeEntry[] = [
     name: 'Barras',
     answers: '¿Cuánto tiene cada categoría, y cuál gana?',
     avoid: 'Para partes de un total. Ahí la comparación es contra el todo.',
-    status: 'en-camino',
+    status: 'listo',
+    sample: {
+      v: 1,
+      type: 'bar',
+      data: sampleData(['Ene', 'Feb', 'Mar', 'Abr', 'May'], [42, 26, 34, 19, 48]),
+    },
   },
   {
     id: 'bar-race',

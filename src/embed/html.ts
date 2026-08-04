@@ -27,46 +27,97 @@ function escapeJson(value: unknown): string {
  * pantalla interprete geometría con luz. Esta tabla es la versión que sí se
  * puede leer, y además es lo que ve alguien sin WebGL (ADR 0005).
  */
-export function dataTableHtml(config: ResolvedChartConfig): string {
-  const series = config.data.series[0];
-  if (!series) return '';
-
-  const total = series.values.reduce((sum, v) => sum + (v > 0 ? v : 0), 0);
+function formatter(config: ResolvedChartConfig) {
   const { locale, decimals, unit } = config.data.format;
   const number = new Intl.NumberFormat(locale, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
+  return (value: number) => number.format(value) + unit;
+}
+
+const seriesName = (config: ResolvedChartConfig, i: number) =>
+  config.data.series[i]?.name ?? `Serie ${i + 1}`;
+
+export function dataTableHtml(config: ResolvedChartConfig): string {
+  if (config.data.series.length === 0) return '';
+  const format = formatter(config);
+  const caption = escapeHtml(config.title ?? 'Datos de la gráfica');
+
+  /* Las barras se tabulan con una columna por serie y SIN porcentaje: reparten
+     un eje, no un total, y "42 es el 24% de la suma de los meses" no significa
+     nada. El anillo sí reparte un total, y ahí el porcentaje es el dato. */
+  if (config.type === 'bar') {
+    const head = config.data.series
+      .map((_, s) => `<th scope="col">${escapeHtml(seriesName(config, s))}</th>`)
+      .join('');
+
+    const rows = config.data.labels
+      .map((label, i) => {
+        const cells = config.data.series
+          .map((serie) => `<td>${escapeHtml(format(serie.values[i] ?? 0))}</td>`)
+          .join('');
+        return `<tr><th scope="row">${escapeHtml(label)}</th>${cells}</tr>`;
+      })
+      .join('');
+
+    return `<table class="sr-only"><caption>${caption}</caption><thead><tr><th scope="col">Categoría</th>${head}</tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  const values = config.data.series[0].values;
+  const total = values.reduce((sum, v) => sum + (v > 0 ? v : 0), 0);
 
   const rows = config.data.labels
     .map((label, i) => {
-      const value = series.values[i] ?? 0;
+      const value = values[i] ?? 0;
       const percent = total > 0 ? `${((value / total) * 100).toFixed(1)}%` : '—';
       return `<tr><th scope="row">${escapeHtml(label)}</th><td>${escapeHtml(
-        number.format(value) + unit,
+        format(value),
       )}</td><td>${percent}</td></tr>`;
     })
     .join('');
 
-  return `<table class="sr-only"><caption>${escapeHtml(
-    config.title ?? 'Datos de la gráfica',
-  )}</caption><thead><tr><th scope="col">Categoría</th><th scope="col">Valor</th><th scope="col">Porcentaje</th></tr></thead><tbody>${rows}</tbody></table>`;
+  return `<table class="sr-only"><caption>${caption}</caption><thead><tr><th scope="col">Categoría</th><th scope="col">Valor</th><th scope="col">Porcentaje</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
+
+const KIND = {
+  pie: 'Gráfica de tarta',
+  donut: 'Gráfica de anillo',
+  bar: 'Gráfica de barras',
+} as const;
 
 /** Resumen para el `aria-label`, generado desde los datos. */
 export function describeChart(config: ResolvedChartConfig): string {
-  const series = config.data.series[0];
-  if (!series) return 'Gráfica sin datos';
+  if (config.data.series.length === 0) return 'Gráfica sin datos';
+  const kind = KIND[config.type] ?? KIND.donut;
+  const title = config.title ? ` — ${config.title}` : '';
 
-  const total = series.values.reduce((sum, v) => sum + (v > 0 ? v : 0), 0);
+  if (config.type === 'bar') {
+    const format = formatter(config);
+    const multi = config.data.series.length > 1;
+
+    /* Con varias series el nombre se dice UNA vez por grupo. Repetirlo en cada
+       valor ("Web, Ene 42, Web, Feb 26") es lo que un lector de pantalla lee
+       en voz alta, y a diez categorías es insoportable. */
+    const groups = config.data.series.map((serie, s) => {
+      const values = config.data.labels
+        .map((label, i) => `${label} ${format(serie.values[i] ?? 0)}`)
+        .join(', ');
+      return multi ? `${seriesName(config, s)}: ${values}` : values;
+    });
+
+    return multi ? `${kind}${title}. ${groups.join('. ')}` : `${kind}${title}: ${groups[0]}`;
+  }
+
+  const values = config.data.series[0].values;
+  const total = values.reduce((sum, v) => sum + (v > 0 ? v : 0), 0);
   const parts = config.data.labels.map((label, i) => {
-    const value = series.values[i] ?? 0;
+    const value = values[i] ?? 0;
     const percent = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
     return `${label} ${percent}%`;
   });
 
-  const kind = config.type === 'pie' ? 'Gráfica de tarta' : 'Gráfica de anillo';
-  return `${kind}${config.title ? ` — ${config.title}` : ''}: ${parts.join(', ')}`;
+  return `${kind}${title}: ${parts.join(', ')}`;
 }
 
 export function embedHtml({

@@ -454,6 +454,168 @@ describe('sólido sin defectos (regresión de la refactorización)', () => {
     });
   }
 
+  /** Desfase angular de un punto respecto a `a0`, normalizado a (−π, π]. */
+  function offsetFrom(a0: number, x: number, z: number): number {
+    // La geometría usa Z invertida respecto al ángulo.
+    let d = Math.atan2(-z, x) - a0;
+    while (d <= -Math.PI) d += Math.PI * 2;
+    while (d > Math.PI) d -= Math.PI * 2;
+    return d;
+  }
+
+  it('el canto redondea la esquina del extremo en vez de morderla', () => {
+    /* El casquete va del cuerpo (perfil entero) a la cara de corte (perfil
+       encogido por el canto) girando un cuarto de vuelta. Por esos dos puntos
+       pasan DOS arcos de radio `bevel`, y el que estaba escrito era el cóncavo:
+       cada extremo salía con un mordisco redondo de radio `bevel`, que con el
+       canto grueso se veía como un agujero circular en cada junta. Obligaba a
+       abrir mucha separación para que no pareciera un error.
+
+       Se mide donde se notaba: a mitad del alcance del casquete, la pared
+       exterior tiene que haber recuperado casi todo su radio.
+         · redondeo  → hundida 0,13·canto
+         · mordisco  → hundida 0,87·canto */
+    const innerR = 0.55;
+    const bevel = 0.14;
+    const [sector] = computeSectors([1], 0.012);
+    const geo = sectorGeometry({
+      sector,
+      innerR,
+      outerR: 1,
+      depth: 0.34,
+      bevel,
+      curveSegments: 64,
+    });
+    const pos = geo.attributes.position;
+
+    // Alcance angular del casquete, medido igual que en la geometría.
+    const reach = bevel / ((innerR + 1) / 2);
+    let maxR = 0;
+    for (let i = 0; i < pos.count; i += 1) {
+      const d = offsetFrom(sector.a0, pos.getX(i), pos.getZ(i));
+      if (d < reach * 0.4 || d > reach * 0.75) continue;
+      maxR = Math.max(maxR, Math.hypot(pos.getX(i), pos.getZ(i)));
+    }
+    geo.dispose();
+
+    expect(maxR).toBeGreaterThan(0); // que la franja medida no esté vacía
+    expect(1 - maxR).toBeLessThan(bevel * 0.25);
+  });
+
+  it('ninguna normal mira hacia dentro del sólido', () => {
+    /* La componente tangencial de la normal iba con la X al revés: quedaba
+       reflejada en el plano X=0, así que era correcta en θ≈0 y estaba del todo
+       invertida en θ≈±90°. Las caras de corte miraban hacia dentro del sólido y
+       se renderizaban negras — de ahí que los extremos con canto grueso se
+       vieran como agujeros. Por eso aquí hay sectores en los cuatro cuadrantes:
+       con uno solo, según dónde caiga, el defecto se escapa.
+
+       Comprobación: dar un paso corto EN CONTRA de la normal desde cualquier
+       vértice tiene que dejarte dentro del sólido nominal. */
+    const step = 1e-3;
+    // Las posiciones son Float32Array: por debajo de ~1e-6 es ruido, no defecto.
+    const tol = 1e-5;
+    const violations: string[] = [];
+
+    for (const c of cases) {
+      const lim = { innerR: c.innerR, outerR: 1, depth: c.depth, gapAngle: 0.0754 };
+      const sectors = computeSectors([42, 26, 17, 9, 6], 0.012);
+      const bevel = globalBevel(sectors, lim, 1);
+
+      for (const sector of sectors) {
+        const geo = sectorGeometry({
+          sector,
+          innerR: c.innerR,
+          outerR: 1,
+          depth: c.depth,
+          bevel,
+          curveSegments: curveSegmentsFor(sector),
+        });
+        const pos = geo.attributes.position;
+        const nrm = geo.attributes.normal;
+        const sweep = sector.a1 - sector.a0;
+
+        for (let i = 0; i < pos.count; i += 1) {
+          const x = pos.getX(i) - nrm.getX(i) * step;
+          const y = pos.getY(i) - nrm.getY(i) * step;
+          const z = pos.getZ(i) - nrm.getZ(i) * step;
+          const r = Math.hypot(x, z);
+          const where = `${c.name} sector ${sector.index} vértice ${i}`;
+
+          if (r < c.innerR - tol) violations.push(`${where}: radio ${r}`);
+          if (r > 1 + tol) violations.push(`${where}: radio ${r}`);
+          if (y < -tol || y > c.depth + tol) violations.push(`${where}: altura ${y}`);
+          /* El ángulo solo significa algo lejos del eje: en la punta de una
+             tarta, un paso de 1e-3 gira lo que le da la gana. */
+          if (r > 0.1) {
+            const d = offsetFrom(sector.a0, x, z);
+            if (d < -tol || d > sweep + tol) violations.push(`${where}: ángulo ${d}`);
+          }
+        }
+        geo.dispose();
+      }
+    }
+
+    expect(violations.slice(0, 6)).toEqual([]);
+  });
+
+  it('los triángulos giran en el mismo sentido que sus normales', () => {
+    /* Con las normales invertidas y el sentido de giro correcto, el defecto no
+       se ve negro del todo ni desaparece: se ve mal iluminado, que es más
+       difícil de diagnosticar. Este test ata las dos cosas entre sí. */
+    const sectors = computeSectors([42, 26, 17, 9, 6], 0.012);
+    const lim = { innerR: 0.55, outerR: 1, depth: 0.34, gapAngle: 0.0754 };
+    const bevel = globalBevel(sectors, lim, 1);
+    let contra = 0;
+    let total = 0;
+
+    for (const sector of sectors) {
+      const geo = sectorGeometry({
+        sector,
+        innerR: 0.55,
+        outerR: 1,
+        depth: 0.34,
+        bevel,
+        curveSegments: curveSegmentsFor(sector),
+      });
+      const pos = geo.attributes.position;
+      const nrm = geo.attributes.normal;
+      const idx = geo.getIndex()!;
+
+      for (let t = 0; t < idx.count; t += 3) {
+        const ia = idx.getX(t);
+        const ib = idx.getX(t + 1);
+        const ic = idx.getX(t + 2);
+        const ax = pos.getX(ia);
+        const ay = pos.getY(ia);
+        const az = pos.getZ(ia);
+        const e1 = [pos.getX(ib) - ax, pos.getY(ib) - ay, pos.getZ(ib) - az];
+        const e2 = [pos.getX(ic) - ax, pos.getY(ic) - ay, pos.getZ(ic) - az];
+        const g = [
+          e1[1] * e2[2] - e1[2] * e2[1],
+          e1[2] * e2[0] - e1[0] * e2[2],
+          e1[0] * e2[1] - e1[1] * e2[0],
+        ];
+        const len = Math.hypot(g[0], g[1], g[2]);
+        // Los triángulos degenerados son los del casquete al colapsar en la
+        // esquina: no tienen sentido de giro que comprobar.
+        if (len < 1e-10) continue;
+
+        const n = [
+          nrm.getX(ia) + nrm.getX(ib) + nrm.getX(ic),
+          nrm.getY(ia) + nrm.getY(ib) + nrm.getY(ic),
+          nrm.getZ(ia) + nrm.getZ(ib) + nrm.getZ(ic),
+        ];
+        total += 1;
+        if ((g[0] * n[0] + g[1] * n[1] + g[2] * n[2]) / len < 0) contra += 1;
+      }
+      geo.dispose();
+    }
+
+    expect(total).toBeGreaterThan(1000);
+    expect(contra).toBe(0);
+  });
+
   it('los sectores no invaden la separación con el canto al máximo', () => {
     /* Antes el canto crecía hacia fuera y dos vecinos se tocaban. Ahora crece
        hacia dentro, así que el hueco angular se respeta siempre. */

@@ -6,9 +6,10 @@ import '@/styles/editor.css';
 import { ChartCanvas } from '@/renderer/ChartCanvas';
 import { parseConfig } from '@/lib/config/parse';
 import { buildEmbedUrl, MAX_URL_LENGTH } from '@/lib/config/url';
-import { THEMES, applyTheme } from '@/lib/themes';
+import { THEMES } from '@/lib/themes';
 import { CHART_TYPES } from '@/lib/chart-types';
 import { computeSectors, globalBevel, OUTER_RADIUS } from '@/renderer/geometry/donut';
+import { computeBars, barRadii } from '@/renderer/geometry/bar';
 import type { ChartConfig } from '@/lib/config/schema';
 import { Group, Slider, Choices, type Choice } from './controls';
 
@@ -32,9 +33,9 @@ const INITIAL: ChartConfig = {
     series: [{ values: [42, 26, 17, 9, 6] }],
     format: { unit: ' k€', locale: 'es-ES' },
   },
+  // El tema se nombra y se resuelve al parsear. Aquí solo va lo propio.
   theme: 'aurora',
-  style: { ...THEMES[0].config.style },
-  scene: { ...THEMES[0].config.scene, background: { kind: 'transparent' } },
+  scene: { background: { kind: 'transparent' } },
 };
 
 const MATERIALS = [
@@ -73,9 +74,21 @@ export default function EditorPage() {
     (docs/CUSTOMIZATION.md). Se muestra en unidades de escena para que el número
     signifique algo.
   */
+  const isBar = config.type === 'bar';
+
   const bevelCeiling = useMemo(() => {
     if (!parsed.ok) return 0;
     const c = parsed.config;
+
+    if (c.type === 'bar') {
+      // En barras el techo lo pone el ancho de la barra, no el arco del sector.
+      const layout = computeBars(
+        c.data.series.map((serie) => serie.values),
+        { gap: c.style.gap, height: c.style.height },
+      );
+      return barRadii(layout.totalHeight, layout, { bevel: 1, cornerRadius: 0 }).radius;
+    }
+
     const sectors = computeSectors(c.data.series[0]?.values ?? [], c.style.gap);
     return globalBevel(
       sectors,
@@ -129,51 +142,7 @@ export default function EditorPage() {
     label: type.name,
     hint: type.status === 'listo' ? type.answers : 'Todavía no disponible',
     disabled: type.status !== 'listo',
-    preview:
-      type.id === 'donut' || type.id === 'pie' ? (
-        <span
-          aria-hidden
-          style={{
-            display: 'block',
-            aspectRatio: '1',
-            borderRadius: '50%',
-            background:
-              type.id === 'donut'
-                ? 'conic-gradient(#7c5cff 0 42%, #00d4ff 0 68%, #41ffc9 0 85%, #ffd166 0 100%)'
-                : 'conic-gradient(#7c5cff 0 52%, #00d4ff 0 83%, #41ffc9 0 100%)',
-            maskImage:
-              type.id === 'donut'
-                ? 'radial-gradient(circle, transparent 46%, #000 47%)'
-                : undefined,
-          }}
-        />
-      ) : (
-        /* Los tipos que aún no existen se dibujan como silueta, no como un
-           bloque gris: un rectángulo vacío parece un fallo de carga. */
-        <span
-          aria-hidden
-          style={{
-            display: 'flex',
-            aspectRatio: '1',
-            alignItems: 'flex-end',
-            justifyContent: 'center',
-            gap: 3,
-            opacity: 0.55,
-          }}
-        >
-          {[46, 74, 34, 60].map((h, i) => (
-            <i
-              key={i}
-              style={{
-                width: 6,
-                height: `${h}%`,
-                borderRadius: '2px 2px 1px 1px',
-                background: 'currentColor',
-              }}
-            />
-          ))}
-        </span>
-      ),
+    preview: <TypePreview id={String(type.id)} ready={type.status === 'listo'} />,
   }));
 
   return (
@@ -228,9 +197,12 @@ export default function EditorPage() {
             label="Tema"
             options={themeChoices}
             value={config.theme ?? 'aurora'}
-            onChange={(id) =>
-              setConfig((c) => applyTheme({ ...c, style: {}, scene: {} }, id))
-            }
+            /* Se guarda el NOMBRE del tema, no sus valores: el config queda
+               corto y las gráficas ya publicadas heredan las mejoras del tema.
+               Resolverlo es trabajo de `parseConfig`. Cambiar de tema descarta
+               los ajustes de forma y escena, que es lo que se espera de "empieza
+               por aquí" — el fondo lo elige el usuario después. */
+            onChange={(id) => setConfig((c) => ({ ...c, theme: id, style: {}, scene: {} }))}
           />
         </Group>
 
@@ -267,8 +239,14 @@ export default function EditorPage() {
                     aria-label={`Color de ${label}`}
                   />
                   <span>{label}</span>
+                  {/* En barras el porcentaje del total no dice nada: 42 no es
+                      "el 24% de la suma de los meses". Se muestra el valor. */}
                   <output>
-                    {total > 0 ? `${((values[i] / total) * 100).toFixed(0)}%` : '—'}
+                    {isBar
+                      ? values[i]
+                      : total > 0
+                        ? `${((values[i] / total) * 100).toFixed(0)}%`
+                        : '—'}
                   </output>
                 </label>
               );
@@ -276,6 +254,8 @@ export default function EditorPage() {
           </div>
         </Group>
 
+        {/* Cada tipo enseña SOLO sus campos. Un slider que no hace nada es peor
+            que uno que falta: te hace dudar de si la gráfica está rota. */}
         <Group title="Forma" hint="Rangos seguros">
           <Slider
             label="Canto redondeado"
@@ -287,21 +267,32 @@ export default function EditorPage() {
             onChange={(v) => patchStyle({ bevel: v })}
           />
           <Slider
-            label="Grosor"
+            label={isBar ? 'Altura' : 'Grosor'}
             value={style?.height ?? 0.34}
             min={0.05}
             max={1}
             step={0.01}
             onChange={(v) => patchStyle({ height: v })}
           />
-          <Slider
-            label="Agujero central"
-            value={style?.innerRadius ?? 0.55}
-            min={0}
-            max={0.85}
-            step={0.01}
-            onChange={(v) => patchStyle({ innerRadius: v })}
-          />
+          {isBar ? (
+            <Slider
+              label="Punta redondeada"
+              value={style?.cornerRadius ?? 0.2}
+              min={0}
+              max={1}
+              step={0.01}
+              onChange={(v) => patchStyle({ cornerRadius: v })}
+            />
+          ) : (
+            <Slider
+              label="Agujero central"
+              value={style?.innerRadius ?? 0.55}
+              min={0}
+              max={0.85}
+              step={0.01}
+              onChange={(v) => patchStyle({ innerRadius: v })}
+            />
+          )}
           <Slider
             label="Separación"
             value={style?.gap ?? 0.012}
@@ -311,14 +302,16 @@ export default function EditorPage() {
             format={(v) => v.toFixed(3)}
             onChange={(v) => patchStyle({ gap: v })}
           />
-          <Slider
-            label="Sectores separados"
-            value={style?.explode ?? 0}
-            min={0}
-            max={1}
-            step={0.01}
-            onChange={(v) => patchStyle({ explode: v })}
-          />
+          {!isBar && (
+            <Slider
+              label="Sectores separados"
+              value={style?.explode ?? 0}
+              min={0}
+              max={1}
+              step={0.01}
+              onChange={(v) => patchStyle({ explode: v })}
+            />
+          )}
         </Group>
 
         <Group title="Acabado">
@@ -444,5 +437,62 @@ export default function EditorPage() {
         </details>
       </aside>
     </div>
+  );
+}
+
+/**
+ * Miniatura del selector de tipo.
+ *
+ * Los tipos que aún no existen van en silueta apagada, no en un bloque gris: un
+ * rectángulo vacío parece un fallo de carga. Los que sí existen van a color,
+ * porque la miniatura es la promesa de lo que vas a obtener.
+ */
+function TypePreview({ id, ready }: { id: string; ready: boolean }) {
+  if (id === 'donut' || id === 'pie') {
+    return (
+      <span
+        aria-hidden
+        style={{
+          display: 'block',
+          aspectRatio: '1',
+          borderRadius: '50%',
+          background:
+            id === 'donut'
+              ? 'conic-gradient(#7c5cff 0 42%, #00d4ff 0 68%, #41ffc9 0 85%, #ffd166 0 100%)'
+              : 'conic-gradient(#7c5cff 0 52%, #00d4ff 0 83%, #41ffc9 0 100%)',
+          maskImage:
+            id === 'donut' ? 'radial-gradient(circle, transparent 46%, #000 47%)' : undefined,
+        }}
+      />
+    );
+  }
+
+  const palette = ['#7c5cff', '#00d4ff', '#41ffc9', '#ffd166'];
+
+  return (
+    <span
+      aria-hidden
+      style={{
+        display: 'flex',
+        aspectRatio: '1',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        gap: 3,
+        opacity: ready ? 1 : 0.55,
+      }}
+    >
+      {[46, 74, 34, 60].map((h, i) => (
+        <i
+          key={i}
+          style={{
+            width: 6,
+            height: `${h}%`,
+            // El mismo canto que la geometría: la miniatura promete el producto.
+            borderRadius: '3px 3px 2px 2px',
+            background: ready ? palette[i] : 'currentColor',
+          }}
+        />
+      ))}
+    </span>
   );
 }
