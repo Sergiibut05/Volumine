@@ -97,12 +97,17 @@ presupuesto.
 
 ---
 
-## Fase 6 — Barras 3D
+## Fase 6 — El resto de tipos ✅
 
-El tipo que sostiene los casos de uso reales. Se hace **siguiendo la skill
-`add-chart-type`**, que se escribió para esto.
+- [x] Barras 3D
+- [x] Barras animadas (bar race). Las series se leen como periodos, así que no
+      hizo falta tocar el esquema.
+- [x] Globo. Esfera + retícula calculada + una barra por coordenada. **Sin
+      contornos de países**: el mundo en GeoJSON son 100-200 KB y `/embed` tiene
+      180 en total. Responde a "dónde y cuánto", no a "qué país es este".
 
----
+Los cinco tipos de v1 están disponibles en el renderer, en la galería y en el
+editor. Añadir uno nuevo es una función en el registro `BUILDERS`.
 
 ## Fase 7 — Marketing y lanzamiento
 
@@ -117,6 +122,6 @@ El tipo que sostiene los casos de uso reales. Se hace **siguiendo la skill
 
 ## Backlog (no comprometido)
 
-Bar race animado · globo/mapa 3D · datos en vivo (Sheets/CSV/endpoint) ·
+contornos de países en el globo, en una capa aparte con `import()` · datos en vivo (Sheets/CSV/endpoint) ·
 dominios propios · exportación a vídeo/GIF · equipos · plantillas de la
 comunidad.

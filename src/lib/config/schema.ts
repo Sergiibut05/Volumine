@@ -33,6 +33,18 @@ export const seriesSchema = z.object({
 export const dataSchema = z.object({
   labels: z.array(z.string().max(120)).min(1).max(200),
   series: z.array(seriesSchema).min(1).max(20),
+  /**
+   * Coordenadas `[latitud, longitud]` por etiqueta, en grados. Solo las usa
+   * `globe`; el resto de tipos las ignoran.
+   *
+   * Van aquí y no dentro de la serie porque describen DÓNDE está una categoría,
+   * no cuánto vale: si mañana un globo admite varias series, todas comparten
+   * sitio y cambian de valor.
+   */
+  coords: z
+    .array(z.tuple([z.number().min(-90).max(90), z.number().min(-180).max(180)]))
+    .max(200)
+    .optional(),
   format: z
     .object({
       unit: z.string().max(8).optional(),
@@ -102,6 +114,13 @@ export const motionSchema = z.object({
   speed: z.number().min(0).max(10).optional(),
   entrance: z.enum(['none', 'grow', 'sweep', 'stagger']).optional(),
   entranceDuration: z.number().int().min(0).max(5000).optional(),
+  /**
+   * Milisegundos por periodo en `bar-race`. Ignorado por el resto de tipos.
+   *
+   * Campo opcional nuevo dentro de v1, que es lo único que el contrato permite
+   * añadir sin subir versión (docs/chart-config-schema.md).
+   */
+  frameDuration: z.number().int().min(120).max(10000).optional(),
   hover: z.enum(['none', 'lift', 'glow', 'explode']).optional(),
   reducedMotion: z.enum(['respect', 'force-off', 'ignore']).optional(),
 });
@@ -152,7 +171,7 @@ export const layoutSchema = z.object({
 
 export const chartConfigSchema = z.object({
   v: z.literal(CURRENT_VERSION),
-  type: z.enum(['donut', 'pie', 'bar']),
+  type: z.enum(['donut', 'pie', 'bar', 'bar-race', 'globe']),
   title: z.string().max(200).optional(),
   data: dataSchema,
   theme: z.string().max(48).optional(),

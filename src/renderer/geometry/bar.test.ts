@@ -107,13 +107,7 @@ describe('computeBars', () => {
   });
 
   it('las series de distinta longitud se rellenan con ceros sin descuadrar', () => {
-    const { bars } = computeBars(
-      [
-        [10, 20, 30],
-        [5],
-      ],
-      { gap: 0.012, height: 0.34 },
-    );
+    const { bars } = computeBars([[10, 20, 30], [5]], { gap: 0.012, height: 0.34 });
 
     const segunda = bars.filter((b) => b.series === 1);
     expect(segunda).toHaveLength(1);

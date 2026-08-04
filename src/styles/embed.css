@@ -81,6 +81,35 @@ canvas {
   display: none;
 }
 
+/*
+  El periodo de una carrera de barras.
+
+  Se pinta en HTML y no en 3D porque el bundle no lleva ninguna fuente —ni cabe
+  en el presupuesto— y porque el texto plano se lee más nítido que una textura.
+  `aria-hidden`: la tabla de datos ya cuenta la carrera entera, y un número que
+  cambia solo cada segundo en un lector de pantalla es ruido.
+*/
+.period {
+  position: absolute;
+  right: 14px;
+  top: 12px;
+  font-size: clamp(1.75rem, 7cqw, 3.25rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: rgb(233 233 242 / 0.16);
+  pointer-events: none;
+}
+
+.period[hidden] {
+  display: none;
+}
+
+.stage {
+  container-type: inline-size;
+}
+
 .tooltip b {
   font-weight: 600;
 }

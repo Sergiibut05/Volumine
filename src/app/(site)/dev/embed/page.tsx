@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useOrigin } from '@/lib/use-origin';
 import { buildEmbedUrl } from '@/lib/config/url';
 import type { ChartConfig } from '@/lib/config/schema';
 
@@ -24,10 +25,9 @@ const CONFIG: ChartConfig = {
 type Message = { type: string; height?: number };
 
 export default function EmbedDevPage() {
-  const [origin, setOrigin] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
 
-  useEffect(() => setOrigin(window.location.origin), []);
+  const origin = useOrigin();
 
   // Escucha lo que el embed le cuenta a la página anfitriona.
   useEffect(() => {

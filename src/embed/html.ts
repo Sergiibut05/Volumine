@@ -47,7 +47,10 @@ export function dataTableHtml(config: ResolvedChartConfig): string {
   /* Las barras se tabulan con una columna por serie y SIN porcentaje: reparten
      un eje, no un total, y "42 es el 24% de la suma de los meses" no significa
      nada. El anillo sí reparte un total, y ahí el porcentaje es el dato. */
-  if (config.type === 'bar') {
+  /* La carrera se tabula igual que las barras agrupadas: sus series SON los
+     periodos, así que una columna por periodo da la tabla completa, que es
+     justamente lo que un lector de pantalla no puede sacar de la animación. */
+  if (config.type === 'bar' || config.type === 'bar-race') {
     const head = config.data.series
       .map((_, s) => `<th scope="col">${escapeHtml(seriesName(config, s))}</th>`)
       .join('');
@@ -80,17 +83,36 @@ export function dataTableHtml(config: ResolvedChartConfig): string {
   return `<table class="sr-only"><caption>${caption}</caption><thead><tr><th scope="col">Categoría</th><th scope="col">Valor</th><th scope="col">Porcentaje</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
-const KIND = {
+const KIND: Record<ResolvedChartConfig['type'], string> = {
   pie: 'Gráfica de tarta',
   donut: 'Gráfica de anillo',
   bar: 'Gráfica de barras',
-} as const;
+  'bar-race': 'Gráfica de barras animadas',
+  globe: 'Globo con datos por país',
+};
 
 /** Resumen para el `aria-label`, generado desde los datos. */
 export function describeChart(config: ResolvedChartConfig): string {
   if (config.data.series.length === 0) return 'Gráfica sin datos';
   const kind = KIND[config.type] ?? KIND.donut;
   const title = config.title ? ` — ${config.title}` : '';
+
+  /* Una carrera no se resume leyendo todos los periodos: con 10 categorías y 12
+     años son 120 cifras seguidas, que es peor que no decir nada. Se lee la
+     clasificación FINAL, que es lo que la animación acaba contando, y la tabla
+     de arriba tiene el detalle completo para quien lo quiera. */
+  if (config.type === 'bar-race') {
+    const format = formatter(config);
+    const last = config.data.series[config.data.series.length - 1];
+    const period = last?.name ? ` al final de ${last.name}` : ' al final';
+
+    const ranking = config.data.labels
+      .map((label, i) => ({ label, value: last?.values[i] ?? 0 }))
+      .sort((a, b) => b.value - a.value)
+      .map((entry, position) => `${position + 1}. ${entry.label} ${format(entry.value)}`);
+
+    return `${kind}${title}. Clasificación${period}: ${ranking.join(', ')}`;
+  }
 
   if (config.type === 'bar') {
     const format = formatter(config);
@@ -106,7 +128,9 @@ export function describeChart(config: ResolvedChartConfig): string {
       return multi ? `${seriesName(config, s)}: ${values}` : values;
     });
 
-    return multi ? `${kind}${title}. ${groups.join('. ')}` : `${kind}${title}: ${groups[0]}`;
+    return multi
+      ? `${kind}${title}. ${groups.join('. ')}`
+      : `${kind}${title}: ${groups[0]}`;
   }
 
   const values = config.data.series[0].values;
@@ -147,6 +171,7 @@ export function embedHtml({
 ${dataTableHtml(config)}
 <canvas id="voluma-canvas"></canvas>
 <div id="voluma-tooltip" class="tooltip" hidden></div>
+<div id="voluma-period" class="period" aria-hidden="true" hidden></div>
 ${watermark}
 </div>
 <script type="application/json" id="voluma-config">${escapeJson(config)}</script>

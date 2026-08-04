@@ -109,12 +109,7 @@ function buildProfile(
  * y el principio del de la siguiente **son** los dos extremos del lado, así que
  * el barrido los une solo.
  */
-function buildOutline(
-  hx: number,
-  hz: number,
-  r: number,
-  steps: number,
-): OutlinePoint[] {
+function buildOutline(hx: number, hz: number, r: number, steps: number): OutlinePoint[] {
   const points: OutlinePoint[] = [];
   const cx = hx - r;
   const cz = hz - r;
@@ -198,14 +193,7 @@ export function roundedBoxGeometry({
   // ── banda del perímetro ───────────────────────────────────────────────────
   for (const o of outline) {
     for (const p of profile) {
-      push(
-        o.x + o.nx * p.n,
-        p.y,
-        o.z + o.nz * p.n,
-        o.nx * p.nn,
-        p.ny,
-        o.nz * p.nn,
-      );
+      push(o.x + o.nx * p.n, p.y, o.z + o.nz * p.n, o.nx * p.nn, p.ny, o.nz * p.nn);
     }
   }
 

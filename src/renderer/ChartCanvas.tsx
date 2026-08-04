@@ -20,15 +20,34 @@ import {
 export type ChartCanvasProps = {
   config: ResolvedChartConfig;
   onHover?: (info: HoverInfo) => void;
+  /** Periodo que se está mostrando en una carrera de barras. `null` si no aplica. */
+  onFrame?: (label: string | null) => void;
   className?: string;
   style?: React.CSSProperties;
 };
 
-export function ChartCanvas({ config, onHover, className, style }: ChartCanvasProps) {
+export function ChartCanvas({
+  config,
+  onHover,
+  onFrame,
+  className,
+  style,
+}: ChartCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const handleRef = useRef<ChartRendererHandle | null>(null);
+  /* Los callbacks viven en refs para que cambiar de manejador no desmonte el
+     renderer, que costaría recrear el contexto WebGL entero.
+
+     Se asignan en un efecto y no durante el render: escribir en un ref mientras
+     se renderiza rompe con Strict Mode y con render concurrente, donde React
+     puede descartar un render a medias. */
   const onHoverRef = useRef(onHover);
-  onHoverRef.current = onHover;
+  const onFrameRef = useRef(onFrame);
+
+  useEffect(() => {
+    onHoverRef.current = onHover;
+    onFrameRef.current = onFrame;
+  }, [onHover, onFrame]);
 
   // Montaje: una sola vez. El config posterior entra por update().
   useEffect(() => {
@@ -37,6 +56,7 @@ export function ChartCanvas({ config, onHover, className, style }: ChartCanvasPr
 
     const handle = createChartRenderer(canvas, config);
     handle.onHover((info) => onHoverRef.current?.(info));
+    handle.onFrame((label) => onFrameRef.current?.(label));
     handleRef.current = handle;
 
     return () => {

@@ -70,14 +70,46 @@ export const CHART_TYPES: ChartTypeEntry[] = [
     name: 'Barras animadas',
     answers: '¿Cómo cambió el ranking a lo largo del tiempo?',
     avoid: 'Si el orden no cambia. Entonces es una barra normal con ruido.',
-    status: 'en-camino',
+    status: 'listo',
+    sample: {
+      v: 1,
+      type: 'bar-race',
+      data: {
+        labels: ['Chrome', 'Safari', 'Edge', 'Firefox'],
+        /* Cada serie es un periodo: su `name` es la etiqueta que se muestra.
+           Ver la cabecera de renderer/geometry/bar-race.ts. */
+        series: [
+          { name: '2021', values: [63, 19, 4, 8] },
+          { name: '2022', values: [65, 19, 5, 6] },
+          { name: '2023', values: [64, 20, 11, 5] },
+          { name: '2024', values: [66, 18, 13, 4] },
+        ],
+      },
+      motion: { frameDuration: 1200 },
+    },
   },
   {
     id: 'globe',
     name: 'Globo',
     answers: '¿Dónde está pasando, geográficamente?',
-    avoid: 'Si tus datos no son geográficos. Un mapa no es un adorno.',
-    status: 'en-camino',
+    avoid: 'Si necesitas reconocer países. No lleva contornos: ver docs.',
+    status: 'listo',
+    sample: {
+      v: 1,
+      type: 'globe',
+      data: {
+        labels: ['Madrid', 'Londres', 'Nueva York', 'Tokio', 'São Paulo', 'Sídney'],
+        series: [{ values: [38, 52, 71, 44, 29, 22] }],
+        coords: [
+          [40.4, -3.7],
+          [51.5, -0.1],
+          [40.7, -74.0],
+          [35.7, 139.7],
+          [-23.5, -46.6],
+          [-33.9, 151.2],
+        ],
+      },
+    },
   },
 ];
 

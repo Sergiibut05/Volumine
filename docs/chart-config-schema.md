@@ -24,7 +24,7 @@ a mano. **Un link publicado debe seguir funcionando para siempre.**
 ```jsonc
 {
   "v": 1,
-  "type": "donut",           // "donut" | "pie" | "bar"   (v1)
+  "type": "donut",           // donut | pie | bar | bar-race | globe   (v1)
   "title": "Reparto de ingresos",   // opcional
   "data": { ... },
   "theme": "aurora",         // preset; lo de abajo lo sobreescribe punto a punto
@@ -43,6 +43,12 @@ a mano. **Un link publicado debe seguir funcionando para siempre.**
 ```jsonc
 {
   "labels": ["Suscripciones", "Servicios", "Licencias"],
+  // Solo para `globe`. Misma longitud que `labels`.
+  "coords": [
+    [40.4, -3.7],
+    [51.5, -0.1],
+    [35.7, 139.7],
+  ],
   "series": [{ "name": "2026", "values": [45, 30, 25], "colors": ["#ff4d6d", null, null] }],
   "format": {
     "unit": "€", // sufijo/prefijo según locale
@@ -53,7 +59,14 @@ a mano. **Un link publicado debe seguir funcionando para siempre.**
 }
 ```
 
-- `donut`/`pie` usan **solo `series[0]`**. `bar` admite N series (eje Z).
+- `donut`/`pie`/`globe` usan **solo `series[0]`**. `bar` admite N series (eje Z).
+- **`bar-race` lee las series como PERIODOS**, no como filas: cada serie es un
+  instante y su `name` es la etiqueta que se muestra ("2021", "Ene"). Es la
+  misma forma leída en otro eje, y por eso el tiempo no obligó a subir de
+  versión. Se ordenan de mayor a menor en cada instante.
+- **`coords` solo lo usa `globe`.** Es `[latitud, longitud]` en grados, alineado
+  con `labels`. Una etiqueta sin coordenada no se dibuja: poner un dato en el
+  sitio equivocado de un mapa es peor que no ponerlo.
 - `colors` es un override puntual por segmento; `null` = usar la paleta.
 - Los valores negativos se ignoran en `donut`/`pie` (documentado, no silencioso:
   se reporta por `postMessage`).
@@ -120,6 +133,7 @@ con la página anfitriona.
   "speed": 0.35, // vueltas por minuto
   "entrance": "grow", // "none" | "grow" | "sweep" | "stagger"
   "entranceDuration": 900, // ms
+  "frameDuration": 1400, // ms por periodo; solo `bar-race`
   "hover": "lift", // "none" | "lift" | "glow" | "explode"
   "reducedMotion": "respect", // "respect" | "force-off" | "ignore"
 }

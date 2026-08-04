@@ -44,6 +44,7 @@ function main() {
   const stage = document.querySelector<HTMLElement>('.stage');
   const canvas = document.querySelector<HTMLCanvasElement>('#voluma-canvas');
   const tooltip = document.querySelector<HTMLElement>('#voluma-tooltip');
+  const period = document.querySelector<HTMLElement>('#voluma-period');
   const config = readConfig();
 
   if (!stage || !canvas || !config) return;
@@ -64,6 +65,13 @@ function main() {
   function mount() {
     if (handle) return;
     handle = createChartRenderer(canvas!, config!);
+
+    handle.onFrame((label) => {
+      if (!period) return;
+      period.hidden = label === null;
+      period.textContent = label ?? '';
+    });
+
     handle.onHover((info: HoverInfo) => {
       if (!tooltip) return;
       if (!info || !config!.interaction.tooltip) {
@@ -82,8 +90,7 @@ function main() {
         .filter((part): part is string => Boolean(part))
         .join(' · ');
       // Las etiquetas son del usuario y llegan por URL: se escapan siempre.
-      tooltip.innerHTML =
-        `<b>${escapeHtml(info.label)}</b><span>${escapeHtml(detail)}</span>`;
+      tooltip.innerHTML = `<b>${escapeHtml(info.label)}</b><span>${escapeHtml(detail)}</span>`;
     });
   }
 

@@ -4,9 +4,13 @@ import {
   DirectionalLight,
   DoubleSide,
   Group,
+  LineBasicMaterial,
+  LineSegments,
   Mesh,
   MathUtils,
   MeshBasicMaterial,
+  SphereGeometry,
+  type MeshStandardMaterial,
   PCFSoftShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
@@ -32,7 +36,26 @@ import {
   sectorGeometry,
   OUTER_RADIUS,
 } from '../geometry/donut';
-import { barGeometry, computeBars, cornerSegmentsFor, PLOT_WIDTH } from '../geometry/bar';
+import {
+  barGeometry,
+  barRadii,
+  computeBars,
+  cornerSegmentsFor,
+  PLOT_WIDTH,
+} from '../geometry/bar';
+import { roundedBoxGeometry } from '../geometry/rounded-box';
+import {
+  DEFAULT_FRAME_MS,
+  MAX_VISIBLE,
+  frameAt,
+  placementsFor,
+  valuesAt,
+} from '../geometry/bar-race';
+import {
+  GLOBE_RADIUS,
+  computeMarkers,
+  graticuleGeometry,
+} from '../geometry/globe';
 import { colorForSegment, createMaterial } from './materials';
 
 /*
@@ -86,6 +109,9 @@ const BAR_CAMERA_MULTI: Record<string, CameraPlacement> = {
 
 /** Amplitud del vaivén de una gráfica de barras, en grados. Ver el bucle. */
 const BAR_SWAY_DEGREES = 13;
+
+/** Hacia dónde crece una barra recién construida. Reutilizado, no por frame. */
+const UP = new Vector3(0, 1, 0);
 
 /** Caja que ocupa lo dibujado, centrada en el eje Y. Para encuadrar. */
 type PlotBox = { width: number; height: number; depth: number };
@@ -181,6 +207,12 @@ export type ChartRendererHandle = {
   /** Libera geometrías, materiales, entorno y el contexto WebGL. */
   dispose(): void;
   onHover(callback: (info: HoverInfo) => void): void;
+  /**
+   * Avisa del periodo que se está mostrando en una carrera. `null` en el resto
+   * de tipos. El texto lo pinta el anfitrión en HTML: en el bundle no hay
+   * fuentes que dibujar en 3D, y en HTML se lee más nítido.
+   */
+  onFrame(callback: (label: string | null) => void): void;
   /** Un frame a mano, para capturas y tests visuales. */
   renderOnce(): void;
 };
@@ -199,9 +231,14 @@ function cameraPlacement(config: ResolvedChartConfig): CameraPlacement {
   if (config.camera.preset === 'custom') {
     return { polar: config.camera.polar, azimuth: config.camera.azimuth, distance: 1 };
   }
-  const bars = config.type === 'bar' ? BAR_CAMERA_PRESETS : null;
+  /* La carrera se encuadra como una fila de barras: es una fila de barras. Pero
+     nunca con el preset de varias series, porque sus series son periodos que se
+     ven de uno en uno, no filas que compitan por el espacio. */
+  const bars =
+    config.type === 'bar' || config.type === 'bar-race' ? BAR_CAMERA_PRESETS : null;
+  const stacked = config.type === 'bar' && config.data.series.length > 1;
   const byType = bars
-    ? (config.data.series.length > 1 ? BAR_CAMERA_MULTI : bars)[config.camera.preset]
+    ? (stacked ? BAR_CAMERA_MULTI : bars)[config.camera.preset]
     : undefined;
 
   return byType ?? CAMERA_PRESETS[config.camera.preset] ?? CAMERA_PRESETS.hero;
@@ -370,6 +407,11 @@ export function createChartRenderer(
   let hovered: Piece | null = null;
   let hoverCallback: ((info: HoverInfo) => void) | null = null;
 
+  /* La etiqueta del periodo de una carrera sale por aquí, no se dibuja en 3D.
+     El bundle no lleva ninguna fuente —ni puede, por presupuesto— así que el
+     texto lo pinta el anfitrión en HTML, que además se lee más nítido. */
+  let frameCallback: ((label: string | null) => void) | null = null;
+
   function disposePieces() {
     for (const piece of pieces) {
       group.remove(piece.mesh);
@@ -475,13 +517,209 @@ export function createChartRenderer(
           label: config.data.labels[bar.index] ?? '',
           value: bar.value,
           fraction: bar.fraction,
-          series: multi ? config.data.series[bar.series]?.name ?? null : null,
+          series: multi ? (config.data.series[bar.series]?.name ?? null) : null,
         },
         new Vector3(bar.x, bar.y, bar.z),
         /* Sin dirección: una barra realzada sube, no se aparta. Apartarla la
            sacaría de su celda y dejaría de estar donde dice su categoría. */
         new Vector3(0, 0, 0),
       );
+    }
+  }
+
+  /*
+    BARRAS ANIMADAS
+    ---------------
+    Una pieza por CATEGORÍA, no por barra: la misma pieza recorre la carrera
+    entera cambiando de altura y de sitio. Reconstruirlas cada periodo perdería
+    el movimiento, que es justo lo que hay que ver.
+
+    La altura se resuelve escalando en Y y reconstruyendo la geometría solo
+    cuando se aleja más de un 4% de la que está construida. Reconstruir cada
+    frame asignaría objetos dentro del bucle de render —prohibido por CLAUDE.md—
+    y escalar sin más deforma el canto: una barra el doble de alta tendría el
+    canto superior el doble de estirado. El 4% no se ve y acota las dos cosas.
+  */
+  const RACE_REBUILD_TOLERANCE = 0.04;
+  type RaceLane = {
+    piece: Piece;
+    /** Altura con la que está construida su geometría ahora mismo. */
+    builtHeight: number;
+    /** Hueco en el que está, interpolado. Entero = ya ha llegado. */
+    slot: number;
+  };
+  let raceLanes: RaceLane[] = [];
+  let raceElapsed = 0;
+  let raceLabel: string | null = null;
+
+  function raceValues() {
+    return config.data.series.map((serie) => serie.values);
+  }
+
+  function buildRace() {
+    raceLanes = [];
+    raceElapsed = 0;
+
+    const series = raceValues();
+    const categories = config.data.labels.length;
+    const shown = Math.min(categories, MAX_VISIBLE);
+    const { height, gap, bevel, cornerRadius } = config.style;
+
+    /* La parrilla se calcula con los valores del PRIMER periodo pero con el
+       máximo de TODA la carrera: si la escala cambiara en cada periodo, una
+       barra podría encoger mientras su valor sube y la carrera mentiría. */
+    const layout = computeBars(series, { gap, height });
+    /* El fondo que ocupa es el de UNA fila: los periodos se ven de uno en uno,
+       no uno detrás de otro como las series de las barras agrupadas. */
+    plotBox = {
+      width: PLOT_WIDTH,
+      height: layout.totalHeight,
+      depth: Math.max(layout.width, 0.05),
+    };
+    if (layout.bars.length === 0 || shown === 0) return;
+
+    const cell = PLOT_WIDTH / shown;
+    const air = layout.width > 0 ? 1 - layout.width / (PLOT_WIDTH / categories) : 0.17;
+    const width = cell * (1 - air);
+    const cornerSegments = cornerSegmentsFor(shown);
+    const first = valuesAt(
+      series,
+      frameAt(0, series.length, [], { frameMs: 1, loop: false }),
+      categories,
+    );
+    const max = Math.max(...series.flat().filter(Number.isFinite), 0);
+    const scale = max > 0 ? layout.totalHeight / max : 0;
+
+    config.data.labels.forEach((label, index) => {
+      const startHeight = Math.max((first[index] ?? 0) * scale, 1e-3);
+      const geometry = roundedBoxGeometry({
+        width,
+        depth: width,
+        height: startHeight,
+        cornerSegments,
+        ...barRadii(startHeight, { width, depth: width }, { bevel, cornerRadius }),
+      });
+
+      addPiece(
+        geometry,
+        index,
+        { index, label, value: first[index] ?? 0, fraction: null, series: null },
+        new Vector3(0, 0, 0),
+        new Vector3(0, 0, 0),
+      );
+      raceLanes.push({
+        piece: pieces[pieces.length - 1],
+        builtHeight: startHeight,
+        slot: index,
+      });
+    });
+
+    raceScale = scale;
+    raceCell = cell;
+    raceWidth = width;
+    raceSegments = cornerSegments;
+  }
+
+  let raceScale = 0;
+  let raceCell = 0;
+  let raceWidth = 0;
+  let raceSegments = 8;
+
+  /*
+    GLOBO
+    -----
+    La esfera y la retícula NO son piezas: no se puede pasar el ratón por encima
+    de "el planeta". Van aparte, se crean una vez por build y se liberan en
+    `disposeGlobe()`.
+  */
+  let globeMesh: Mesh | null = null;
+  let graticule: LineSegments | null = null;
+
+  function disposeGlobe() {
+    for (const object of [globeMesh, graticule]) {
+      if (!object) continue;
+      group.remove(object);
+      object.geometry.dispose();
+      (object.material as Material).dispose();
+    }
+    globeMesh = null;
+    graticule = null;
+  }
+
+  function buildGlobe() {
+    const { height } = config.style;
+    const coords = config.data.coords;
+    const values = config.data.series[0]?.values ?? [];
+    const layout = computeMarkers(values, coords, { height });
+
+    /* Se encuadra por el diámetro más la barra más alta, y con un poco más de
+       aire que el resto de tipos: un globo pegado a los bordes del iframe deja
+       de leerse como un objeto suelto y parece un fondo. */
+    const reach = (GLOBE_RADIUS + layout.tallest) * 2 * 1.12;
+    plotBox = { width: reach, height: reach, depth: reach };
+
+    const sphere = new SphereGeometry(GLOBE_RADIUS, 64, 48);
+    const sphereMaterial = createMaterial(config, config.style.palette[0] ?? '#7c5cff');
+    const body = sphereMaterial as MeshStandardMaterial;
+    /* Oscuro para que las barras destaquen encima, y MATE. Una esfera grande y
+       pulida refleja el entorno IBL en manchas grandes que parecen suciedad;
+       subiendo la rugosidad la luz se reparte y se lee como un planeta. */
+    body.color.multiplyScalar(0.22);
+    if ('roughness' in body) body.roughness = 0.92;
+    if ('metalness' in body) body.metalness = 0;
+    globeMesh = new Mesh(sphere, sphereMaterial);
+    globeMesh.castShadow = config.style.shadow;
+    globeMesh.receiveShadow = config.style.shadow;
+    // El planeta no es un dato: no responde al puntero.
+    globeMesh.raycast = () => {};
+    group.add(globeMesh);
+
+    graticule = new LineSegments(
+      graticuleGeometry(),
+      new LineBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.14,
+        depthWrite: false,
+      }),
+    );
+    graticule.raycast = () => {};
+    group.add(graticule);
+
+    if (layout.markers.length === 0) return;
+
+    const cornerSegments = cornerSegmentsFor(layout.markers.length);
+    for (const marker of layout.markers) {
+      const geometry = roundedBoxGeometry({
+        width: layout.footprint,
+        depth: layout.footprint,
+        height: marker.height,
+        cornerSegments,
+        ...barRadii(
+          marker.height,
+          { width: layout.footprint, depth: layout.footprint },
+          { bevel: config.style.bevel, cornerRadius: config.style.cornerRadius },
+        ),
+      });
+
+      addPiece(
+        geometry,
+        marker.index,
+        {
+          index: marker.index,
+          label: config.data.labels[marker.index] ?? '',
+          value: marker.value,
+          fraction: marker.fraction,
+          series: null,
+        },
+        marker.position,
+        new Vector3(0, 0, 0),
+      );
+
+      /* La barra se construye creciendo en +Y; aquí tiene que crecer hacia
+         fuera del globo, que es una dirección distinta en cada coordenada. */
+      const mesh = pieces[pieces.length - 1].mesh;
+      mesh.quaternion.setFromUnitVectors(UP, marker.normal);
     }
   }
 
@@ -492,10 +730,14 @@ export function createChartRenderer(
     donut: buildRing,
     pie: buildRing,
     bar: buildBars,
+    'bar-race': buildRace,
+    globe: buildGlobe,
   };
 
   function build() {
     disposePieces();
+    disposeGlobe();
+    raceLanes = [];
     zeroPlane.visible = false;
     (BUILDERS[config.type] ?? buildRing)();
   }
@@ -524,8 +766,28 @@ export function createChartRenderer(
 
        Las barras no se separan. Una barra flotando deja de leerse como barra, y
        su sombra se ve de todas formas porque son altas. */
-    const standing = config.type === 'bar';
-    group.position.y = standing ? 0 : config.style.height * 0.75;
+    const standing = config.type === 'bar' || config.type === 'bar-race';
+    /* El globo flota: es una esfera, apoyarla en el suelo la haría rodar en la
+       cabeza de quien la mira. Se centra a la altura de su propio radio. */
+    group.position.y =
+      config.type === 'globe'
+        ? GLOBE_RADIUS * 1.35
+        : standing
+          ? 0
+          : config.style.height * 0.75;
+
+    /* La etiqueta de periodo solo existe en las carreras. Al cambiar de tipo hay
+       que apagarla, o se queda un número colgado sobre una gráfica que ya no
+       tiene tiempo. */
+    if (config.type !== 'bar-race' && raceLabel !== null) {
+      raceLabel = null;
+      frameCallback?.(null);
+    }
+
+    /* Un globo se mira por debajo del ecuador sin problema; el resto de tipos
+       no, porque verles la base no aporta nada y desorienta. */
+    controls.minPolarAngle = config.type === 'globe' ? 0.05 : 0.12;
+    controls.maxPolarAngle = config.type === 'globe' ? Math.PI - 0.05 : Math.PI / 2 - 0.04;
 
     /* Sin rotación automática, el ángulo vuelve a cero. Si no, apagarla deja la
        pieza girada donde estuviera y el mismo config da píxeles distintos, que es
@@ -549,7 +811,7 @@ export function createChartRenderer(
     ventana se siente como perder el trabajo.
   */
   function placeCamera() {
-    const standing = config.type === 'bar';
+    const standing = config.type === 'bar' || config.type === 'bar-race';
 
     camera.fov = config.camera.fov;
     camera.updateProjectionMatrix();
@@ -562,7 +824,8 @@ export function createChartRenderer(
       /* Las barras se miden: su alto cambia veinte veces entre los extremos de
          `style.height`, y el usuario ajusta desde `camera.distance`. */
       const direction = cameraDirection(config);
-      const distance = fitDistance(plotBox, camera, target, direction) * config.camera.distance;
+      const distance =
+        fitDistance(plotBox, camera, target, direction) * config.camera.distance;
       camera.position.copy(direction).multiplyScalar(distance).add(target);
     } else {
       camera.position.copy(cameraPosition(config));
@@ -627,6 +890,70 @@ export function createChartRenderer(
   let frame = 0;
   let swayPhase = 0;
 
+  /**
+   * Avanza la carrera un frame.
+   *
+   * Tres cosas se mueven a la vez y las tres tienen que ir suaves: el valor
+   * (altura), el puesto (posición en X) y la etiqueta del periodo. El puesto se
+   * interpola aparte del valor porque un adelantamiento es un salto discreto en
+   * el ranking, y sin suavizarlo las barras se teletransportan.
+   */
+  function updateRace(delta: number) {
+    if (raceLanes.length === 0) return;
+
+    const series = raceValues();
+    const names = config.data.series.map((serie) => serie.name);
+    const frameMs = config.motion.frameDuration ?? DEFAULT_FRAME_MS;
+
+    if (motionEnabled()) raceElapsed += delta * 1000;
+
+    const at = frameAt(raceElapsed, series.length, names, { frameMs, loop: true });
+    const values = valuesAt(series, at, config.data.labels.length);
+    const places = placementsFor(values);
+
+    if (at.label !== raceLabel) {
+      raceLabel = at.label;
+      frameCallback?.(raceLabel);
+    }
+
+    const smoothing = 1 - Math.pow(0.0015, delta);
+
+    raceLanes.forEach((lane, index) => {
+      const target = places[index];
+      const value = values[index] ?? 0;
+      const height = Math.max(value * raceScale, 1e-3);
+
+      lane.piece.info.value = value;
+      lane.piece.mesh.visible = target.visible;
+      if (!target.visible) return;
+
+      // Puesto: se persigue el destino en vez de saltar a él.
+      lane.slot += (target.slot - lane.slot) * smoothing;
+
+      /* La geometría solo se rehace si el escalado se alejaría más de la
+         tolerancia. Ver RACE_REBUILD_TOLERANCE. */
+      if (Math.abs(height - lane.builtHeight) / lane.builtHeight > RACE_REBUILD_TOLERANCE) {
+        const geometry = roundedBoxGeometry({
+          width: raceWidth,
+          depth: raceWidth,
+          height,
+          cornerSegments: raceSegments,
+          ...barRadii(
+            height,
+            { width: raceWidth, depth: raceWidth },
+            { bevel: config.style.bevel, cornerRadius: config.style.cornerRadius },
+          ),
+        });
+        lane.piece.mesh.geometry.dispose();
+        lane.piece.mesh.geometry = geometry;
+        lane.builtHeight = height;
+      }
+
+      lane.piece.mesh.scale.y = height / lane.builtHeight;
+      lane.piece.base.set(-PLOT_WIDTH / 2 + raceCell * (lane.slot + 0.5), 0, 0);
+    });
+  }
+
   function tick(now: number) {
     frame = requestAnimationFrame(tick);
     const delta = lastTime ? Math.min((now - lastTime) / 1000, 0.05) : 0;
@@ -635,7 +962,7 @@ export function createChartRenderer(
     if (motionEnabled() && config.motion.autoRotate) {
       const rate = (config.motion.speed / 60) * Math.PI * 2 * delta;
 
-      if (config.type === 'bar') {
+      if (config.type === 'bar' || config.type === 'bar-race') {
         /* Las barras NO dan la vuelta.
            Media vuelta pone la fila de canto —cinco barras convertidas en una— y
            una vuelta entera la deja del revés, con la primera categoría a la
@@ -648,6 +975,8 @@ export function createChartRenderer(
         group.rotation.y += rate;
       }
     }
+
+    if (config.type === 'bar-race') updateRace(delta);
 
     updateHover();
 
@@ -708,6 +1037,11 @@ export function createChartRenderer(
       if (previous.camera.fov !== next.camera.fov) resize();
     },
 
+    onFrame(callback) {
+      frameCallback = callback;
+      callback(raceLabel);
+    },
+
     onHover(callback) {
       hoverCallback = callback;
     },
@@ -723,6 +1057,7 @@ export function createChartRenderer(
       canvas.removeEventListener('pointerleave', onPointerLeave);
 
       disposePieces();
+      disposeGlobe();
       controls.dispose();
 
       floorGeometry.dispose();

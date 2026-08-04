@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useOrigin } from '@/lib/use-origin';
 import Link from 'next/link';
 import '@/styles/editor.css';
 import { ChartCanvas } from '@/renderer/ChartCanvas';
@@ -52,12 +53,34 @@ const BACKGROUNDS = [
   { id: 'gradient', label: 'Degradado', hint: 'De un color a otro.' },
 ] as const;
 
+/**
+ * Qué cambia al elegir otro tipo.
+ *
+ * No todos los tipos saben leer los mismos datos, y cambiar de tipo sin más
+ * dejaba la gráfica vacía: un globo sin coordenadas es un planeta pelado y una
+ * carrera con un solo periodo son barras que no se mueven. Cuando los datos
+ * actuales no sirven para el destino, se traen los de la muestra de ese tipo.
+ *
+ * Lo que el usuario haya escrito NO se pisa si sigue valiendo: cambiar entre
+ * anillo, tarta y barras conserva sus números, que es lo normal.
+ */
+function switchType(config: ChartConfig, type: ChartConfig['type']): Partial<ChartConfig> {
+  const needsCoords = type === 'globe' && !config.data.coords;
+  const needsPeriods = type === 'bar-race' && config.data.series.length < 2;
+  const sample = CHART_TYPES.find((entry) => entry.id === type)?.sample;
+
+  return {
+    type,
+    data: (needsCoords || needsPeriods) && sample ? sample.data : config.data,
+    style: { ...config.style, innerRadius: type === 'pie' ? 0 : 0.55 },
+  };
+}
+
 export default function EditorPage() {
   const [config, setConfig] = useState<ChartConfig>(INITIAL);
-  const [origin, setOrigin] = useState('');
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => setOrigin(window.location.origin), []);
+  const origin = useOrigin();
 
   const parsed = useMemo(() => parseConfig(config), [config]);
   const url = useMemo(
@@ -211,12 +234,7 @@ export default function EditorPage() {
             label="Tipo de gráfica"
             options={typeChoices}
             value={config.type}
-            onChange={(id) =>
-              patch({
-                type: id as ChartConfig['type'],
-                style: { ...config.style, innerRadius: id === 'pie' ? 0 : 0.55 },
-              })
-            }
+            onChange={(id) => patch(switchType(config, id as ChartConfig['type']))}
           />
         </Group>
 
@@ -461,13 +479,50 @@ function TypePreview({ id, ready }: { id: string; ready: boolean }) {
               ? 'conic-gradient(#7c5cff 0 42%, #00d4ff 0 68%, #41ffc9 0 85%, #ffd166 0 100%)'
               : 'conic-gradient(#7c5cff 0 52%, #00d4ff 0 83%, #41ffc9 0 100%)',
           maskImage:
-            id === 'donut' ? 'radial-gradient(circle, transparent 46%, #000 47%)' : undefined,
+            id === 'donut'
+              ? 'radial-gradient(circle, transparent 46%, #000 47%)'
+              : undefined,
         }}
       />
     );
   }
 
   const palette = ['#7c5cff', '#00d4ff', '#41ffc9', '#ffd166'];
+
+  /* Un globo con su retícula, no otra fila de barras: si dos tarjetas comparten
+     silueta, el selector deja de decir nada. */
+  if (id === 'globe') {
+    return (
+      <span
+        aria-hidden
+        style={{
+          display: 'block',
+          aspectRatio: '1',
+          borderRadius: '50%',
+          background: `radial-gradient(circle at 34% 28%, #6f5adf 0%, #3b2f8f 60%, #241d5c 100%)`,
+          boxShadow: 'inset 0 0 0 1px rgb(255 255 255 / 0.18)',
+          backgroundBlendMode: 'normal',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        <i
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: '50%',
+            background:
+              'repeating-linear-gradient(0deg, transparent 0 5px, rgb(255 255 255 / 0.22) 5px 6px),' +
+              'repeating-linear-gradient(90deg, transparent 0 5px, rgb(255 255 255 / 0.14) 5px 6px)',
+          }}
+        />
+      </span>
+    );
+  }
+
+  /* La carrera son barras ORDENADAS de mayor a menor: eso es lo que la
+     distingue de las barras normales de un vistazo. */
+  const heights = id === 'bar-race' ? [80, 58, 40, 24] : [46, 74, 34, 60];
 
   return (
     <span
@@ -481,7 +536,7 @@ function TypePreview({ id, ready }: { id: string; ready: boolean }) {
         opacity: ready ? 1 : 0.55,
       }}
     >
-      {[46, 74, 34, 60].map((h, i) => (
+      {heights.map((h, i) => (
         <i
           key={i}
           style={{

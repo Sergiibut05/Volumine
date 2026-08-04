@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useOrigin } from '@/lib/use-origin';
 import { ChartCanvas } from '@/renderer/ChartCanvas';
 import { parseConfig } from '@/lib/config/parse';
 import { buildEmbedUrl } from '@/lib/config/url';
@@ -30,9 +31,7 @@ const BASE: ChartConfig = {
 export function HeroChart() {
   const [themeId, setThemeId] = useState('aurora');
   const [copied, setCopied] = useState(false);
-  // El origen solo se conoce en el cliente; la página en sí es de servidor.
-  const [origin, setOrigin] = useState('');
-  useEffect(() => setOrigin(window.location.origin), []);
+  const origin = useOrigin();
 
   const theme = THEMES.find((t) => t.id === themeId) ?? THEMES[0];
 

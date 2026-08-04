@@ -23,6 +23,8 @@ export type ResolvedChartConfig = {
       values: number[];
       colors: (string | null)[];
     }[];
+    /** Solo las usa `globe`. `undefined` cuando el config no las trae. */
+    coords: [number, number][] | undefined;
     format: {
       unit: string;
       decimals: number;
@@ -147,6 +149,9 @@ export function resolveConfig(config: ChartConfig): ResolvedChartConfig {
     title: config.title ?? null,
     data: {
       labels: config.data.labels,
+      /* Sin default: "no hay coordenadas" y "coordenadas en (0,0)" son cosas
+         distintas, y el golfo de Guinea no es un valor por defecto razonable. */
+      coords: config.data.coords,
       series: config.data.series.map((s) => ({
         name: s.name ?? null,
         values: s.values,
