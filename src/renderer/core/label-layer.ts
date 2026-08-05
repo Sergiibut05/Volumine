@@ -49,15 +49,31 @@ export type LabelAnchor = {
   anchor: Vector3;
 };
 
-/** Cuánto se separa la etiqueta del borde del contenedor, en píxeles. */
-const MARGIN = 10;
+/**
+ * Cuánto se separa la etiqueta del borde del contenedor, en píxeles.
+ *
+ * Subido de 10 a 16 al ponerles fondo: el texto suelto podía acercarse al borde
+ * sin que se notara, pero una píldora pegada al canto se lee como recortada.
+ */
+const MARGIN = 16;
 /** Longitud del tramo horizontal de la línea guía. */
 const ELBOW = 18;
 
 type Item = {
   index: number;
   box: HTMLDivElement;
+  /**
+   * DOS trazos para la misma línea: uno grueso y oscuro debajo, otro fino y
+   * claro encima.
+   *
+   * Es la técnica de las carreteras en cartografía, y aquí hace falta por lo
+   * mismo: la línea cruza un fondo que NO CONOCEMOS —el embed vive dentro de la
+   * página de otra persona, que puede ser blanca, negra o una foto—. Un trazo
+   * claro desaparece sobre blanco y uno oscuro sobre negro; los dos juntos se
+   * ven siempre, porque cada uno hace de contorno del otro.
+   */
   line: SVGPolylineElement;
+  casing: SVGPolylineElement;
   world: Vector3;
 };
 
@@ -116,6 +132,7 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
     for (const item of items) {
       item.box.remove();
       item.line.remove();
+      item.casing.remove();
     }
     items = [];
   }
@@ -160,13 +177,26 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
           box.appendChild(detalle);
         }
 
+        const casing = document.createElementNS(SVG_NS, 'polyline');
+        casing.setAttribute('class', 'voluma-leader-casing');
+        casing.setAttribute('fill', 'none');
+
         const line = document.createElementNS(SVG_NS, 'polyline');
         line.setAttribute('class', 'voluma-leader');
         line.setAttribute('fill', 'none');
 
+        /* El contorno va ANTES en el DOM: en SVG pinta primero lo que está
+           antes, así que el trazo fino queda encima. Al revés se tapa solo. */
+        svg.appendChild(casing);
         svg.appendChild(line);
         root.appendChild(box);
-        items.push({ index: anchor.index, box, line, world: anchor.anchor.clone() });
+        items.push({
+          index: anchor.index,
+          box,
+          line,
+          casing,
+          world: anchor.anchor.clone(),
+        });
       }
     },
 
@@ -189,10 +219,12 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
         if (tmp.z > 1) {
           item.box.style.display = 'none';
           item.line.style.display = 'none';
+          item.casing.style.display = 'none';
           continue;
         }
         item.box.style.display = '';
         item.line.style.display = '';
+        item.casing.style.display = '';
 
         puestos.push({
           item,
@@ -223,12 +255,14 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
           if (x < ocupadoHasta + 4) {
             puesto.item.box.style.display = 'none';
             puesto.item.line.style.display = 'none';
+            puesto.item.casing.style.display = 'none';
             continue;
           }
           ocupadoHasta = x + ancho;
           shown.add(puesto.item.index);
 
           puesto.item.line.style.display = 'none';
+          puesto.item.casing.style.display = 'none';
           puesto.item.box.style.transform = `translate(${Math.round(x)}px, ${Math.round(puesto.y)}px)`;
           puesto.item.box.dataset.side = 'center';
         }
@@ -258,6 +292,7 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
           if (!visibles.has(i)) {
             puesto.item.box.style.display = 'none';
             puesto.item.line.style.display = 'none';
+            puesto.item.casing.style.display = 'none';
             return;
           }
           shown.add(puesto.item.index);
@@ -277,10 +312,9 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
           const finX = lado < 0 ? MARGIN + ancho : width - MARGIN - ancho;
           const codoX = finX + lado * ELBOW;
           const finY = y + alto / 2;
-          puesto.item.line.setAttribute(
-            'points',
-            `${puesto.x.toFixed(1)},${puesto.y.toFixed(1)} ${codoX.toFixed(1)},${finY.toFixed(1)} ${finX.toFixed(1)},${finY.toFixed(1)}`,
-          );
+          const puntos = `${puesto.x.toFixed(1)},${puesto.y.toFixed(1)} ${codoX.toFixed(1)},${finY.toFixed(1)} ${finX.toFixed(1)},${finY.toFixed(1)}`;
+          puesto.item.line.setAttribute('points', puntos);
+          puesto.item.casing.setAttribute('points', puntos);
         });
       }
     },
@@ -299,11 +333,13 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
         if (index === null) {
           delete item.box.dataset.state;
           delete (item.line as unknown as HTMLElement).dataset.state;
+          delete (item.casing as unknown as HTMLElement).dataset.state;
           continue;
         }
         const estado = item.index === index ? 'on' : 'dim';
         item.box.dataset.state = estado;
         (item.line as unknown as HTMLElement).dataset.state = estado;
+        (item.casing as unknown as HTMLElement).dataset.state = estado;
       }
     },
 
