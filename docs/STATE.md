@@ -100,17 +100,22 @@ mano desde el aviso.
 
 ## Qué toca ahora
 
-1. **Enchufar Supabase y correr los tests de RLS.** El código de la fase 5 está
-   entero —esquema, políticas, auth, guardar, listar, `/embed/{slug}`— pero no
-   se ha ejecutado NUNCA contra una base de datos real, porque no hay
-   credenciales en esta máquina. Concretamente falta:
-   - aplicar `supabase/migrations/0001_charts.sql`,
-   - poner las dos variables de `.env.example`,
-   - activar Google y el magic link en Supabase → Auth, con
-     `{origen}/auth/callback` en las Redirect URLs,
-   - **correr `rls.test.ts`**. Son 18 comprobaciones y se saltan solas sin
-     credenciales, así que hoy `npm run test` pasa sin probar ni una política.
-     Hasta que corran, los permisos son una intención escrita, no un hecho.
+1. **Correr los tests de RLS.** Las migraciones ya están aplicadas al proyecto
+   `butxsqcragkopzxsrukz` y `.env.local` está puesto, así que la app conecta y
+   `/entrar` funciona de verdad. Lo que sigue sin comprobarse son LAS POLÍTICAS:
+   `rls.test.ts` necesita además la `service_role` —solo para dar de alta los
+   usuarios de prueba— y esa clave no se puede sacar por MCP. Hay que copiarla
+   de Project Settings → API y correr:
+
+       SUPABASE_TEST_URL=… SUPABASE_TEST_ANON_KEY=…        SUPABASE_TEST_SERVICE_ROLE_KEY=… npm run test
+
+   Son 18 comprobaciones que hoy se saltan solas. Hasta que corran, los permisos
+   son una intención escrita, no un hecho. **Contra una rama de Supabase, no
+   contra este proyecto: crean y borran usuarios.**
+2. **Activar Google en Supabase → Auth → Providers.** Hace falta un OAuth client
+   de Google Cloud; la Redirect URI que pide Google es la de SUPABASE
+   (`https://butxsqcragkopzxsrukz.supabase.co/auth/v1/callback`), no la nuestra.
+   El magic link ya funciona sin configurar nada.
 2. Tests de regresión visual con Playwright. El andamiaje está.
 3. Póster estático en servidor, para el fallback sin WebGL y las OG images. Es
    lo único de la fase 5 que queda sin empezar.
@@ -202,16 +207,14 @@ display: none }` o el elemento oculto se ve.
 
 ## Problemas abiertos
 
-- **Nada de la fase 5 se ha probado contra una base de datos.** Compila, el
-  build pasa y las rutas responden bien SIN Supabase configurado (el editor y el
-  embed por URL siguen funcionando en un clon sin `.env`, que es a propósito).
-  Pero ni una consulta, ni una política, ni un login se han ejecutado de verdad.
-  Lo primero que hay que hacer al tener credenciales es correr `rls.test.ts`.
-- **El servidor MCP de Supabase no estaba disponible en la sesión en que se
-  escribió la fase 5**, así que las migraciones se escribieron a mano como
-  ficheros versionados en `supabase/migrations/`. Es donde deben estar de todas
-  formas, pero nadie las ha ejecutado ni una vez: si hay un error de sintaxis en
-  el SQL, aparecerá al aplicarlas.
+- **Las políticas RLS siguen sin probarse.** Las migraciones están aplicadas y
+  la app conecta, pero ninguna política se ha ejercitado: `rls.test.ts` necesita
+  la `service_role` para crear usuarios de prueba y no se ha corrido. Es lo
+  primero de "qué toca ahora".
+- **Nadie ha guardado una gráfica todavía.** El camino completo —entrar, pulsar
+  guardar, ver la fila en `/mis-graficas`, abrir `/embed/{slug}` desde otro
+  navegador— no se ha recorrido de principio a fin. Los triggers de cuota y de
+  marca de agua tampoco han llegado a dispararse nunca.
 
 - **El dev server de Next devuelve 403 en todos los chunks** en esta máquina y
   su WebSocket de HMR falla; la página no hidrata con `npm run dev`. En

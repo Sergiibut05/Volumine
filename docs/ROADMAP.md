@@ -96,14 +96,18 @@ presupuesto.
 Los permisos los decide Postgres y no el servidor de Next (ADR 0007): el código
 de la aplicación no lleva ni una comprobación de propiedad escrita a mano.
 
+**Hecho ya:** migraciones aplicadas (0001 y 0002), `.env.local` puesto, la app
+conecta y el magic link llega al servidor de auth.
+
 **Falta para poder cerrar la fase:**
 
-1. Aplicar `supabase/migrations/0001_charts.sql` al proyecto.
-2. Poner `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` (ver
-   `.env.example`), y activar Google y el magic link en Supabase → Auth.
-3. **Ejecutar `rls.test.ts` contra una rama de Supabase.** Están escritos con
+1. **Ejecutar `rls.test.ts` contra una rama de Supabase.** Están escritos con
    cuidado pero no se han corrido nunca: hasta que pasen, las políticas son una
-   intención, no un hecho.
+   intención, no un hecho. Necesitan la `service_role`, que no se puede sacar
+   por MCP.
+2. Activar Google en Supabase → Auth → Providers (el magic link ya va).
+3. Recorrer el camino completo una vez: entrar, guardar, publicar, abrir el
+   `/embed/{slug}` desde otro navegador.
 
 **Criterio de salida:** cierras el navegador y tu gráfica sigue ahí.
 

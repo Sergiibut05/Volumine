@@ -29,6 +29,11 @@
 .auth-page {
   display: grid;
   place-content: center;
+  /* `justify-items` además de `place-content`: sin esto los hijos se ESTIRAN al
+     ancho de la columna, que es más ancha que la tarjeta. El «Volver» quedaba
+     ocupando todo el ancho y su texto centrado respecto a la página, no
+     respecto a la tarjeta — desalineados por unos cien píxeles. */
+  justify-items: center;
   gap: 1.25rem;
   padding: 2rem 1.25rem;
 }
@@ -130,11 +135,47 @@
   border-color: transparent;
 }
 
+/*
+  El botón principal.
+
+  Definido AQUÍ y no heredado de `.cta` de marketing.css: estas pantallas no
+  cargan esa hoja, así que confiar en su clase dejaba el botón como texto suelto
+  sobre el papel — parecía un enlace roto, no el botón de enviar. Un estilo del
+  que dependes tiene que venir de una hoja que de verdad cargues.
+*/
+.auth-page .cta,
+.charts-page .cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.16s var(--p-ease-out, ease);
+}
+
+.auth-page .cta:hover:not(:disabled),
+.charts-page .cta:hover:not(:disabled) {
+  background: var(--spark);
+}
+
+.auth-page .cta:focus-visible,
+.charts-page .cta:focus-visible {
+  outline: 2px solid var(--spark);
+  outline-offset: 2px;
+}
+
 .auth-submit {
   width: 100%;
-  justify-content: center;
-  border: 0;
-  cursor: pointer;
+  margin-top: 0.25rem;
 }
 
 .auth-error {
