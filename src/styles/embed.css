@@ -366,3 +366,62 @@ canvas {
     opacity 0.14s ease,
     box-shadow 0.14s ease;
 }
+
+/*
+  Leyenda: la alternativa a las etiquetas colocadas.
+
+  Va arriba a la izquierda, que es la esquina que queda libre — abajo a la
+  derecha está la marca de agua, arriba a la derecha el periodo de una carrera,
+  y abajo en el centro el tooltip.
+
+  Misma píldora de vidrio que las etiquetas y por el mismo motivo: el fondo de
+  la página anfitriona no lo elegimos nosotros.
+*/
+.voluma-legend {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: grid;
+  gap: 0.3em;
+  padding: 0.55em 0.75em;
+  border-radius: 0.6em;
+  background: rgb(16 16 24 / 0.58);
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+  color: rgb(255 255 255 / 0.95);
+  font-size: calc(0.8125rem * var(--voluma-label-scale, 1));
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  /* Nunca puede comerse el dibujo: si hay veinte categorías, la leyenda hace
+     scroll dentro de sí misma en vez de tapar la gráfica entera. */
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.voluma-legend > div {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  white-space: nowrap;
+}
+
+/* La muestra de color es lo ÚNICO que une esta lista con el dibujo, así que
+   tiene que ser inconfundible: redonda, sólida y del tamaño del texto. */
+.voluma-legend i {
+  width: 0.7em;
+  height: 0.7em;
+  flex: none;
+  border-radius: 50%;
+}
+
+.voluma-legend b {
+  font-weight: 600;
+}
+
+.voluma-legend span {
+  margin-left: auto;
+  padding-left: 0.75em;
+  font-size: 0.9em;
+  opacity: 0.68;
+}

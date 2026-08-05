@@ -688,12 +688,18 @@ export function Editor({ initial, chartId, visibility, signedIn }: EditorProps) 
           <Group title="Etiquetas" hint="Ver los datos sin pasar el ratón">
             <Choices
               label="Etiquetas"
-              value={config.labels?.show === true ? 'outside' : 'none'}
+              value={
+                config.labels?.show !== true ? 'none' : (config.labels?.mode ?? 'outside')
+              }
               onChange={(id) =>
                 setConfig(
                   (c) => ({
                     ...c,
-                    labels: { ...c.labels, show: id !== 'none', mode: 'outside' },
+                    labels: {
+                      ...c.labels,
+                      show: id !== 'none',
+                      mode: id === 'none' ? 'outside' : (id as 'outside' | 'legend'),
+                    },
                   }),
                   { coalesce: false },
                 )
@@ -708,8 +714,17 @@ export function Editor({ initial, chartId, visibility, signedIn }: EditorProps) 
                 {
                   id: 'outside',
                   label: 'Siempre',
-                  hint: 'Con línea hasta cada parte.',
+                  hint: 'Junto a cada parte.',
                   preview: <LabelPreview leaders bars={isBar || isRace} />,
+                },
+                {
+                  id: 'legend',
+                  /* Con nombres largos o muchas categorías, colocadas alrededor
+                     del dibujo no caben y la mitad se descartan; en lista caben
+                     todas. */
+                  label: 'Leyenda',
+                  hint: 'Una lista en una esquina.',
+                  preview: <LegendPreview />,
                 },
               ]}
             />
@@ -1256,6 +1271,47 @@ function ShowPreview({ texto }: { texto: string }) {
       }}
     >
       {texto}
+    </span>
+  );
+}
+
+/** Una lista con muestras de color, que es lo que dibuja el modo leyenda. */
+function LegendPreview() {
+  return (
+    <span
+      aria-hidden
+      style={{
+        display: 'grid',
+        gap: 3,
+        alignContent: 'center',
+        aspectRatio: '16/9',
+        padding: '12% 14%',
+        borderRadius: 5,
+        background: 'var(--surface-sunken)',
+      }}
+    >
+      {['#7c5cff', '#00d4ff', '#41ffc9'].map((c) => (
+        <i key={c} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <i
+            style={{
+              width: 5,
+              height: 5,
+              flex: 'none',
+              borderRadius: '50%',
+              background: c,
+            }}
+          />
+          <i
+            style={{
+              flex: 1,
+              height: 2,
+              borderRadius: 2,
+              background: 'currentColor',
+              opacity: 0.4,
+            }}
+          />
+        </i>
+      ))}
     </span>
   );
 }

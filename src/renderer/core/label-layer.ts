@@ -49,6 +49,8 @@ export type LabelAnchor = {
   value: number;
   /** Fracción del total, para el porcentaje. `null` si no aplica. */
   fraction: number | null;
+  /** El color de su pieza. Solo lo usa la leyenda, para la muestra. */
+  color: string;
   /**
    * De dónde sale la línea, en coordenadas LOCALES del grupo.
    *
@@ -176,12 +178,61 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
   let fmt: ReturnType<typeof formatter> | null = null;
 
   function clear() {
+    legend?.remove();
+    legend = null;
     for (const item of items) {
       item.box.remove();
       item.line.remove();
       item.casing.remove();
     }
     items = [];
+  }
+
+  /*
+    LEYENDA: una lista, no etiquetas colocadas.
+
+    Es el modo que hay que usar cuando las categorías tienen nombres largos o
+    son muchas: colocadas alrededor del dibujo no caben y la mitad se descartan,
+    mientras que en lista caben todas y se leen de corrido. A cambio, el ojo
+    tiene que saltar del color de la lista al color de la pieza — por eso no es
+    el default, pero por eso mismo hace falta tenerlo.
+
+    No usa `update()` para nada: no depende de la cámara, así que no cuesta un
+    solo cálculo por frame.
+  */
+  let legend: HTMLDivElement | null = null;
+
+  function buildLegend(anchors: LabelAnchor[], config: ResolvedChartConfig) {
+    legend = document.createElement('div');
+    legend.className = 'voluma-legend';
+    const fmt = formatter(config);
+
+    for (const anchor of anchors) {
+      const fila = document.createElement('div');
+
+      const muestra = document.createElement('i');
+      muestra.style.background = anchor.color;
+      fila.appendChild(muestra);
+
+      const nombre = document.createElement('b');
+      nombre.textContent = anchor.label;
+      fila.appendChild(nombre);
+
+      const partes: string[] = [];
+      if (config.labels.showValues) partes.push(fmt.value(anchor.value));
+      if (config.labels.showPercent && anchor.fraction !== null) {
+        partes.push(fmt.percent(anchor.fraction));
+      }
+      if (partes.length > 0) {
+        const detalle = document.createElement('span');
+        detalle.textContent = partes.join(' · ');
+        fila.appendChild(detalle);
+      }
+
+      legend.appendChild(fila);
+    }
+
+    root.appendChild(legend);
   }
 
   return {
@@ -192,6 +243,11 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
       root.style.display =
         config.labels.show && config.labels.mode !== 'none' ? '' : 'none';
       if (!config.labels.show || config.labels.mode === 'none') return;
+
+      if (config.labels.mode === 'legend') {
+        buildLegend(anchors, config);
+        return;
+      }
 
       fmt = formatter(config);
 

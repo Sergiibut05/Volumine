@@ -1050,6 +1050,7 @@ export function createChartRenderer(
         label: piece.info.label,
         value: piece.info.value,
         fraction: piece.info.fraction,
+        color: colorForSegment(config, piece.info.index),
         anchor: piece.anchor,
         occludeAround: piece.occludeAround,
       });
