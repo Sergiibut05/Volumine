@@ -57,6 +57,7 @@ import {
 } from '../geometry/bar-race';
 import { GLOBE_RADIUS, computeMarkers, landPointsGeometry } from '../geometry/globe';
 import { colorForSegment, createMaterial } from './materials';
+import { createLabelLayer, type LabelAnchor } from './label-layer';
 
 /*
   El renderer de Voluma, en three plano. Sin React (ADR 0006).
@@ -273,6 +274,11 @@ type Piece = {
   hoverAmount: number;
   /** Cómo responde al puntero. Un punto del globo crece; el resto se levanta. */
   hoverStyle: 'lift' | 'grow';
+  /**
+   * De dónde sale la línea guía de su etiqueta, en coordenadas locales del
+   * grupo. `null` en los tipos que todavía no tienen etiquetas.
+   */
+  anchor: Vector3 | null;
 };
 
 function cameraPlacement(config: ResolvedChartConfig): CameraPlacement {
@@ -465,6 +471,18 @@ export function createChartRenderer(
   let pieces: Piece[] = [];
   let currentKey = '';
 
+  /* La capa de etiquetas la monta el RENDERER y no la página: es lo que hace
+     que el editor y el embed enseñen lo mismo sin ponerse de acuerdo. Ver
+     label-layer.ts. */
+  const labelLayer = createLabelLayer(container);
+
+  /* Qué obliga a rehacer el DOM de las etiquetas SIN tocar la geometría:
+     encenderlas, cambiar de modo, pedir el porcentaje, cambiar la unidad. Sin
+     esto habría que elegir entre rehacerlas en cada frame —decenas de nodos por
+     segundo mientras se arrastra un slider— o que no se enteraran. */
+  const labelsKeyOf = (c: ResolvedChartConfig) => JSON.stringify([c.labels, c.data.format]);
+  let labelsKey = '';
+
   // Reutilizables: crear objetos por frame es presión de GC y tirones.
   const raycaster = new Raycaster();
   const pointer = new Vector2();
@@ -504,7 +522,7 @@ export function createChartRenderer(
      * falta por llenar, así que ni gasta un color de la paleta ni tiene tooltip.
      * Sigue en `pieces` para que se libere con todo lo demás.
      */
-    options: { color?: string; inert?: boolean } = {},
+    options: { color?: string; inert?: boolean; anchor?: Vector3 } = {},
   ) {
     const material = createMaterial(
       config,
@@ -517,7 +535,15 @@ export function createChartRenderer(
     if (options.inert) mesh.raycast = () => {};
 
     group.add(mesh);
-    pieces.push({ info, mesh, base, direction, hoverAmount: 0, hoverStyle: 'lift' });
+    pieces.push({
+      info,
+      mesh,
+      base,
+      direction,
+      hoverAmount: 0,
+      hoverStyle: 'lift',
+      anchor: options.anchor ?? null,
+    });
   }
 
   function buildRing() {
@@ -557,6 +583,15 @@ export function createChartRenderer(
         },
         new Vector3(0, 0, 0),
         sectorDirection(sector),
+        {
+          /* La línea guía sale del BORDE EXTERIOR, a media altura del canto.
+             Del centro del sector saldría desde debajo de la propia pieza y la
+             línea se vería atravesarla. */
+          anchor: sectorDirection(sector)
+            .clone()
+            .multiplyScalar(OUTER_RADIUS)
+            .setY(height / 2),
+        },
       );
     }
   }
@@ -920,6 +955,10 @@ export function createChartRenderer(
         direction: marker.normal.clone(),
         hoverAmount: 0,
         hoverStyle: 'grow',
+        /* El globo todavía no lleva etiquetas fijas: sus marcadores piden un
+           tratamiento propio —al lado del punto, y ocultando los de la cara de
+           atrás— que no es el de las líneas guía radiales. */
+        anchor: null,
       });
     }
   }
@@ -942,6 +981,23 @@ export function createChartRenderer(
     raceLanes = [];
     zeroPlane.visible = false;
     (BUILDERS[config.type] ?? buildRing)();
+    refreshLabels();
+  }
+
+  /** Rehace el DOM de las etiquetas a partir de las piezas que haya ahora. */
+  function refreshLabels() {
+    const anchors: LabelAnchor[] = [];
+    for (const piece of pieces) {
+      if (!piece.anchor) continue;
+      anchors.push({
+        index: piece.info.index,
+        label: piece.info.label,
+        value: piece.info.value,
+        fraction: piece.info.fraction,
+        anchor: piece.anchor,
+      });
+    }
+    labelLayer.rebuild(anchors, config);
   }
 
   function applySceneSettings() {
@@ -1224,6 +1280,11 @@ export function createChartRenderer(
 
     controls.update();
     renderer.render(scene, camera);
+
+    /* Después de `controls.update()` y del render: las etiquetas se proyectan
+       con la matriz de ESTE frame, no con la del anterior. Un frame de retraso
+       se ve como un temblor de la etiqueta respecto a su pieza al orbitar. */
+    labelLayer.update(camera, group, canvas.clientWidth, canvas.clientHeight);
   }
 
   // ── arranque ──────────────────────────────────────────────────────────────
@@ -1235,6 +1296,7 @@ export function createChartRenderer(
   canvas.addEventListener('pointerleave', onPointerLeave);
 
   currentKey = buildKey(config);
+  labelsKey = labelsKeyOf(config);
   build();
   applySceneSettings();
   resize();
@@ -1248,11 +1310,17 @@ export function createChartRenderer(
       const nextKey = buildKey(next);
 
       // Regenerar geometría es caro: solo cuando cambia algo que la afecta.
+      const nextLabels = labelsKeyOf(next);
+
       if (nextKey !== currentKey) {
         currentKey = nextKey;
+        // `build()` rehace las etiquetas por su cuenta.
         build();
+      } else if (nextLabels !== labelsKey) {
+        refreshLabels();
       }
 
+      labelsKey = nextLabels;
       applySceneSettings();
       if (previous.camera.fov !== next.camera.fov) resize();
     },
@@ -1278,6 +1346,7 @@ export function createChartRenderer(
 
       disposePieces();
       disposeGlobe();
+      labelLayer.dispose();
       controls.dispose();
 
       floorGeometry.dispose();

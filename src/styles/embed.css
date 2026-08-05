@@ -263,3 +263,68 @@ canvas {
     --readout: 17 17 24;
   }
 }
+
+/*
+  Etiquetas de datos.
+
+  La capa la crea el renderer (renderer/core/label-layer.ts) y se coloca sola:
+  aquí solo va el ASPECTO. La posición va en estilos inline porque sin ella la
+  capa no funciona, y no puede depender de que el anfitrión haya cargado la hoja
+  correcta.
+
+  Las mismas reglas están en embed.css y en editor.css. Es duplicación
+  consciente: son dos superficies con tipografías distintas y el embed no puede
+  cargar la hoja del editor.
+*/
+.voluma-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1em;
+  font-size: calc(0.8125rem * var(--voluma-label-scale, 1));
+  line-height: 1.25;
+  /* Sin esto, el nombre y la cifra bailan de ancho al animarse. */
+  font-variant-numeric: tabular-nums;
+}
+
+/* A la izquierda el texto se alinea a la derecha, para que quede pegado a su
+   línea guía. Al revés, la línea llegaría al aire. */
+.voluma-label[data-side='left'] {
+  text-align: right;
+  align-items: flex-end;
+}
+
+.voluma-label b {
+  font-weight: 600;
+}
+
+.voluma-label span {
+  font-size: 0.9em;
+  opacity: 0.6;
+}
+
+.voluma-leader {
+  /* Fina y discreta: la línea es una ayuda para el ojo, no un dato. En cuanto
+     pesa lo mismo que la gráfica, compite con ella. */
+  stroke-width: 1;
+  opacity: 0.45;
+}
+
+.voluma-label {
+  color: rgb(233 233 242 / 0.92);
+}
+
+.voluma-leader {
+  stroke: rgb(233 233 242);
+}
+
+/* Igual que la cifra del medidor: con fondo transparente no sabemos qué hay
+   detrás y la única pista es la preferencia del navegador. */
+@media (prefers-color-scheme: light) {
+  .voluma-label {
+    color: rgb(17 17 24 / 0.92);
+  }
+
+  .voluma-leader {
+    stroke: rgb(17 17 24);
+  }
+}

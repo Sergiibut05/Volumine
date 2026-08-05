@@ -170,6 +170,10 @@ export function Editor({ initial, chartId, visibility, signedIn }: EditorProps) 
   const isGlobe = config.type === 'globe';
   const isRace = config.type === 'bar-race';
   const isGauge = config.type === 'gauge';
+  /* Por ahora las líneas guía radiales solo tienen sentido en el anillo y la
+     tarta. Las barras y el globo piden otra colocación —bajo el eje y al lado
+     del punto— y hasta que exista no se ofrece un control que no haría nada. */
+  const supportsLabels = config.type === 'donut' || config.type === 'pie';
   const gaugeReading = parsed.ok && isGauge ? gaugeReadout(parsed.config) : null;
 
   const bevelCeiling = useMemo(() => {
@@ -636,6 +640,106 @@ export function Editor({ initial, chartId, visibility, signedIn }: EditorProps) 
           </Group>
         )}
 
+        {/*
+          Las etiquetas ya estaban en el contrato desde v1 y no había forma de
+          encenderlas: un campo declarado y no implementado es un bug, no una
+          función pendiente.
+
+          Apagadas por defecto, y eso NO es pereza: cambiar el default cambiaría
+          de aspecto todas las gráficas ya publicadas, y la regla 2 del proyecto
+          es no romper nunca un link que ya existe.
+        */}
+        {supportsLabels && (
+          <Group title="Etiquetas" hint="Ver los datos sin pasar el ratón">
+            <Choices
+              label="Etiquetas"
+              value={config.labels?.show === true ? 'outside' : 'none'}
+              onChange={(id) =>
+                setConfig(
+                  (c) => ({
+                    ...c,
+                    labels: { ...c.labels, show: id !== 'none', mode: 'outside' },
+                  }),
+                  { coalesce: false },
+                )
+              }
+              options={[
+                {
+                  id: 'none',
+                  label: 'Al pasar',
+                  hint: 'Solo al poner el ratón encima.',
+                  preview: <LabelPreview leaders={false} />,
+                },
+                {
+                  id: 'outside',
+                  label: 'Siempre',
+                  hint: 'Con línea hasta cada parte.',
+                  preview: <LabelPreview leaders />,
+                },
+              ]}
+            />
+
+            {config.labels?.show && (
+              <>
+                <Choices
+                  label="Qué se enseña"
+                  value={
+                    config.labels?.showPercent
+                      ? config.labels?.showValues
+                        ? 'ambos'
+                        : 'porcentaje'
+                      : 'valor'
+                  }
+                  onChange={(id) =>
+                    setConfig(
+                      (c) => ({
+                        ...c,
+                        labels: {
+                          ...c.labels,
+                          showValues: id !== 'porcentaje',
+                          showPercent: id !== 'valor',
+                        },
+                      }),
+                      { coalesce: false },
+                    )
+                  }
+                  options={[
+                    {
+                      id: 'valor',
+                      label: 'Valor',
+                      hint: 'La cifra tal cual.',
+                      preview: <ShowPreview texto="42" />,
+                    },
+                    {
+                      id: 'porcentaje',
+                      label: 'Porcentaje',
+                      hint: 'Su parte del total.',
+                      preview: <ShowPreview texto="35%" />,
+                    },
+                    {
+                      id: 'ambos',
+                      label: 'Los dos',
+                      hint: 'Cifra y porcentaje.',
+                      preview: <ShowPreview texto="42 · 35%" />,
+                    },
+                  ]}
+                />
+                <Slider
+                  label="Tamaño del texto"
+                  value={config.labels?.size ?? 1}
+                  min={0.7}
+                  max={1.6}
+                  step={0.05}
+                  format={(v) => `${Math.round(v * 100)}%`}
+                  onChange={(size) =>
+                    setConfig((c) => ({ ...c, labels: { ...c.labels, size } }))
+                  }
+                />
+              </>
+            )}
+          </Group>
+        )}
+
         <Group title="Fondo">
           <Choices
             label="Fondo"
@@ -987,5 +1091,73 @@ function TrackPreview({ track }: { track: boolean }) {
         maskImage: 'radial-gradient(circle, transparent 52%, #000 53%)',
       }}
     />
+  );
+}
+
+/** Con y sin líneas guía. La diferencia se ve, no se explica. */
+function LabelPreview({ leaders }: { leaders: boolean }) {
+  return (
+    <span
+      aria-hidden
+      style={{
+        display: 'block',
+        aspectRatio: '16/9',
+        borderRadius: 5,
+        background: 'var(--surface-sunken)',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      <i
+        style={{
+          position: 'absolute',
+          left: '50%',
+          top: '50%',
+          width: '38%',
+          aspectRatio: '1',
+          transform: 'translate(-50%, -50%)',
+          borderRadius: '50%',
+          background: 'conic-gradient(#7c5cff 0 45%, #00d4ff 0 75%, #41ffc9 0 100%)',
+          maskImage: 'radial-gradient(circle, transparent 46%, #000 47%)',
+        }}
+      />
+      {leaders &&
+        [30, 62].map((top, i) => (
+          <i
+            key={top}
+            style={{
+              position: 'absolute',
+              top: `${top}%`,
+              [i === 0 ? 'right' : 'left']: '6%',
+              width: '26%',
+              height: 2,
+              borderRadius: 2,
+              background: 'currentColor',
+              opacity: 0.5,
+            }}
+          />
+        ))}
+    </span>
+  );
+}
+
+/** Muestra literal de lo que va a poner la etiqueta. */
+function ShowPreview({ texto }: { texto: string }) {
+  return (
+    <span
+      aria-hidden
+      style={{
+        display: 'grid',
+        placeContent: 'center',
+        aspectRatio: '16/9',
+        borderRadius: 5,
+        background: 'var(--surface-sunken)',
+        fontSize: '0.6875rem',
+        fontVariantNumeric: 'tabular-nums',
+        color: 'var(--text-secondary)',
+      }}
+    >
+      {texto}
+    </span>
   );
 }

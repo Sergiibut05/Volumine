@@ -116,7 +116,14 @@ mano desde el aviso.
    de Google Cloud; la Redirect URI que pide Google es la de SUPABASE
    (`https://butxsqcragkopzxsrukz.supabase.co/auth/v1/callback`), no la nuestra.
    El magic link ya funciona sin configurar nada.
-2. Tests de regresión visual con Playwright. El andamiaje está.
+2. **Terminar las etiquetas de datos.** Ya existe la capa (el renderer monta el
+   HTML encima del canvas, así que el editor y el embed lo enseñan igual por
+   construcción) y las líneas guía del anillo y la tarta. Falta lo de cada tipo:
+   nombres bajo el eje en barras, valor al final de la barra en la carrera,
+   etiqueta al lado del punto en el globo, y el modo `legend`. El globo pide
+   además marcadores propios al estilo de cobe —pulso, emoji, foto—, que es
+   campo nuevo en `style.globe`.
+3. Tests de regresión visual con Playwright. El andamiaje está.
 3. Póster estático en servidor, para el fallback sin WebGL y las OG images. Es
    lo único de la fase 5 que queda sin empezar.
 4. ~~Deshacer/rehacer.~~ Hecho.
