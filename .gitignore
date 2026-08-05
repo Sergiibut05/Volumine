@@ -55,3 +55,10 @@ probe.tmp.mjs
 public/_shots/
 urls.txt
 scripts/_*.mjs
+
+# Skills instaladas con `npx skills add`.
+# Los archivos reales (.agents/) y el lock SÍ se versionan: son reproducibles.
+# Los enlaces de .claude/skills/ NO: son symlinks con ruta absoluta a esta
+# máquina, y al clonar el repo —o al renombrar la carpeta— apuntan a la nada.
+.claude/skills/supabase
+.claude/skills/supabase-postgres-best-practices
