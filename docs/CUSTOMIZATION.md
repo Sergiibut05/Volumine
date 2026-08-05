@@ -115,6 +115,22 @@ entorno + movimiento, coherentes entre sí.
 - Cada tema entra con captura renderizada de los tres tipos de gráfica, en claro
   y oscuro. Un tema que no se ha mirado no entra.
 
+## Los datos van primero
+
+El panel empieza por los datos y no por el aspecto. Ordenarlo al revés convierte
+la herramienta en un juguete de estilo con unos números de ejemplo pegados.
+
+Reglas que se derivan de cómo llega la gente aquí, con su hoja de cálculo ya
+abierta:
+
+- **Pegar es la vía principal.** Nadie teclea veinte celdas teniendo el Excel al
+  lado. La tabla acepta un pegado completo en cualquier celda.
+- **Se traga el formato de su hoja**, incluido el español con coma decimal y
+  punto de miles. Pedirle a alguien que "limpie los datos antes" es pedirle que
+  se vaya.
+- **Cambiar de tipo no borra sus datos.** Solo se sustituyen los de ejemplo.
+- Lo que el sistema adivina —si hay cabecera— se dice y se puede cambiar.
+
 ## Reglas de la interfaz
 
 - **Vista previa en vivo, siempre.** Cada control se refleja al instante. Es la

@@ -13,6 +13,7 @@ import { computeSectors, globalBevel, OUTER_RADIUS } from '@/renderer/geometry/d
 import { computeBars, barRadii } from '@/renderer/geometry/bar';
 import type { ChartConfig } from '@/lib/config/schema';
 import { Group, Slider, Choices, type Choice } from './controls';
+import { DataEditor } from './DataEditor';
 
 /*
   El editor.
@@ -65,15 +66,31 @@ const BACKGROUNDS = [
  * anillo, tarta y barras conserva sus números, que es lo normal.
  */
 function switchType(config: ChartConfig, type: ChartConfig['type']): Partial<ChartConfig> {
-  const needsCoords = type === 'globe' && !config.data.coords;
-  const needsPeriods = type === 'bar-race' && config.data.series.length < 2;
+  const shape = { style: { ...config.style, innerRadius: type === 'pie' ? 0 : 0.55 } };
+
+  /* Solo se pisan los datos de EJEMPLO. Si el usuario ya ha escrito los suyos,
+     cambiar de tipo no puede borrárselos: perder veinte filas pegadas por
+     tocar un botón es imperdonable, y aquí no hay deshacer todavía. */
+  const pristine = JSON.stringify(config.data) === JSON.stringify(INITIAL.data);
   const sample = CHART_TYPES.find((entry) => entry.id === type)?.sample;
 
-  return {
-    type,
-    data: (needsCoords || needsPeriods) && sample ? sample.data : config.data,
-    style: { ...config.style, innerRadius: type === 'pie' ? 0 : 0.55 },
-  };
+  if (pristine && sample) return { type, data: sample.data, ...shape };
+
+  /* Con datos propios, el globo necesita coordenadas que nadie le ha dado. Se
+     crean vacías para que aparezcan las columnas en la tabla y se vea qué
+     falta, en vez de dejar un planeta pelado sin explicación. */
+  if (type === 'globe' && !config.data.coords) {
+    return {
+      type,
+      data: {
+        ...config.data,
+        coords: config.data.labels.map(() => [0, 0] as [number, number]),
+      },
+      ...shape,
+    };
+  }
+
+  return { type, data: config.data, ...shape };
 }
 
 export default function EditorPage() {
@@ -237,6 +254,13 @@ export default function EditorPage() {
                por aquí" — el fondo lo elige el usuario después. */
             onChange={(id) => setConfig((c) => ({ ...c, theme: id, style: {}, scene: {} }))}
           />
+        </Group>
+
+        {/* Los DATOS van antes que el aspecto. Es lo que la gente viene a meter,
+            y ordenar el panel al revés convierte la herramienta en un juguete de
+            estilo con unos números de ejemplo pegados. */}
+        <Group title="Datos" hint="Pega desde tu hoja">
+          <DataEditor config={config} onChange={(data) => patch({ data })} />
         </Group>
 
         <Group title="Tipo">

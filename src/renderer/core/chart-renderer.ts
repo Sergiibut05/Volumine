@@ -108,6 +108,55 @@ const BAR_CAMERA_MULTI: Record<string, CameraPlacement> = {
 /** Amplitud del vaivén de una gráfica de barras, en grados. Ver el bucle. */
 const BAR_SWAY_DEGREES = 13;
 
+/**
+ * Zona de captura de un marcador del globo, en radios de globo.
+ *
+ * Un marcador pequeño mide cuatro píxeles en pantalla, y pedirle a alguien que
+ * acierte cuatro píxeles con el ratón —sobre una esfera que además gira— es
+ * pedirle que juegue a un juego de puntería. El área sensible es MAYOR que el
+ * punto dibujado: se apunta al sitio, no al píxel.
+ *
+ * Es el mismo criterio que el mínimo de 24 px de zona táctil en una interfaz, y
+ * por eso hay un suelo absoluto además del múltiplo: si solo se multiplicara el
+ * radio, el marcador más pequeño seguiría siendo imposible de coger.
+ */
+const MARKER_HIT_SCALE = 2.4;
+const MARKER_HIT_FLOOR = 0.055;
+
+/** Reutilizados en el raycast, que corre en cada frame. */
+const hitCenter = new Vector3();
+const hitCameraDir = new Vector3();
+
+/**
+ * Hace que un marcador se pueda señalar apuntando a su alrededor.
+ *
+ * Sustituye el raycast de la malla por una prueba de distancia del rayo al
+ * centro, con un radio mayor que el dibujado. Y descarta los marcadores de la
+ * cara de atrás: el rayo atraviesa el globo y sin este filtro se señalarían
+ * ciudades que están literalmente al otro lado del planeta.
+ */
+function makeMarkerEasyToHit(mesh: Mesh, radius: number) {
+  const hitRadius = Math.max(radius * MARKER_HIT_SCALE, MARKER_HIT_FLOOR);
+
+  mesh.raycast = (raycaster, intersects) => {
+    hitCenter.setFromMatrixPosition(mesh.matrixWorld);
+
+    /* ¿Está en la cara que se ve? El centro del globo es el origen del grupo, y
+       la malla está en la superficie: si su dirección desde el centro no apunta
+       hacia la cámara, está detrás del planeta. */
+    hitCameraDir.copy(raycaster.ray.origin).sub(mesh.parent!.position);
+    if (hitCenter.clone().sub(mesh.parent!.position).dot(hitCameraDir) <= 0) return;
+
+    if (raycaster.ray.distanceSqToPoint(hitCenter) > hitRadius * hitRadius) return;
+
+    intersects.push({
+      distance: raycaster.ray.origin.distanceTo(hitCenter),
+      point: hitCenter.clone(),
+      object: mesh,
+    });
+  };
+}
+
 /** Caja que ocupa lo dibujado, centrada en el eje Y. Para encuadrar. */
 type PlotBox = { width: number; height: number; depth: number };
 
@@ -737,6 +786,7 @@ export function createChartRenderer(
         new MeshBasicMaterial({ color }),
       );
       mesh.position.copy(marker.position);
+      makeMarkerEasyToHit(mesh, marker.radius);
       group.add(mesh);
 
       pieces.push({

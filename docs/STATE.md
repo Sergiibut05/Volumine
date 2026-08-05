@@ -40,7 +40,7 @@ verificado con `sandbox` puesto, que es lo que hace Confluence Cloud.
   bien **con la separación a 0**: los extremos son un redondeo convexo de
   verdad, así que dos vecinos pegados dejan un surco limpio.
 - Tabla de datos accesible y `aria-label` generado, siempre en el DOM.
-- **125 tests** unitarios de geometría y de contrato.
+- **145 tests** unitarios de geometría, de contrato y de parseo de datos.
 
 ## Interfaz
 
@@ -63,18 +63,36 @@ verificado con `sandbox` puesto, que es lo que hace Confluence Cloud.
 - Superficie clara en marketing y oscura en el editor, a propósito: el editor es
   un modo de taller y el 3D con IBL se lee mejor sobre oscuro.
 
+## Entrada de datos
+
+**Una sola tabla para todos los tipos**: filas = categorías, columnas = series.
+Y en una CARRERA las columnas son PERIODOS, porque el contrato guarda cada
+instante como una serie. Eso significa que la tabla que la gente ya tiene en su
+Excel —países en las filas, años en las columnas— se pega tal cual y sale una
+carrera: no hay formato nuevo que aprender, solo cambia lo que dice la cabecera.
+
+Pegar es la vía principal, no un extra. `src/lib/data-paste.ts` traga TSV de
+Excel y Sheets, CSV con coma o punto y coma, y sobre todo **números en formato
+español**: "1.234,56" son mil doscientos treinta y cuatro, no uno coma dos. La
+regla es que si aparecen coma y punto, el último de los dos es el decimal — vale
+para el formato español y el inglés sin saber el idioma de quien copió.
+
+La detección de cabecera tiene un segundo criterio además de "no son números":
+una tabla por años lleva cabecera numérica (`2021`, `2022`), que es la forma
+exacta de una carrera. Sigue siendo una conjetura, así que se puede cambiar a
+mano desde el aviso.
+
 ## Qué toca ahora
 
-0. **El editor solo ofrece anillo, tarta y barras.** Los cinco tipos existen en
+1. **Deshacer/rehacer.** Es lo que falta para poder experimentar sin miedo, y
+   es barato porque el config es la única fuente de verdad.
+2. ~~El editor solo ofrece anillo, tarta y barras.~~ Resuelto. Los cinco tipos existen en
    el renderer y en la galería de la landing, pero `/crear` todavía no deja
    elegir carrera ni globo, y el globo además necesita una forma de introducir
    coordenadas. Es lo siguiente y es corto.
-1. **Entrada de datos en el editor.** Hoy los datos están fijos en el código:
-   se puede cambiar todo el aspecto pero no los números. Es el hueco más grande.
-   Tabla editable + pegar desde Excel/Sheets.
-2. **Deshacer/rehacer**, barato porque el config es la única fuente de verdad.
-3. Tests de regresión visual con Playwright. El andamiaje está.
-4. Póster estático en servidor, para el fallback sin WebGL y las OG images.
+3. **Deshacer/rehacer**, barato porque el config es la única fuente de verdad.
+4. Tests de regresión visual con Playwright. El andamiaje está.
+5. Póster estático en servidor, para el fallback sin WebGL y las OG images.
 
 ## Decisiones pendientes de Manuel
 
