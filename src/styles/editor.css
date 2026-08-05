@@ -29,6 +29,9 @@
 
 .canvas-pane {
   position: relative;
+  /* Contenedor de consulta para la cifra del medidor: se dimensiona con el lado
+     MENOR del hueco, que es al que se encaja el anillo. Ver styles/embed.css. */
+  container-type: size;
   min-height: 0;
   background: radial-gradient(90% 70% at 50% 18%, #16161f 0%, var(--surface-base) 68%);
 }
@@ -601,4 +604,83 @@
 .undo button:disabled {
   opacity: 0.28;
   cursor: default;
+}
+
+/*
+  La cifra del medidor, encima de la vista previa.
+
+  Mismas reglas que en el embed (styles/embed.css): centrada en el escenario y
+  no proyectada desde la geometría, porque el anillo está centrado en cámara en
+  todos los encuadres y proyectarla obligaría a repintar el texto cada frame,
+  con el temblor de subpíxel que eso trae.
+*/
+.readout {
+  /*
+  Subida óptica. El anillo se ve inclinado, así que su mitad cercana se dibuja
+  más grande y la silueta baja en pantalla: el centro del agujero queda por
+  encima del centro geométrico al que apunta la cámara. Sin esto la cifra se
+  apoya en el borde de abajo en vez de flotar en el hueco.
+
+  Medido contra el encuadre por defecto (polar 62°). Va en porcentaje y no en
+  píxeles porque el anillo se encaja al hueco: crece con el contenedor, y el
+  desfase crece con él.
+*/
+  transform: translateY(-4%);
+
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 0.15em;
+  text-align: center;
+  line-height: 1;
+  /* Invisible al ratón: si no, se come el hover del trozo de debajo. */
+  pointer-events: none;
+}
+
+.readout b {
+  display: block;
+  /* Misma fórmula que en el embed, para que la vista previa no mienta sobre el
+     tamaño. Ver la nota larga en styles/embed.css. */
+  font-size: min(4rem, calc(46cqmin / var(--chars, 6)));
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  /* Sin tabular, la cifra baila de ancho al teclear y se ve temblar. */
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.readout small {
+  display: block;
+  margin-top: 0.35em;
+  font-size: max(0.62rem, 0.3em);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* Campo numérico suelto, para el tope de la escala. Es un número escrito, no un
+   slider: el tope suele ser una cifra concreta y redonda —100, 60, 5— y buscarla
+   arrastrando sería absurdo. */
+.control .numeric {
+  width: 100%;
+  padding: var(--p-space-2) var(--p-space-3);
+  border: 1px solid var(--edge-subtle);
+  border-radius: var(--p-radius-2);
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.control .numeric:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Aviso dentro de la cabecera de un control. Ámbar y no rojo: el dato no está
+   mal, solo se sale de la escala que se ha puesto, y quien lo lea tiene que
+   entender que puede subir el tope, no que ha roto algo. */
+.control header output.warn {
+  color: var(--p-amber-400, #ffd166);
+  font-weight: 500;
 }

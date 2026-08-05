@@ -305,3 +305,82 @@ describe('overrides por query', () => {
     expect(next.scene?.background?.kind).toBeUndefined();
   });
 });
+
+/*
+  El medidor se parece al anillo en casi todo, y por eso lo que hay que probar
+  es justo donde NO se parece. Si alguna de estas se rompe, un medidor se
+  comporta como un anillo y deja de medir nada.
+*/
+describe('medidor', () => {
+  const gauge = (
+    values: number[],
+    style?: NonNullable<ChartConfig['style']>['gauge'],
+  ): ChartConfig => ({
+    v: 1,
+    type: 'gauge',
+    data: { labels: values.map((_, i) => `Fila ${i + 1}`), series: [{ values }] },
+    ...(style ? { style: { gauge: style } } : {}),
+  });
+
+  it('un config mínimo vale, y el tope por defecto es 100', () => {
+    const result = parseConfig(gauge([62]));
+    expect(result.ok).toBe(true);
+    expect(result.config!.style.gauge.max).toBe(100);
+    expect(result.config!.style.gauge.sweep).toBe(defaults.style.gauge.sweep);
+  });
+
+  /* LA diferencia con el anillo. Un anillo a cero no tiene nada que repartir y
+     es un error; un medidor a cero vale «0 de 100», que es una lectura buena y
+     frecuente —el primer día de una campaña—. Tratarlo como error dejaría el
+     hueco en blanco justo cuando el dato es correcto. */
+  it('todo a cero es válido, al revés que en un anillo', () => {
+    expect(parseConfig(gauge([0])).ok).toBe(true);
+    expect(parseConfig({ ...gauge([0]), type: 'donut' }).ok).toBe(false);
+  });
+
+  it('un tope que no sube se avisa y se cae al de por defecto', () => {
+    const result = parseConfig(gauge([50], { max: 0 }));
+    expect(result.ok).toBe(true);
+    expect(result.config!.style.gauge.max).toBe(100);
+    expect(result.issues.some((i) => i.path === 'style.gauge.max')).toBe(true);
+  });
+
+  it('un negativo se ignora y se dice', () => {
+    const result = parseConfig(gauge([-10, 40]));
+    expect(result.ok).toBe(true);
+    expect(result.config!.data.series[0].values).toEqual([0, 40]);
+    expect(result.issues.some((i) => i.level === 'warning')).toBe(true);
+  });
+
+  it('solo lee la primera serie: las demás sobran y se recortan', () => {
+    const result = parseConfig({
+      v: 1,
+      type: 'gauge',
+      data: {
+        labels: ['A'],
+        series: [{ values: [30] }, { values: [90] }],
+      },
+    });
+    expect(result.ok).toBe(true);
+    expect(result.config!.data.series[0].values).toEqual([30]);
+  });
+
+  it('los ajustes del medidor no se pisan entre ellos al resolverse', () => {
+    const result = parseConfig(gauge([50], { sweep: 180 }));
+    expect(result.config!.style.gauge.sweep).toBe(180);
+    expect(result.config!.style.gauge.max).toBe(100);
+    expect(result.config!.style.gauge.track).toBe(true);
+  });
+
+  /* El contrato es aditivo dentro de v1: un link publicado antes de que el
+     medidor existiera no lleva `style.gauge` y tiene que seguir funcionando. */
+  it('un config sin `style.gauge` sigue valiendo', () => {
+    const result = parseConfig({
+      v: 1,
+      type: 'donut',
+      data: { labels: ['A', 'B'], series: [{ values: [1, 2] }] },
+    });
+    expect(result.ok).toBe(true);
+    expect(result.config!.style.gauge.max).toBe(100);
+  });
+});

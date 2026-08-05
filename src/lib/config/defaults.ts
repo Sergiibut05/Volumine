@@ -32,7 +32,7 @@ export type ResolvedChartConfig = {
       as: 'value' | 'percent';
     };
   };
-  style: Omit<Required<NonNullable<ChartConfig['style']>>, 'globe'> & {
+  style: Omit<Required<NonNullable<ChartConfig['style']>>, 'globe' | 'gauge'> & {
     globe: {
       base: string;
       land: string;
@@ -40,6 +40,12 @@ export type ResolvedChartConfig = {
       density: number;
       dotSize: number;
       markerSize: number;
+    };
+    gauge: {
+      max: number;
+      sweep: number;
+      track: boolean;
+      trackColor: string;
     };
   };
   scene: {
@@ -88,6 +94,17 @@ export const defaults = {
       density: 0.72,
       dotSize: 0.7,
       markerSize: 0.62,
+    },
+    gauge: {
+      /* 100 porque el caso abrumadoramente mayoritario es un porcentaje, y así
+         quien escriba «94» y no toque nada ve lo que esperaba ver. */
+      max: 100,
+      /* 270°: deja el hueco abajo, que es donde el ojo espera la base de un
+         indicador. Un anillo completo no tiene principio ni fin visibles y se
+         lee como un donut de un solo trozo, no como «cuánto llevo». */
+      sweep: 270,
+      track: true,
+      trackColor: 'auto',
     },
   },
   scene: {
@@ -185,6 +202,7 @@ export function resolveConfig(config: ChartConfig): ResolvedChartConfig {
       ...d.style,
       ...config.style,
       globe: { ...d.style.globe, ...config.style?.globe },
+      gauge: { ...d.style.gauge, ...config.style?.gauge },
     },
     scene: {
       ...d.scene,

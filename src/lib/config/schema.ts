@@ -95,6 +95,27 @@ export const styleSchema = z.object({
       markerSize: unit.optional(),
     })
     .optional(),
+  /**
+   * Ajustes propios del medidor. Nadie más los mira.
+   *
+   * `max` es el único campo del esquema que cambia lo que un número SIGNIFICA,
+   * no cómo se ve: «48» no dice nada hasta saber si es sobre 60 o sobre 1000.
+   * Aun así vive en `style` y no en `data` para que la tabla de datos siga
+   * siendo la misma para todos los tipos — es una escala, como un eje, no un
+   * dato más.
+   */
+  gauge: z
+    .object({
+      /** Tope de la escala. El arco se llena al llegar aquí. */
+      max: z.number().finite().optional(),
+      /** Cuántos grados abarca el arco, centrado abajo. 360 = anillo entero. */
+      sweep: z.number().min(30).max(360).optional(),
+      /** Pintar el resto de la escala sin llenar. */
+      track: z.boolean().optional(),
+      /** Color de ese resto. `auto` = el de fondo, apagado. */
+      trackColor: z.union([hexColor, z.literal('auto')]).optional(),
+    })
+    .optional(),
 });
 
 // ── scene ───────────────────────────────────────────────────────────────────
@@ -194,7 +215,7 @@ export const layoutSchema = z.object({
 
 export const chartConfigSchema = z.object({
   v: z.literal(CURRENT_VERSION),
-  type: z.enum(['donut', 'pie', 'bar', 'bar-race', 'globe']),
+  type: z.enum(['donut', 'pie', 'bar', 'bar-race', 'globe', 'gauge']),
   title: z.string().max(200).optional(),
   data: dataSchema,
   theme: z.string().max(48).optional(),

@@ -45,9 +45,31 @@ function sanitize(input: unknown, issues: ConfigIssue[]): unknown {
   const raw = { ...input };
   const type = raw.type;
   const isRadial = type === 'donut' || type === 'pie';
+  const isGauge = type === 'gauge';
+  /* El medidor se parece al anillo en casi todo —reparte un arco, mira solo la
+     primera serie, no sabe qué hacer con un negativo— salvo en una cosa, y es
+     importante: para él el cero SÍ es un valor. Ver más abajo. */
+  const radialish = isRadial || isGauge;
 
   if (!isObject(raw.data)) return raw;
   const data = { ...raw.data };
+
+  /* Una escala que no sube no es una escala. Se avisa y se cae al default en
+     vez de dar error: es mejor enseñar el medidor sobre 100 que dejar un hueco
+     en blanco en la página de alguien. */
+  if (isGauge && isObject(raw.style) && isObject(raw.style.gauge)) {
+    const gauge = { ...raw.style.gauge };
+    const max = gauge.max;
+    if (typeof max === 'number' && (!Number.isFinite(max) || max <= 0)) {
+      issues.push({
+        level: 'warning',
+        path: 'style.gauge.max',
+        message: `el tope de la escala (${max}) tiene que ser mayor que 0; se usa 100`,
+      });
+      delete gauge.max;
+      raw.style = { ...raw.style, gauge };
+    }
+  }
 
   // Series y valores
   if (Array.isArray(data.series)) {
@@ -70,9 +92,9 @@ function sanitize(input: unknown, issues: ConfigIssue[]): unknown {
         return n;
       });
 
-      // Negativos: en donut/pie no tienen representación posible. Se ignoran,
-      // pero se dice — nunca en silencio (docs/chart-config-schema.md).
-      if (isRadial) {
+      // Negativos: en donut/pie/medidor no tienen representación posible. Se
+      // ignoran, pero se dice — nunca en silencio (docs/chart-config-schema.md).
+      if (radialish) {
         values = values.map((v, vi) => {
           if ((v as number) < 0) {
             issues.push({
@@ -96,7 +118,7 @@ function sanitize(input: unknown, issues: ConfigIssue[]): unknown {
       .map((s) => (Array.isArray(s?.values) ? s.values.length : 0))
       .filter((n) => n > 0);
 
-    if (seriesLengths.length > 0 && isRadial) {
+    if (seriesLengths.length > 0 && radialish) {
       // Al mínimo común: el anillo solo usa una serie y no hay hueco que dibujar.
       const n = Math.min(data.labels.length, ...seriesLengths);
       const mismatched = data.labels.length !== n || seriesLengths.some((len) => len !== n);
@@ -135,8 +157,15 @@ function sanitize(input: unknown, issues: ConfigIssue[]): unknown {
     }
   }
 
-  // Todo a cero: no hay reparto ni escala que dibujar.
-  if (Array.isArray(data.series)) {
+  /* Todo a cero: no hay reparto ni escala que dibujar.
+
+     El medidor queda fuera, y esta es la diferencia que lo separa del anillo.
+     Un anillo con todo a cero no tiene NADA que repartir, así que es un error.
+     Un medidor con todo a cero vale «0 de 100», que es una lectura perfectamente
+     buena y encima frecuente: el primer día de una campaña, un contador recién
+     puesto a cero. Tratarlo como error dejaría el hueco en blanco justo cuando
+     el dato es correcto. */
+  if (Array.isArray(data.series) && !isGauge) {
     const series = data.series as { values?: number[] }[];
     // El anillo solo mira la primera serie; las barras, todas.
     const relevant = isRadial ? series.slice(0, 1) : series;

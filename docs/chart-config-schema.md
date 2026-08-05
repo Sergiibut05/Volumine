@@ -24,7 +24,7 @@ a mano. **Un link publicado debe seguir funcionando para siempre.**
 ```jsonc
 {
   "v": 1,
-  "type": "donut",           // donut | pie | bar | bar-race | globe   (v1)
+  "type": "donut",           // donut | pie | bar | bar-race | globe | gauge  (v1)
   "title": "Reparto de ingresos",   // opcional
   "data": { ... },
   "theme": "aurora",         // preset; lo de abajo lo sobreescribe punto a punto
@@ -59,7 +59,7 @@ a mano. **Un link publicado debe seguir funcionando para siempre.**
 }
 ```
 
-- `donut`/`pie`/`globe` usan **solo `series[0]`**. `bar` admite N series (eje Z).
+- `donut`/`pie`/`globe`/`gauge` usan **solo `series[0]`**. `bar` admite N series (eje Z).
 - **`bar-race` lee las series como PERIODOS**, no como filas: cada serie es un
   instante y su `name` es la etiqueta que se muestra ("2021", "Ene"). Es la
   misma forma leída en otro eje, y por eso el tiempo no obligó a subir de
@@ -68,8 +68,16 @@ a mano. **Un link publicado debe seguir funcionando para siempre.**
   con `labels`. Una etiqueta sin coordenada no se dibuja: poner un dato en el
   sitio equivocado de un mapa es peor que no ponerlo.
 - `colors` es un override puntual por segmento; `null` = usar la paleta.
-- Los valores negativos se ignoran en `donut`/`pie` (documentado, no silencioso:
-  se reporta por `postMessage`).
+- **`gauge` lee `series[0]` como TRAMOS DE UN MISMO ARCO**, no como categorías
+  que se reparten un total: cada valor ocupa su parte de la escala `0..max` y lo
+  que sobra queda sin llenar. Con un solo valor es un progreso simple; con
+  varios, un progreso con desglose.
+- Los valores negativos se ignoran en `donut`/`pie`/`gauge` (documentado, no
+  silencioso: se reporta por `postMessage`).
+- **Todo a cero es un ERROR en `donut`/`pie` y un valor VÁLIDO en `gauge`.** Un
+  anillo sin nada que repartir no se puede dibujar; un medidor a cero vale «0 de
+  100», que es una lectura buena y frecuente. Es la diferencia de fondo entre los
+  dos: el total del anillo lo pone la suma, y el del medidor lo pone `max`.
 
 ### `style` — la piel
 
@@ -96,8 +104,30 @@ a mano. **Un link publicado debe seguir funcionando para siempre.**
     "dotSize": 0.7,
     "markerSize": 0.62,
   },
+  // Solo `gauge`. Agrupado por lo mismo que `globe`.
+  "gauge": {
+    "max": 100,          // tope de la escala. El arco se llena al llegar aquí
+    "sweep": 270,        // grados que abarca el arco, centrado abajo. 360 = anillo
+    "track": true,       // pintar lo que falta para llegar al tope
+    "trackColor": "auto" // "auto" = derivado del fondo
+  },
 }
 ```
+
+Sobre `gauge.max`: es el único campo de `style` que cambia lo que un número
+SIGNIFICA y no solo cómo se ve — «48» no dice nada hasta saber si es sobre 60 o
+sobre 1000. Vive aquí de todas formas para que la tabla de datos siga siendo la
+misma para todos los tipos: es una escala, como un eje, no un dato más. Si el
+tope no es mayor que 0 se avisa y se cae a 100, en vez de dejar el hueco en
+blanco en la página de alguien.
+
+El arco se **llena en sentido horario desde abajo a la izquierda**, y el hueco
+queda centrado abajo. Esa esquina vacía es la que dice dónde está el cero: por
+eso un medidor no gira nunca, aunque `motion.autoRotate` esté puesto.
+
+Si la suma se pasa de `max`, el arco se reparte entero en proporción —no se
+desborda ni se recorta el último tramo— y se avisa. La cifra del centro sigue
+siendo la de verdad.
 
 ### `scene` — el entorno
 

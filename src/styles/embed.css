@@ -106,8 +106,91 @@ canvas {
   display: none;
 }
 
+/*
+  La cifra del centro de un medidor.
+
+  El agujero del anillo no está para dejarlo vacío: en un medidor la cifra ES el
+  dato y el arco es el contexto, no al revés. Sin ella hay que estimar a ojo un
+  porcentaje sobre un arco en perspectiva, que es exactamente lo que nadie sabe
+  hacer.
+
+  Va centrada en el escenario y no proyectada desde la geometría: el anillo está
+  centrado en cámara en todos los encuadres, y calcular la proyección obligaría a
+  pintarla en cada frame, con el temblor de subpíxel que eso trae al texto.
+*/
+.readout {
+  /*
+    Blanco por defecto porque el escenario de referencia es oscuro. Cuando el
+    embed lleva fondo propio, el servidor lo sobreescribe inline con el tono que
+    de verdad hay detrás (ver readoutHtml en embed/html.ts); cuando es
+    transparente no hay forma de saberlo aquí, y la única pista disponible es la
+    preferencia del navegador, más abajo.
+  */
+  --readout: 255 255 255;
+  /*
+  Subida óptica. El anillo se ve inclinado, así que su mitad cercana se dibuja
+  más grande y la silueta baja en pantalla: el centro del agujero queda por
+  encima del centro geométrico al que apunta la cámara. Sin esto la cifra se
+  apoya en el borde de abajo en vez de flotar en el hueco.
+
+  Medido contra el encuadre por defecto (polar 62°). Va en porcentaje y no en
+  píxeles porque el anillo se encaja al hueco: crece con el contenedor, y el
+  desfase crece con él.
+*/
+  transform: translateY(-4%);
+
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 0.15em;
+  text-align: center;
+  line-height: 1;
+  /* Encima del canvas, pero invisible al ratón: si no, se comería el hover del
+     trozo que hay justo debajo. */
+  pointer-events: none;
+}
+
+.readout b {
+  display: block;
+  /*
+    La cifra se encoge con lo LARGA que sea, no solo con el hueco.
+
+    El agujero mide más o menos la mitad del lado menor, y ahí caben unos seis
+    caracteres a cuerpo cómodo. «68%» puede ir grande; «48.600 €» a ese mismo
+    cuerpo se sale por los dos lados y se lee encima del arco. El número de
+    caracteres lo pone quien genera el HTML en `--chars`, porque CSS no sabe
+    contar. El tope en `rem` evita que en un embed enorme la cifra crezca hasta
+    parecer un cartel.
+  */
+  font-size: min(4rem, calc(46cqmin / var(--chars, 6)));
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  /* Tabular: sin esto la cifra baila de ancho al cambiar de dígito, y en el
+     editor se ve temblar mientras se escribe. */
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--readout) / 0.96);
+}
+
+.readout small {
+  display: block;
+  /* En `em` de la cifra: si la cifra encoge por larga, esto encoge con ella. */
+  font-size: max(0.62rem, 0.3em);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: rgb(var(--readout) / 0.5);
+}
+
 .stage {
-  container-type: inline-size;
+  /*
+    `size` y no `inline-size`: hace falta el ALTO además del ancho. El anillo se
+    encaja al lado menor del hueco, así que en un embed apaisado —que es el caso
+    normal, 16:9— lo que manda es el alto. Dimensionar la cifra con `cqw` la
+    hacía enorme sobre un anillo pequeño y el número se salía por encima del
+    propio arco. El escenario tiene alto propio (100%), que es lo que `size`
+    necesita para no colapsar.
+  */
+  container-type: size;
 }
 
 .tooltip b {
@@ -163,5 +246,20 @@ canvas {
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/*
+  Embed transparente sobre una página clara.
+
+  El servidor no puede saber de qué color es la página de otra persona, así que
+  con fondo transparente no fija ningún tono y decide esto. Sin esta regla la
+  cifra salía blanca sobre blanco —invisible— que es justo el caso más común de
+  un embed transparente. Cuando el embed SÍ trae fondo propio, el estilo inline
+  del servidor gana a esto, que es lo correcto: ahí sí se sabe qué hay detrás.
+*/
+@media (prefers-color-scheme: light) {
+  .readout {
+    --readout: 17 17 24;
   }
 }

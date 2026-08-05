@@ -1,4 +1,5 @@
 import type { ResolvedChartConfig } from '@/lib/config/defaults';
+import { gaugeReadout } from '@/lib/gauge';
 
 /*
   Generación del HTML de /embed, a mano y sin React.
@@ -68,7 +69,13 @@ export function dataTableHtml(config: ResolvedChartConfig): string {
   }
 
   const values = config.data.series[0].values;
-  const total = values.reduce((sum, v) => sum + (v > 0 ? v : 0), 0);
+  /* En un medidor el porcentaje es contra el TOPE, no contra la suma. Con la
+     suma, un medidor de un solo valor diría siempre «100%» — que es justo lo
+     contrario de lo que enseña la pantalla cuando va por la mitad. */
+  const total =
+    config.type === 'gauge'
+      ? config.style.gauge.max
+      : values.reduce((sum, v) => sum + (v > 0 ? v : 0), 0);
 
   const rows = config.data.labels
     .map((label, i) => {
@@ -89,6 +96,7 @@ const KIND: Record<ResolvedChartConfig['type'], string> = {
   bar: 'Gráfica de barras',
   'bar-race': 'Gráfica de barras animadas',
   globe: 'Globo con datos por país',
+  gauge: 'Medidor',
 };
 
 /** Resumen para el `aria-label`, generado desde los datos. */
@@ -112,6 +120,44 @@ export function describeChart(config: ResolvedChartConfig): string {
       .map((entry, position) => `${position + 1}. ${entry.label} ${format(entry.value)}`);
 
     return `${kind}${title}. Clasificación${period}: ${ranking.join(', ')}`;
+  }
+
+  /* Un medidor se lee como lo que es: una cifra sobre un tope. Decir «Ventas
+     100%» —que es lo que saldría por el camino del anillo con un solo valor—
+     sería lo contrario de lo que enseña la pantalla cuando va por la mitad. */
+  if (config.type === 'gauge') {
+    const format = formatter(config);
+    const max = config.style.gauge.max;
+    const values = config.data.series[0].values;
+    const total = values.reduce((sum, v) => sum + (v > 0 ? v : 0), 0);
+
+    /* «68% de 100% (68%)» no lo diría nadie. Con unidad de porcentaje sobre 100
+       la cifra ya es el porcentaje, así que ni se repite ni se dice el tope: es
+       la misma regla que sigue la cifra del centro (lib/gauge.ts). */
+    const asPercent = config.data.format.unit === '%' && max === 100;
+    if (asPercent) {
+      const parts =
+        values.length > 1
+          ? `. Por partes: ${config.data.labels
+              .map((label, i) => `${label} ${format(values[i] ?? 0)}`)
+              .join(', ')}`
+          : '';
+      // `format` ya pone la unidad: añadir el % aquí lo escribiría dos veces.
+      return `${kind}${title}: ${format(total)}${parts}`;
+    }
+
+    const percent = max > 0 ? ` (${((total / max) * 100).toFixed(0)}%)` : '';
+
+    /* Con varios tramos se dice también el desglose: la pantalla los distingue
+       por color y quien no la ve se quedaría solo con la suma. */
+    const parts =
+      values.length > 1
+        ? `. Por partes: ${config.data.labels
+            .map((label, i) => `${label} ${format(values[i] ?? 0)}`)
+            .join(', ')}`
+        : '';
+
+    return `${kind}${title}: ${format(total)} de ${format(max)}${percent}${parts}`;
   }
 
   if (config.type === 'bar') {
@@ -144,6 +190,63 @@ export function describeChart(config: ResolvedChartConfig): string {
   return `${kind}${title}: ${parts.join(', ')}`;
 }
 
+/**
+ * ¿El fondo del embed es claro u oscuro? `null` si es transparente.
+ *
+ * Transparente significa que detrás está la página de otra persona y que aquí no
+ * se puede saber de qué color es. Devolver `null` y no adivinar es lo correcto:
+ * quien reciba esto decide con la información que tenga.
+ */
+function backgroundTone(config: ResolvedChartConfig): 'light' | 'dark' | null {
+  if (config.scene.background.kind === 'transparent') return null;
+
+  const hex = config.scene.background.from.replace('#', '');
+  const full =
+    hex.length === 3
+      ? hex
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : hex;
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16) / 255);
+  // Luminancia relativa, con los pesos de siempre. Sin corrección de gamma:
+  // solo hay que decidir claro/oscuro, no medir contraste.
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.45 ? 'light' : 'dark';
+}
+
+/**
+ * La cifra del centro de un medidor, escrita ya en el HTML del servidor.
+ *
+ * No espera a WebGL: está en el primer byte, no parpadea al montar el canvas y
+ * sigue ahí si el canvas nunca llega a montarse. `aria-hidden` porque el
+ * `aria-label` de la escena ya dice la misma cifra, y repetirla haría que un
+ * lector de pantalla la leyera dos veces seguidas.
+ */
+function readoutHtml(config: ResolvedChartConfig): string {
+  if (config.type !== 'gauge') return '';
+  const { value, scale } = gaugeReadout(config);
+  const sub = scale ? `<small>${escapeHtml(scale)}</small>` : '';
+
+  /*
+    El color de la cifra sale del FONDO, no de una constante.
+
+    Con fondo propio se sabe exactamente qué hay detrás y se decide aquí. Con
+    fondo transparente no se sabe —detrás está la página de otra persona— y
+    entonces decide el CSS con `prefers-color-scheme`, que es la única pista
+    disponible. Un blanco fijo dejaba la cifra invisible sobre una página clara,
+    que es justo el caso más común de un embed transparente.
+  */
+  const tone = backgroundTone(config);
+  const fg =
+    tone === null ? '' : tone === 'light' ? '--readout: 0 0 0' : '--readout: 255 255 255';
+  /* CSS no sabe contar caracteres, y el cuerpo de la cifra depende de lo larga
+     que sea: «68%» cabe holgada en el agujero y «1.284.500 €» no. Ver .readout
+     en styles/embed.css. */
+  return `<div class="readout" aria-hidden="true" style="--chars:${value.length};${fg}"><b>${escapeHtml(
+    value,
+  )}</b>${sub}</div>`;
+}
+
 export function embedHtml({
   config,
   css,
@@ -172,6 +275,7 @@ ${dataTableHtml(config)}
 <canvas id="voluma-canvas"></canvas>
 <div id="voluma-tooltip" class="tooltip" hidden></div>
 <div id="voluma-period" class="period" aria-hidden="true" hidden></div>
+${readoutHtml(config)}
 ${watermark}
 </div>
 <script type="application/json" id="voluma-config">${escapeJson(config)}</script>

@@ -11,9 +11,12 @@ import { buildEmbedUrl, MAX_URL_LENGTH } from '@/lib/config/url';
 import { THEMES } from '@/lib/themes';
 import { CHART_TYPES } from '@/lib/chart-types';
 import { computeSectors, globalBevel, OUTER_RADIUS } from '@/renderer/geometry/donut';
+import { computeGauge } from '@/renderer/geometry/gauge';
+import { gaugeReadout } from '@/lib/gauge';
 import { computeBars, barRadii } from '@/renderer/geometry/bar';
 import { DEFAULT_FRAME_MS } from '@/renderer/geometry/bar-race';
 import type { ChartConfig } from '@/lib/config/schema';
+import type { ResolvedChartConfig } from '@/lib/config/defaults';
 import { Group, Slider, Choices, type Choice } from './controls';
 import { DataEditor } from './DataEditor';
 
@@ -57,7 +60,12 @@ const BACKGROUNDS = [
 ] as const;
 
 /** Tipos que solo leen `series[0]`: un total repartido, no varias magnitudes. */
-const SINGLE_SERIES: ReadonlySet<ChartConfig['type']> = new Set(['donut', 'pie', 'globe']);
+const SINGLE_SERIES: ReadonlySet<ChartConfig['type']> = new Set([
+  'donut',
+  'pie',
+  'globe',
+  'gauge',
+]);
 
 /**
  * Qué cambia al elegir otro tipo.
@@ -74,7 +82,10 @@ const SINGLE_SERIES: ReadonlySet<ChartConfig['type']> = new Set(['donut', 'pie',
  *   vez de dejar un planeta pelado sin explicación.
  */
 function switchType(config: ChartConfig, type: ChartConfig['type']): Partial<ChartConfig> {
-  const shape = { style: { ...config.style, innerRadius: type === 'pie' ? 0 : 0.55 } };
+  /* El medidor abre más el agujero: la cifra va dentro, y con 0,55 el número
+     grande se sale del hueco y se lee encima del propio arco. */
+  const hole = type === 'pie' ? 0 : type === 'gauge' ? 0.68 : 0.55;
+  const shape = { style: { ...config.style, innerRadius: hole } };
 
   /* Un anillo, una tarta y un globo solo dibujan la PRIMERA serie. Arrastrar
      los periodos de una carrera hasta ahí deja columnas que no pintan nada en
@@ -137,6 +148,8 @@ export default function EditorPage() {
   const isBar = config.type === 'bar';
   const isGlobe = config.type === 'globe';
   const isRace = config.type === 'bar-race';
+  const isGauge = config.type === 'gauge';
+  const gaugeReading = parsed.ok && isGauge ? gaugeReadout(parsed.config) : null;
 
   const bevelCeiling = useMemo(() => {
     if (!parsed.ok) return 0;
@@ -151,7 +164,22 @@ export default function EditorPage() {
       return barRadii(layout.totalHeight, layout, { bevel: 1, cornerRadius: 0 }).radius;
     }
 
-    const sectors = computeSectors(c.data.series[0]?.values ?? [], c.style.gap);
+    /* El medidor reparte el arco de otra manera, así que su techo de canto es
+       otro: calcularlo con el del anillo dejaría el slider mintiendo justo en el
+       tramo alto, que es donde importa. */
+    const values = c.data.series[0]?.values ?? [];
+    const sectors =
+      c.type === 'gauge'
+        ? (() => {
+            const layout = computeGauge(values, {
+              max: c.style.gauge.max,
+              sweepDegrees: c.style.gauge.sweep,
+              gapTurns: c.style.gap,
+            });
+            return layout.track ? [...layout.sectors, layout.track] : layout.sectors;
+          })()
+        : computeSectors(values, c.style.gap);
+
     return globalBevel(
       sectors,
       {
@@ -170,6 +198,13 @@ export default function EditorPage() {
 
   /* Los ajustes del globo van anidados, así que hay que fusionar a dos niveles
      o cada cambio borraría los otros dos colores. */
+  type GaugeStyle = NonNullable<NonNullable<ChartConfig['style']>['gauge']>;
+  const patchGauge = (next: Partial<GaugeStyle>) =>
+    setConfig((c) => ({
+      ...c,
+      style: { ...c.style, gauge: { ...c.style?.gauge, ...next } },
+    }));
+
   type GlobeStyle = NonNullable<NonNullable<ChartConfig['style']>['globe']>;
   const patchGlobe = (next: Partial<GlobeStyle>) =>
     setConfig((c) => ({
@@ -223,6 +258,11 @@ export default function EditorPage() {
     <div className="editor" data-theme="dark">
       <div className="canvas-pane">
         {parsed.ok && <ChartCanvas config={parsed.config} />}
+
+        {/* La MISMA función que escribe la cifra en el HTML del embed
+            (lib/gauge.ts). Es lo que garantiza que lo que se ve aquí es lo que
+            va a ver quien abra el link, hasta el separador de miles. */}
+        {parsed.ok && parsed.config.type === 'gauge' && <Readout config={parsed.config} />}
 
         {url && (
           <div className="sharebar">
@@ -416,6 +456,62 @@ export default function EditorPage() {
           </Group>
         )}
 
+        {/* El tope va lo primero de todo: sin él la cifra no significa nada, y
+            es lo único de esta pantalla que cambia lo que el dato QUIERE DECIR
+            en vez de cómo se ve. */}
+        {isGauge && (
+          <Group title="Escala" hint="Sobre qué se mide">
+            <label className="control">
+              <header>
+                <span>Tope de la escala</span>
+                {/* Solo se dice algo cuando hay algo que decir. Pasarse del tope
+                    llena el arco entero, así que sin este aviso la gráfica se ve
+                    igual de llena con 100 que con 240 y no se entiende por qué. */}
+                {gaugeReading?.overflow && (
+                  <output className="warn">Los datos se pasan del tope</output>
+                )}
+              </header>
+              <input
+                className="numeric"
+                inputMode="decimal"
+                value={config.style?.gauge?.max ?? 100}
+                onChange={(e) => {
+                  const max = Number(e.target.value.replace(',', '.'));
+                  if (Number.isFinite(max)) patchGauge({ max });
+                }}
+              />
+            </label>
+            <Slider
+              label="Apertura del arco"
+              value={config.style?.gauge?.sweep ?? 270}
+              min={120}
+              max={360}
+              step={5}
+              format={(v) => (v === 360 ? 'Anillo completo' : `${v}°`)}
+              onChange={(sweep) => patchGauge({ sweep })}
+            />
+            <Choices
+              label="Resto de la escala"
+              value={config.style?.gauge?.track === false ? 'off' : 'on'}
+              onChange={(v) => patchGauge({ track: v === 'on' })}
+              options={[
+                {
+                  id: 'on',
+                  label: 'A la vista',
+                  hint: 'Se ve cuánto falta.',
+                  preview: <TrackPreview track />,
+                },
+                {
+                  id: 'off',
+                  label: 'Oculto',
+                  hint: 'Solo el trozo lleno.',
+                  preview: <TrackPreview track={false} />,
+                },
+              ]}
+            />
+          </Group>
+        )}
+
         {/* Cada tipo enseña SOLO sus campos. Un slider que no hace nada es peor
             que uno que falta: te hace dudar de si la gráfica está rota. */}
         {!isGlobe && (
@@ -552,20 +648,26 @@ export default function EditorPage() {
               }
             />
           )}
-          <Slider
-            label={isRace || isBar ? 'Vaivén' : 'Velocidad de giro'}
-            value={config.motion?.speed ?? 0.9}
-            min={0}
-            max={4}
-            step={0.1}
-            format={(v) => (v === 0 ? 'Parado' : `${v.toFixed(1)} vueltas/min`)}
-            onChange={(v) =>
-              setConfig((c) => ({
-                ...c,
-                motion: { ...c.motion, speed: v, autoRotate: v > 0 },
-              }))
-            }
-          />
+          {/* Un medidor no gira: el hueco de abajo es el cero de la escala y
+              moverlo borra por dónde empieza a contarse (ver el bucle en
+              renderer/core/chart-renderer.ts). Un slider que no hace nada es
+              peor que uno que falta, así que aquí directamente no está. */}
+          {!isGauge && (
+            <Slider
+              label={isRace || isBar ? 'Vaivén' : 'Velocidad de giro'}
+              value={config.motion?.speed ?? 0.9}
+              min={0}
+              max={4}
+              step={0.1}
+              format={(v) => (v === 0 ? 'Parado' : `${v.toFixed(1)} vueltas/min`)}
+              onChange={(v) =>
+                setConfig((c) => ({
+                  ...c,
+                  motion: { ...c.motion, speed: v, autoRotate: v > 0 },
+                }))
+              }
+            />
+          )}
         </Group>
 
         {/* Nivel 3 — avanzado. Cerrado por defecto: quien lo necesita lo abre. */}
@@ -679,6 +781,25 @@ function TypePreview({ id, ready }: { id: string; ready: boolean }) {
     );
   }
 
+  /* El medidor y el anillo son el mismo sólido, así que la miniatura tiene que
+     enseñar lo único que los separa: el hueco abajo y el resto en gris. Sin eso
+     las dos tarjetas se ven iguales y el selector deja de decidir nada. */
+  if (id === 'gauge') {
+    return (
+      <span
+        aria-hidden
+        style={{
+          display: 'block',
+          aspectRatio: '1',
+          borderRadius: '50%',
+          background:
+            'conic-gradient(from 225deg, #7c5cff 0 50%, rgb(255 255 255 / 0.14) 50% 75%, transparent 75%)',
+          maskImage: 'radial-gradient(circle, transparent 52%, #000 53%)',
+        }}
+      />
+    );
+  }
+
   const palette = ['#7c5cff', '#00d4ff', '#41ffc9', '#ffd166'];
 
   /* Un globo con su retícula, no otra fila de barras: si dos tarjetas comparten
@@ -741,5 +862,50 @@ function TypePreview({ id, ready }: { id: string; ready: boolean }) {
         />
       ))}
     </span>
+  );
+}
+
+/**
+ * La cifra del centro del medidor, en la vista previa del editor.
+ *
+ * Sale de `gaugeReadout`, que es exactamente la misma función que escribe esa
+ * cifra en el HTML del embed. No hay dos formateos que puedan discrepar: lo que
+ * se ve aquí es carácter por carácter lo que verá quien abra el link.
+ *
+ * En 3D no se puede pintar —el bundle no lleva fuentes ni cabe en el
+ * presupuesto (ADR 0005)— así que va en HTML encima del canvas, y encima se lee
+ * más nítido y se puede seleccionar.
+ */
+function Readout({ config }: { config: ResolvedChartConfig }) {
+  const { value, scale } = gaugeReadout(config);
+  return (
+    /* `--chars`: CSS no sabe contar, y el cuerpo de la cifra depende de lo larga
+       que sea. Ver .readout en styles/embed.css. */
+    <div
+      className="readout"
+      aria-hidden
+      style={{ '--chars': value.length } as React.CSSProperties}
+    >
+      <b>{value}</b>
+      {scale && <small>{scale}</small>}
+    </div>
+  );
+}
+
+/** Con y sin fondo de escala. La diferencia se ve, no se explica. */
+function TrackPreview({ track }: { track: boolean }) {
+  return (
+    <span
+      aria-hidden
+      style={{
+        display: 'block',
+        aspectRatio: '1',
+        borderRadius: '50%',
+        background: `conic-gradient(from 225deg, #7c5cff 0 34%, ${
+          track ? 'rgb(255 255 255 / 0.16)' : 'transparent'
+        } 34% 75%, transparent 75%)`,
+        maskImage: 'radial-gradient(circle, transparent 52%, #000 53%)',
+      }}
+    />
   );
 }

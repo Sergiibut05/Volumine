@@ -54,6 +54,22 @@ export const CHART_TYPES: ChartTypeEntry[] = [
     },
   },
   {
+    id: 'gauge',
+    name: 'Medidor',
+    answers: '¿Cuánto llevo de lo que me había propuesto?',
+    avoid: 'Para comparar categorías entre sí. Un medidor enseña una sola cifra.',
+    status: 'listo',
+    sample: {
+      v: 1,
+      type: 'gauge',
+      data: {
+        labels: ['Objetivo del trimestre'],
+        series: [{ values: [68] }],
+        format: { unit: '%' },
+      },
+    },
+  },
+  {
     id: 'bar',
     name: 'Barras',
     answers: '¿Cuánto tiene cada categoría, y cuál gana?',

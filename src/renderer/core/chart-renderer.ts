@@ -37,7 +37,9 @@ import {
   sectorDirection,
   sectorGeometry,
   OUTER_RADIUS,
+  type Sector,
 } from '../geometry/donut';
+import { computeGauge } from '../geometry/gauge';
 import {
   barGeometry,
   barRadii,
@@ -280,6 +282,19 @@ function cameraPlacement(config: ResolvedChartConfig): CameraPlacement {
   /* La carrera se encuadra como una fila de barras: es una fila de barras. Pero
      nunca con el preset de varias series, porque sus series son periodos que se
      ven de uno en uno, no filas que compitan por el espacio. */
+  /* El medidor se mira SIEMPRE de frente en azimut. Con los −35° del encuadre
+     normal, el hueco de abajo —que es el cero de la escala— se va a las diez y
+     media en pantalla, y el dibujo deja de decir por dónde empieza a contarse.
+     El anillo puede permitírselo porque le da igual dónde tenga el corte; a este
+     no, porque su corte significa algo. El preset `custom` ya ha salido arriba:
+     ahí manda el azimut que haya pedido quien monta la gráfica. */
+  if (config.type === 'gauge') {
+    return {
+      ...(CAMERA_PRESETS[config.camera.preset] ?? CAMERA_PRESETS.hero),
+      azimuth: 0,
+    };
+  }
+
   const bars =
     config.type === 'bar' || config.type === 'bar-race' ? BAR_CAMERA_PRESETS : null;
   const stacked = config.type === 'bar' && config.data.series.length > 1;
@@ -337,7 +352,17 @@ function buildKey(config: ResolvedChartConfig): string {
   /* `explode` mueve las piezas en el bucle, no cambia su forma: incluirlo
      reconstruiría el globo entero —29.000 muestras— en cada paso del slider. */
   const { explode: _explode, ...style } = config.style;
-  return JSON.stringify([config.type, config.data, style]);
+
+  /* El único material que se elige mirando la ESCENA y no el estilo: el fondo
+     de escala del medidor en modo `auto` se aclara u oscurece según el fondo de
+     la página. Sin esto, cambiar el fondo dejaría el gris del anterior —el
+     mismo fallo silencioso que tuvo el globo, y por eso está anotado aquí. */
+  const sceneTint =
+    config.type === 'gauge' && config.style.gauge.trackColor === 'auto'
+      ? config.scene.background
+      : null;
+
+  return JSON.stringify([config.type, config.data, style, sceneTint]);
 }
 
 export function createChartRenderer(
@@ -473,12 +498,23 @@ export function createChartRenderer(
     info: NonNullable<HoverInfo>,
     base: Vector3,
     direction: Vector3,
+    /**
+     * `color` salta la paleta, y `inert` deja la pieza fuera del ratón. Las dos
+     * son para el fondo de escala del medidor: no es un dato, es el hueco que
+     * falta por llenar, así que ni gasta un color de la paleta ni tiene tooltip.
+     * Sigue en `pieces` para que se libere con todo lo demás.
+     */
+    options: { color?: string; inert?: boolean } = {},
   ) {
-    const material = createMaterial(config, colorForSegment(config, colorIndex));
+    const material = createMaterial(
+      config,
+      options.color ?? colorForSegment(config, colorIndex),
+    );
     const mesh = new Mesh(geometry, material);
     mesh.position.copy(base);
     mesh.castShadow = config.style.shadow;
     mesh.receiveShadow = config.style.shadow;
+    if (options.inert) mesh.raycast = () => {};
 
     group.add(mesh);
     pieces.push({ info, mesh, base, direction, hoverAmount: 0, hoverStyle: 'lift' });
@@ -522,6 +558,90 @@ export function createChartRenderer(
         new Vector3(0, 0, 0),
         sectorDirection(sector),
       );
+    }
+  }
+
+  /*
+    MEDIDOR
+    -------
+    El mismo sólido que el anillo, otro reparto del arco (geometry/gauge.ts). No
+    hay geometría nueva: si mañana mejora el canto redondeado, mejora aquí solo.
+
+    Dos cosas propias. Una, el FONDO DE ESCALA: la parte que falta para llegar al
+    tope, en gris. Sin ella un 30% y un 90% se distinguen, pero no se sabe sobre
+    qué — el hueco vacío es el que dice cuánto cabía. Dos, la CIFRA DEL CENTRO,
+    que la pinta el anfitrión en HTML (ver `onValue`), porque el bundle no lleva
+    fuentes ni puede llevarlas.
+  */
+  function trackColor(): string {
+    if (config.style.gauge.trackColor !== 'auto') return config.style.gauge.trackColor;
+    /*
+      El fondo tiene que verse y no competir. Es un sólido con la misma luz y el
+      mismo canto que el dato, así que en cuanto sube de tono pesa lo mismo que
+      él y el medidor se lee como un anillo de dos trozos: se pierde de un
+      vistazo cuál es la cifra y cuál el hueco.
+
+      Sobre fondo transparente no sabemos qué hay detrás, y un gris medio-oscuro
+      es el único que se sostiene contra blanco y contra negro.
+    */
+    if (transparent()) return '#5c5c6b';
+    const bg = new Color(config.scene.background.from);
+    const light = 0.2126 * bg.r + 0.7152 * bg.g + 0.0722 * bg.b > 0.2;
+    return light ? '#cfcfdb' : '#33333f';
+  }
+
+  function buildGauge() {
+    const { innerRadius, height, gap, bevel, gauge } = config.style;
+    const innerR = innerRadius * OUTER_RADIUS;
+    const values = config.data.series[0]?.values ?? [];
+    const layout = computeGauge(values, {
+      max: gauge.max,
+      sweepDegrees: gauge.sweep,
+      gapTurns: gap,
+    });
+
+    plotBox = { width: OUTER_RADIUS * 2, height, depth: OUTER_RADIUS * 2 };
+
+    const limits = {
+      innerR,
+      outerR: OUTER_RADIUS,
+      depth: height,
+      gapAngle: gap * Math.PI * 2,
+    };
+    /* El fondo entra en el cálculo del canto igual que los demás trozos: si se
+       quedara fuera, con un 3% lleno tendría un canto más grueso que el dato y
+       parecería que el fondo está por encima. */
+    const all = layout.track ? [...layout.sectors, layout.track] : layout.sectors;
+    const bevelAbs = globalBevel(all, limits, bevel);
+
+    const piece = (sector: Sector, options: { color?: string; inert?: boolean } = {}) =>
+      addPiece(
+        sectorGeometry({
+          sector,
+          innerR,
+          outerR: OUTER_RADIUS,
+          depth: height,
+          bevel: bevelAbs,
+          curveSegments: curveSegmentsFor(sector),
+        }),
+        sector.index,
+        {
+          index: sector.index,
+          label: config.data.labels[sector.index] ?? '',
+          value: values[sector.index] ?? 0,
+          /* Contra el TOPE, no contra la suma. En un anillo «32%» quiere decir
+             32% de lo que hay; en un medidor, 32% de lo que cabe. */
+          fraction: gauge.max > 0 ? (values[sector.index] ?? 0) / gauge.max : null,
+          series: null,
+        },
+        new Vector3(0, 0, 0),
+        sectorDirection(sector),
+        options,
+      );
+
+    for (const sector of layout.sectors) piece(sector);
+    if (layout.track && gauge.track) {
+      piece(layout.track, { color: trackColor(), inert: true });
     }
   }
 
@@ -813,6 +933,7 @@ export function createChartRenderer(
     bar: buildBars,
     'bar-race': buildRace,
     globe: buildGlobe,
+    gauge: buildGauge,
   };
 
   function build() {
@@ -1040,7 +1161,16 @@ export function createChartRenderer(
     const delta = lastTime ? Math.min((now - lastTime) / 1000, 0.05) : 0;
     lastTime = now;
 
-    if (motionEnabled() && config.motion.autoRotate) {
+    /*
+      UN MEDIDOR NO GIRA. Ni entero ni con vaivén.
+
+      El hueco de abajo ES el cero de la escala: girar el anillo lo lleva de
+      paseo y el dibujo deja de decir por dónde empieza a contarse. Encima la
+      cifra del centro la pinta el anfitrión en HTML y está quieta, así que un
+      arco moviéndose bajo un número fijo se lee como dos cosas distintas
+      pegadas, no como una.
+    */
+    if (motionEnabled() && config.motion.autoRotate && config.type !== 'gauge') {
       const rate = (config.motion.speed / 60) * Math.PI * 2 * delta;
 
       if (config.type === 'bar' || config.type === 'bar-race') {
