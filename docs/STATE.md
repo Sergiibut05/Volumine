@@ -40,7 +40,7 @@ verificado con `sandbox` puesto, que es lo que hace Confluence Cloud.
   bien **con la separación a 0**: los extremos son un redondeo convexo de
   verdad, así que dos vecinos pegados dejan un surco limpio.
 - Tabla de datos accesible y `aria-label` generado, siempre en el DOM.
-- **145 tests** unitarios de geometría, de contrato y de parseo de datos.
+- **151 tests** unitarios de geometría, de contrato y de parseo de datos.
 
 ## Interfaz
 
@@ -81,6 +81,22 @@ La detección de cabecera tiene un segundo criterio además de "no son números"
 una tabla por años lleva cabecera numérica (`2021`, `2022`), que es la forma
 exacta de una carrera. Sigue siendo una conjetura, así que se puede cambiar a
 mano desde el aviso.
+
+### Detalles del editor que salieron de usarlo
+
+- Los periodos de una carrera se quitan con su aspa, **siempre visible** en la
+  cabecera: quitar un periodo es algo que se busca, y si hay que descubrirlo
+  pasando el ratón, no existe. Las aspas de FILA sí se ocultan, porque con
+  veinte filas serían un muro.
+- La duración de cada periodo se ajusta en segundos, no en milisegundos: nadie
+  piensa una animación en milisegundos.
+- Al pasar a un tipo de una sola serie (anillo, tarta, globo) se **recortan** las
+  demás. En un anillo no se dibujan y solo engordan la URL.
+- En el globo, escribir "Madrid" rellena sus coordenadas (`src/lib/places.ts`,
+  ~95 sitios, insensible a acentos). Es editor-only, así que no gasta
+  presupuesto. Además hay un botón para rellenar todas las reconocidas de golpe.
+- Un marcador del globo **crece** al señalarlo; no se levanta. Levantarlo lo
+  despega del planeta y deja de señalar un sitio, que es lo único que hace.
 
 ## Qué toca ahora
 

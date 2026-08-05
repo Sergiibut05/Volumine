@@ -269,6 +269,8 @@ type Piece = {
   /** Hacia dónde se aparta al realzarla. Nula si el realce es solo vertical. */
   direction: Vector3;
   hoverAmount: number;
+  /** Cómo responde al puntero. Un punto del globo crece; el resto se levanta. */
+  hoverStyle: 'lift' | 'grow';
 };
 
 function cameraPlacement(config: ResolvedChartConfig): CameraPlacement {
@@ -483,7 +485,7 @@ export function createChartRenderer(
     mesh.receiveShadow = config.style.shadow;
 
     group.add(mesh);
-    pieces.push({ info, mesh, base, direction, hoverAmount: 0 });
+    pieces.push({ info, mesh, base, direction, hoverAmount: 0, hoverStyle: 'lift' });
   }
 
   function buildRing() {
@@ -799,10 +801,9 @@ export function createChartRenderer(
         },
         mesh,
         base: marker.position.clone(),
-        /* Al señalarlo se separa de la superficie, no sube: "arriba" en una
-           esfera es distinto en cada punto. */
         direction: marker.normal.clone(),
         hoverAmount: 0,
+        hoverStyle: 'grow',
       });
     }
   }
@@ -1070,6 +1071,21 @@ export function createChartRenderer(
     for (const piece of pieces) {
       const target = piece === hovered && canLift ? 1 : 0;
       piece.hoverAmount += (target - piece.hoverAmount) * smoothing;
+
+      /*
+        Un marcador del globo CRECE, no se levanta.
+
+        Levantarlo lo que se levanta un sector del anillo lo despega del planeta
+        y deja de señalar un sitio, que es lo único que hace. Un punto pequeño
+        además no tiene sitio donde subir: crecer un poco es el gesto que se lee
+        a ese tamaño, y el que usa cualquier mapa de puntos.
+      */
+      if (piece.hoverStyle === 'grow') {
+        piece.mesh.scale.setScalar(1 + piece.hoverAmount * 0.45);
+        tmpVector.copy(piece.direction).multiplyScalar(piece.hoverAmount * 0.008);
+        piece.mesh.position.copy(piece.base).add(tmpVector);
+        continue;
+      }
 
       const push = config.style.explode * 0.35 + piece.hoverAmount * 0.05;
       tmpVector.copy(piece.direction).multiplyScalar(push);

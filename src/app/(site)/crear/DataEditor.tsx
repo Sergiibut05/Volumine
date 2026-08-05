@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { parsePastedTable, looksLikeTable, type ParsedTable } from '@/lib/data-paste';
+import { findPlace, countKnown } from '@/lib/places';
 import type { ChartConfig } from '@/lib/config/schema';
 
 /*
@@ -45,6 +46,7 @@ export function DataEditor({ config, onChange }: Props) {
      así que ofrecerla sería mentir. */
   const multiColumn = config.type === 'bar' || isRace;
   const columnWord = isRace ? 'Periodo' : 'Serie';
+  const known = isGlobe ? countKnown(labels) : 0;
 
   const apply = (next: Partial<ChartConfig['data']>) =>
     onChange({ ...config.data, ...next });
@@ -54,7 +56,40 @@ export function DataEditor({ config, onChange }: Props) {
   const setLabel = (row: number, value: string) => {
     const next = [...labels];
     next[row] = value;
+
+    /* En un globo, escribir "Madrid" rellena sus coordenadas. Nadie que esté
+       montando una gráfica de usuarios por ciudad sabe de memoria que Madrid
+       está en 40,4 / −3,7, y pedírselo es pedirle que abra otra pestaña.
+
+       Solo si la fila no tenía coordenadas puestas: si ya las escribió a mano,
+       cambiar el nombre no puede tirárselas. */
+    const place = isGlobe ? findPlace(value) : undefined;
+    if (place) {
+      const current = coords?.[row];
+      const empty = !current || (current[0] === 0 && current[1] === 0);
+      if (empty) {
+        const nextCoords: [number, number][] = labels.map(
+          (_, i) => (coords?.[i] ?? [0, 0]) as [number, number],
+        );
+        nextCoords[row] = [place.lat, place.lon];
+        apply({ labels: next, coords: nextCoords });
+        return;
+      }
+    }
+
     apply({ labels: next });
+  };
+
+  /** Rellena de golpe todas las filas cuyo nombre se reconozca. */
+  const fillKnownCoords = () => {
+    const nextCoords: [number, number][] = labels.map((label, i) => {
+      const place = findPlace(label);
+      const current = (coords?.[i] ?? [0, 0]) as [number, number];
+      const empty = current[0] === 0 && current[1] === 0;
+      return place && empty ? [place.lat, place.lon] : current;
+    });
+    apply({ coords: nextCoords });
+    setNotice(`Rellenadas ${known} coordenada(s) por el nombre de la fila.`);
   };
 
   const setValue = (row: number, column: number, raw: string) => {
@@ -115,7 +150,7 @@ export function DataEditor({ config, onChange }: Props) {
 
   // ── pegar ────────────────────────────────────────────────────────────────
 
-  const useTable = (table: ParsedTable) => {
+  const applyTable = (table: ParsedTable) => {
     const rows = Math.min(table.labels.length, MAX_ROWS);
     apply({
       labels: table.labels.slice(0, rows),
@@ -139,7 +174,7 @@ export function DataEditor({ config, onChange }: Props) {
       return;
     }
     setLastPaste(text);
-    useTable(table);
+    applyTable(table);
   };
 
   const onPaste = (event: React.ClipboardEvent) => {
@@ -171,26 +206,28 @@ export function DataEditor({ config, onChange }: Props) {
               <th className="corner">Categoría</th>
               {series.map((serie, c) => (
                 <th key={c}>
-                  {multiColumn ? (
-                    <input
-                      value={serie.name ?? ''}
-                      placeholder={`${columnWord} ${c + 1}`}
-                      onChange={(e) => setColumnName(c, e.target.value)}
-                      aria-label={`Nombre de ${columnWord.toLowerCase()} ${c + 1}`}
-                    />
-                  ) : (
-                    <span>Valor</span>
-                  )}
-                  {multiColumn && series.length > 1 && (
-                    <button
-                      type="button"
-                      className="kill"
-                      onClick={() => removeColumn(c)}
-                      aria-label={`Quitar ${columnWord.toLowerCase()} ${c + 1}`}
-                    >
-                      ×
-                    </button>
-                  )}
+                  <div>
+                    {multiColumn ? (
+                      <input
+                        value={serie.name ?? ''}
+                        placeholder={`${columnWord} ${c + 1}`}
+                        onChange={(e) => setColumnName(c, e.target.value)}
+                        aria-label={`Nombre de ${columnWord.toLowerCase()} ${c + 1}`}
+                      />
+                    ) : (
+                      <span>Valor</span>
+                    )}
+                    {multiColumn && series.length > 1 && (
+                      <button
+                        type="button"
+                        className="kill"
+                        onClick={() => removeColumn(c)}
+                        aria-label={`Quitar ${columnWord.toLowerCase()} ${c + 1}`}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
                 </th>
               ))}
               {isGlobe && (
@@ -276,6 +313,11 @@ export function DataEditor({ config, onChange }: Props) {
           </button>
         )}
         <span style={{ flex: 1 }} />
+        {isGlobe && known > 0 && (
+          <button type="button" onClick={fillKnownCoords}>
+            Rellenar {known} coordenada(s)
+          </button>
+        )}
         <button type="button" onClick={() => fileRef.current?.click()}>
           Abrir CSV
         </button>

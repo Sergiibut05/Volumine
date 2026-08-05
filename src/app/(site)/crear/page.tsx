@@ -11,6 +11,7 @@ import { THEMES } from '@/lib/themes';
 import { CHART_TYPES } from '@/lib/chart-types';
 import { computeSectors, globalBevel, OUTER_RADIUS } from '@/renderer/geometry/donut';
 import { computeBars, barRadii } from '@/renderer/geometry/bar';
+import { DEFAULT_FRAME_MS } from '@/renderer/geometry/bar-race';
 import type { ChartConfig } from '@/lib/config/schema';
 import { Group, Slider, Choices, type Choice } from './controls';
 import { DataEditor } from './DataEditor';
@@ -54,19 +55,33 @@ const BACKGROUNDS = [
   { id: 'gradient', label: 'Degradado', hint: 'De un color a otro.' },
 ] as const;
 
+/** Tipos que solo leen `series[0]`: un total repartido, no varias magnitudes. */
+const SINGLE_SERIES: ReadonlySet<ChartConfig['type']> = new Set(['donut', 'pie', 'globe']);
+
 /**
  * Qué cambia al elegir otro tipo.
  *
- * No todos los tipos saben leer los mismos datos, y cambiar de tipo sin más
- * dejaba la gráfica vacía: un globo sin coordenadas es un planeta pelado y una
- * carrera con un solo periodo son barras que no se mueven. Cuando los datos
- * actuales no sirven para el destino, se traen los de la muestra de ese tipo.
+ * No todos los tipos leen los mismos datos, así que cambiar de tipo sin más
+ * dejaba la gráfica vacía o con columnas que no pintan nada. Tres reglas:
  *
- * Lo que el usuario haya escrito NO se pisa si sigue valiendo: cambiar entre
- * anillo, tarta y barras conserva sus números, que es lo normal.
+ * - Los datos de EJEMPLO se sustituyen por los del tipo nuevo; los del usuario,
+ *   nunca. Perder veinte filas pegadas por tocar un botón es imperdonable, y
+ *   aquí no hay deshacer todavía.
+ * - Al ir a un tipo de una sola serie se recortan las demás: en un anillo no se
+ *   dibujan y solo engordan la URL.
+ * - Al ir al globo se crean coordenadas vacías, para que se vea qué falta en
+ *   vez de dejar un planeta pelado sin explicación.
  */
 function switchType(config: ChartConfig, type: ChartConfig['type']): Partial<ChartConfig> {
   const shape = { style: { ...config.style, innerRadius: type === 'pie' ? 0 : 0.55 } };
+
+  /* Un anillo, una tarta y un globo solo dibujan la PRIMERA serie. Arrastrar
+     los periodos de una carrera hasta ahí deja columnas que no pintan nada en
+     la tabla y kilobytes muertos en la URL, así que se recortan al cambiar. */
+  const trim = (data: ChartConfig['data']): ChartConfig['data'] =>
+    SINGLE_SERIES.has(type) && data.series.length > 1
+      ? { ...data, series: data.series.slice(0, 1) }
+      : data;
 
   /* Solo se pisan los datos de EJEMPLO. Si el usuario ya ha escrito los suyos,
      cambiar de tipo no puede borrárselos: perder veinte filas pegadas por
@@ -74,7 +89,7 @@ function switchType(config: ChartConfig, type: ChartConfig['type']): Partial<Cha
   const pristine = JSON.stringify(config.data) === JSON.stringify(INITIAL.data);
   const sample = CHART_TYPES.find((entry) => entry.id === type)?.sample;
 
-  if (pristine && sample) return { type, data: sample.data, ...shape };
+  if (pristine && sample) return { type, data: trim(sample.data), ...shape };
 
   /* Con datos propios, el globo necesita coordenadas que nadie le ha dado. Se
      crean vacías para que aparezcan las columnas en la tabla y se vea qué
@@ -82,15 +97,15 @@ function switchType(config: ChartConfig, type: ChartConfig['type']): Partial<Cha
   if (type === 'globe' && !config.data.coords) {
     return {
       type,
-      data: {
+      data: trim({
         ...config.data,
         coords: config.data.labels.map(() => [0, 0] as [number, number]),
-      },
+      }),
       ...shape,
     };
   }
 
-  return { type, data: config.data, ...shape };
+  return { type, data: trim(config.data), ...shape };
 }
 
 export default function EditorPage() {
@@ -116,6 +131,7 @@ export default function EditorPage() {
   */
   const isBar = config.type === 'bar';
   const isGlobe = config.type === 'globe';
+  const isRace = config.type === 'bar-race';
 
   const bevelCeiling = useMemo(() => {
     if (!parsed.ok) return 0;
@@ -477,13 +493,29 @@ export default function EditorPage() {
         </Group>
 
         <Group title="Movimiento">
+          {isRace && (
+            <Slider
+              label="Duración de cada periodo"
+              value={config.motion?.frameDuration ?? DEFAULT_FRAME_MS}
+              min={300}
+              max={4000}
+              step={50}
+              /* En segundos y no en milisegundos: nadie piensa una animación en
+                 milisegundos, y "1,2 s" se compara con la intuición de cuánto
+                 tarda en leerse un cambio. */
+              format={(v) => `${(v / 1000).toFixed(2).replace('.', ',')} s`}
+              onChange={(v) =>
+                setConfig((c) => ({ ...c, motion: { ...c.motion, frameDuration: v } }))
+              }
+            />
+          )}
           <Slider
-            label="Velocidad de giro"
+            label={isRace || isBar ? 'Vaivén' : 'Velocidad de giro'}
             value={config.motion?.speed ?? 0.9}
             min={0}
             max={4}
             step={0.1}
-            format={(v) => (v === 0 ? 'Parada' : `${v.toFixed(1)} vueltas/min`)}
+            format={(v) => (v === 0 ? 'Parado' : `${v.toFixed(1)} vueltas/min`)}
             onChange={(v) =>
               setConfig((c) => ({
                 ...c,

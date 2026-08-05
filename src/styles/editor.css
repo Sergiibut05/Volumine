@@ -451,7 +451,21 @@
   border-radius: var(--p-radius-sm);
 }
 
+/* La cabecera es una fila: el nombre se estira y el aspa se queda a su lado.
+   Con el input al 100% del ancho, el aspa acababa fuera de la celda y no se
+   veía — existía en el DOM y era invisible, que es lo mismo que no existir. */
+.data thead th {
+  vertical-align: middle;
+}
+
+.data thead th > div {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+
 .data thead input {
+  min-width: 48px;
   padding: 0.125rem 0.25rem;
   font-size: 0.6875rem;
   font-weight: 600;
@@ -480,7 +494,18 @@
   transition: opacity var(--p-dur-1) var(--p-ease-out);
 }
 
-/* Aparece al acercarse a la fila: siempre visible sería un muro de aspas. */
+/*
+  Las aspas de FILA aparecen al acercarse: con veinte filas, siempre visibles
+  serían un muro de aspas.
+
+  Las de COLUMNA están siempre, atenuadas. Son pocas —dos o tres periodos— y
+  quitar un periodo es una acción que se busca, no un descarte accidental: si
+  hay que descubrirla pasando el ratón, no existe.
+*/
+.data thead .kill {
+  opacity: 0.45;
+}
+
 .data tr:hover .kill,
 .data th:hover .kill,
 .kill:focus-visible {
