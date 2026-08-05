@@ -242,6 +242,16 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
       shown = new Set();
       root.style.display =
         config.labels.show && config.labels.mode !== 'none' ? '' : 'none';
+
+      /* El tamaño va como VARIABLE y no como `font-size` fijo: el editor y el
+         embed tienen tipografías distintas, y el config pide un factor sobre la
+         base de cada uno, no píxeles.
+
+         Esta línea faltaba, así que el CSS caía siempre en el `1` de reserva y
+         el slider de tamaño no hacía nada. No daba error: movías el control y no
+         pasaba nada, que es de los fallos más difíciles de atribuir. */
+      root.style.setProperty('--voluma-label-scale', String(config.labels.size));
+
       if (!config.labels.show || config.labels.mode === 'none') return;
 
       if (config.labels.mode === 'legend') {

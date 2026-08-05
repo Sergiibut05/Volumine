@@ -1000,8 +1000,22 @@ export function createChartRenderer(
 
     for (const marker of layout.markers) {
       const color = colorForSegment(config, marker.index);
+
+      /*
+        En chincheta la CABEZA tiene un mínimo.
+
+        El radio del marcador es proporcional al valor, así que un dato pequeño
+        daba una bola diminuta encima de un palo — se leía como un pincho o una
+        flecha, no como una chincheta. La cabeza es el gesto que hace reconocible
+        la forma; el dato lo sigue contando el tamaño por encima de ese mínimo.
+      */
+      const radio =
+        config.style.globe.marker === 'pin'
+          ? Math.max(marker.radius, GLOBE_RADIUS * 0.026)
+          : marker.radius;
+
       const mesh = new Mesh(
-        new SphereGeometry(marker.radius, 18, 14),
+        new SphereGeometry(radio, 18, 14),
         new MeshBasicMaterial({ color }),
       );
       mesh.position.copy(marker.position);
@@ -1015,15 +1029,34 @@ export function createChartRenderer(
         el fondo la bola, y el palo dice exactamente dónde toca — que es el dato.
       */
       if (forma === 'pin') {
-        const alto = marker.radius * 3.4;
+        /*
+          El palo mide lo mismo para TODOS, medido sobre el planeta y no sobre
+          la bola.
+
+          Antes era `marker.radius * 3.4`, o sea proporcional al valor: un dato
+          pequeño tenía una bola pequeña Y un palo diminuto, así que el cilindro
+          quedaba más corto que la propia bola y se veía como un pincho
+          atravesándola en vez de como una chincheta. Además el conjunto crecía
+          con el dato dos veces —bola y altura—, exagerando las diferencias.
+
+          Con altura fija, todas las cabezas quedan en el mismo plano sobre la
+          superficie, que es lo que hace una chincheta de mapa: la altura no es
+          dato, es el gesto de despegarla del suelo.
+        */
+        const alto = GLOBE_RADIUS * 0.075;
         mesh.position.add(marker.normal.clone().multiplyScalar(alto));
 
+        /* Grosor también fijo y fino, y se hunde un poco EN la superficie para
+           que no se vea el corte del cilindro flotando sobre el planeta. */
+        const grosor = GLOBE_RADIUS * 0.0095;
         const palo = new Mesh(
-          new CylinderGeometry(marker.radius * 0.16, marker.radius * 0.16, alto, 6),
-          new MeshBasicMaterial({ color, transparent: true, opacity: 0.75 }),
+          new CylinderGeometry(grosor, grosor, alto * 1.15, 8),
+          new MeshBasicMaterial({ color, transparent: true, opacity: 0.85 }),
         );
         // El cilindro nace en Y; se tumba sobre la normal de su punto.
-        palo.position.copy(marker.position).add(marker.normal.clone().multiplyScalar(alto / 2));
+        palo.position
+          .copy(marker.position)
+          .add(marker.normal.clone().multiplyScalar(alto * 0.5 - alto * 0.075));
         palo.quaternion.setFromUnitVectors(UP, marker.normal);
         palo.raycast = () => {};
         group.add(palo);
@@ -1058,7 +1091,7 @@ export function createChartRenderer(
         globeExtras.push(anillo);
         pulses.push({ mesh: anillo, base: marker.radius, phase: pulses.length * 0.35 });
       }
-      makeMarkerEasyToHit(mesh, marker.radius);
+      makeMarkerEasyToHit(mesh, radio);
       group.add(mesh);
 
       pieces.push({
@@ -1144,7 +1177,28 @@ export function createChartRenderer(
 
   function applySceneSettings() {
     scene.environmentIntensity = config.scene.lightIntensity;
-    scene.background = transparent() ? null : new Color(config.scene.background.from);
+    /*
+      EL DEGRADADO NO LO PINTA WEBGL, LO PINTA CSS.
+
+      `scene.background` de three solo admite un color plano o una textura. Antes
+      se le pasaba `background.from` sin mirar el `kind`, así que elegir
+      «degradado» daba exactamente lo mismo que «sólido»: el primer color y ya.
+
+      La alternativa dentro de WebGL sería un quad con shader o una textura
+      generada — más código, más que liberar, y peor resultado: un degradado de
+      CSS se compone a resolución de pantalla y no tiene banding. Aquí el canvas
+      se deja TRANSPARENTE y el degradado va en el contenedor, detrás.
+
+      El ángulo se pasa tal cual: `linear-gradient` mide desde arriba en sentido
+      horario, que es la misma convención que documenta el esquema.
+    */
+    const fondo = config.scene.background;
+    const degradado = !transparent() && fondo.kind === 'gradient';
+
+    scene.background = transparent() || degradado ? null : new Color(fondo.from);
+    container.style.background = degradado
+      ? `linear-gradient(${fondo.angle}deg, ${fondo.from}, ${fondo.to})`
+      : '';
     renderer.shadowMap.enabled = config.style.shadow;
     key.castShadow = config.style.shadow;
     floor.visible = config.style.shadow;
