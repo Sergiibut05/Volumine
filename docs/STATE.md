@@ -100,7 +100,15 @@ mano desde el aviso.
 
 ## Qué toca ahora
 
-1. **Correr los tests de RLS.** Las migraciones ya están aplicadas al proyecto
+1. ~~Correr los tests de RLS.~~ **Hechos, y encontraron una escalada de
+   privilegios real** (ver migración 0003). Los 18 pasan. Se corren con:
+
+       SUPABASE_TEST_URL=… SUPABASE_TEST_ANON_KEY=…        SUPABASE_TEST_SERVICE_ROLE_KEY=… npm run test
+
+   **Rota la `service_role`**: se usó la del proyecto principal y pasó por un
+   chat.
+
+   Lo que decía antes de esto: Las migraciones ya están aplicadas al proyecto
    `butxsqcragkopzxsrukz` y `.env.local` está puesto, así que la app conecta y
    `/entrar` funciona de verdad. Lo que sigue sin comprobarse son LAS POLÍTICAS:
    `rls.test.ts` necesita además la `service_role` —solo para dar de alta los
@@ -221,10 +229,7 @@ display: none }` o el elemento oculto se ve.
 
 ## Problemas abiertos
 
-- **Las políticas RLS siguen sin probarse.** Las migraciones están aplicadas y
-  la app conecta, pero ninguna política se ha ejercitado: `rls.test.ts` necesita
-  la `service_role` para crear usuarios de prueba y no se ha corrido. Es lo
-  primero de "qué toca ahora".
+- ~~Las políticas RLS siguen sin probarse.~~ Probadas: 18 en verde.
 - **Nadie ha guardado una gráfica todavía.** El camino completo —entrar, pulsar
   guardar, ver la fila en `/mis-graficas`, abrir `/embed/{slug}` desde otro
   navegador— no se ha recorrido de principio a fin. Los triggers de cuota y de

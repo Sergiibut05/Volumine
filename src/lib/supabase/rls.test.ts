@@ -34,6 +34,20 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
   comprobación se hace con ella: se salta RLS entera y daría todo por bueno.
 */
 
+/*
+  `supabase-js` construye un cliente de Realtime al crear el cliente, lo uses o
+  no, y ese cliente exige `WebSocket`. Node 22 lo trae de serie pero el entorno
+  de vitest no lo expone, así que sin esto los tests ni siquiera arrancan — se
+  cae el `beforeAll` entero y los 18 se saltan sin decir por qué.
+
+  Un objeto vacío basta: aquí no se abre ninguna conexión de realtime, solo se
+  hacen consultas y llamadas de auth. Poner `ws` como dependencia sería añadir un
+  paquete para satisfacer una comprobación de algo que no usamos.
+*/
+if (typeof globalThis.WebSocket === 'undefined') {
+  (globalThis as { WebSocket?: unknown }).WebSocket = class {};
+}
+
 const url = process.env.SUPABASE_TEST_URL;
 const anonKey = process.env.SUPABASE_TEST_ANON_KEY;
 const serviceKey = process.env.SUPABASE_TEST_SERVICE_ROLE_KEY;
