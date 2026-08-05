@@ -294,6 +294,8 @@ type Piece = {
    * grupo. `null` en los tipos que todavía no tienen etiquetas.
    */
   anchor: Vector3 | null;
+  /** Centro alrededor del cual la etiqueta puede quedar oculta. Solo el globo. */
+  occludeAround?: Vector3;
 };
 
 function cameraPlacement(config: ResolvedChartConfig): CameraPlacement {
@@ -992,10 +994,19 @@ export function createChartRenderer(
         direction: marker.normal.clone(),
         hoverAmount: 0,
         hoverStyle: 'grow',
-        /* El globo todavía no lleva etiquetas fijas: sus marcadores piden un
-           tratamiento propio —al lado del punto, y ocultando los de la cara de
-           atrás— que no es el de las líneas guía radiales. */
-        anchor: null,
+        /*
+          La etiqueta se ancla POR ENCIMA del marcador, no en él: centrada sobre
+          el punto, la píldora taparía justo el punto que está señalando.
+
+          `occludeAround` es el centro del globo en locales, que es el origen del
+          grupo. Con él, la capa esconde las etiquetas de la cara de atrás — sin
+          eso, media esfera de nombres seguiría flotando sobre el planeta, porque
+          el HTML se pinta encima de todo y no lo tapa la geometría.
+        */
+        anchor: marker.position
+          .clone()
+          .add(marker.normal.clone().multiplyScalar(marker.radius * 1.6)),
+        occludeAround: new Vector3(0, 0, 0),
       });
     }
   }
@@ -1032,12 +1043,19 @@ export function createChartRenderer(
         value: piece.info.value,
         fraction: piece.info.fraction,
         anchor: piece.anchor,
+        occludeAround: piece.occludeAround,
       });
     }
     /* El anillo y la tarta rodean un centro, así que sus etiquetas rodean el
-       dibujo. Todo lo demás va pegado a su pieza. */
-    const radial = config.type === 'donut' || config.type === 'pie';
-    labelLayer.rebuild(anchors, config, radial ? 'radial' : 'point');
+       dibujo con línea guía. El globo las pone ENCIMA del punto —debajo taparían
+       el marcador—, y las barras debajo, donde va el eje. */
+    const colocacion =
+      config.type === 'donut' || config.type === 'pie'
+        ? 'radial'
+        : config.type === 'globe'
+          ? 'over'
+          : 'point';
+    labelLayer.rebuild(anchors, config, colocacion);
   }
 
   function applySceneSettings() {

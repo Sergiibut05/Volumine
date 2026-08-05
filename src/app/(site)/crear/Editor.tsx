@@ -174,14 +174,17 @@ export function Editor({ initial, chartId, visibility, signedIn }: EditorProps) 
     El anillo y la tarta llevan líneas guía a los lados; las barras, el nombre
     bajo cada barra.
 
-    Fuera quedan tres, y por motivos distintos: el medidor ya escribe su cifra en
-    el centro, el globo pide marcadores propios —al lado del punto y ocultando
-    los de la cara de atrás— y la carrera necesita que la etiqueta VIAJE con su
-    barra, que no es colocar sino animar. Hasta que existan, no se ofrece un
-    control que no haría nada.
+    En el globo van sobre el punto, y las de la cara de atrás se esconden solas.
+
+    Fuera quedan dos: el medidor ya escribe su cifra en el centro, y la carrera
+    necesita que la etiqueta VIAJE con su barra, que no es colocar sino animar.
+    Hasta entonces no se ofrece un control que no haría nada.
   */
   const supportsLabels =
-    config.type === 'donut' || config.type === 'pie' || config.type === 'bar';
+    config.type === 'donut' ||
+    config.type === 'pie' ||
+    config.type === 'bar' ||
+    config.type === 'globe';
   const gaugeReading = parsed.ok && isGauge ? gaugeReadout(parsed.config) : null;
 
   const bevelCeiling = useMemo(() => {

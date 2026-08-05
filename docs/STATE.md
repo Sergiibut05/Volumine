@@ -128,9 +128,9 @@ mano desde el aviso.
    que editor y embed enseñan lo mismo por construcción), las líneas guía del
    anillo y la tarta, los nombres bajo cada barra, y el resalte al señalar en vez
    de repetir el dato en el tooltip. Falta:
-   - **Globo**: marcadores propios al estilo de cobe —pulso, emoji, foto— más la
-     etiqueta al lado del punto, ocultando los de la cara de atrás. Es campo
-     nuevo en `style.globe`, no solo colocación.
+   - **Globo**: la etiqueta sobre el punto ya está, con oclusión de la cara de
+     atrás. Faltan los MARCADORES propios al estilo de cobe —pulso, emoji,
+     foto—, que es campo nuevo en `style.globe` y no solo colocación.
    - **Carrera**: la etiqueta tiene que VIAJAR con su barra, que no es colocar
      sino animar.
    - **Modo `legend`**: declarado en el contrato y sin implementar, como estaban

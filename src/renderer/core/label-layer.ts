@@ -31,12 +31,16 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
  * pide un anillo: sus trozos rodean un centro, así que las etiquetas rodean el
  * dibujo y las líneas dicen cuál es cuál.
  *
- * `point` — se queda pegada a su pieza, centrada debajo, sin línea. Es lo que
+ * `point` — se queda pegada a su pieza, centrada DEBAJO, sin línea. Es lo que
  * pide una fila de barras: cada nombre va bajo SU barra, como el eje de
  * cualquier gráfica de barras de toda la vida. Mandarlas a los lados con líneas
  * sería inventarse un problema que las barras no tienen.
+ *
+ * `over` — igual pero ENCIMA. Es lo que pide el globo: la etiqueta cuelga hacia
+ * abajo desde su punto de anclaje, así que dejándola debajo tapa justo el
+ * marcador que está señalando.
  */
-export type Placement = 'radial' | 'point';
+export type Placement = 'radial' | 'point' | 'over';
 
 /** Lo que el renderer sabe de cada etiqueta. El resto lo decide esta capa. */
 export type LabelAnchor = {
@@ -47,6 +51,15 @@ export type LabelAnchor = {
   fraction: number | null;
   /** De dónde sale la línea, en coordenadas LOCALES del grupo. */
   anchor: Vector3;
+  /**
+   * Centro alrededor del cual el ancla puede quedar OCULTA, en locales.
+   *
+   * Solo lo usa el globo. Media esfera está siempre de espaldas, y su
+   * etiqueta —que se pinta en HTML, encima de todo— seguiría viéndose flotando
+   * sobre el planeta como si señalara un sitio de la cara de delante. Con el
+   * centro se puede saber si el punto mira a la cámara o no.
+   */
+  occludeAround?: Vector3;
 };
 
 /**
@@ -62,6 +75,8 @@ const ELBOW = 18;
 type Item = {
   index: number;
   box: HTMLDivElement;
+  /** Centro de oclusión en locales, si lo tiene. Ver `occludeAround`. */
+  around: Vector3 | null;
   /**
    * DOS trazos para la misma línea: uno grueso y oscuro debajo, otro fino y
    * claro encima.
@@ -124,6 +139,10 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
 
   let items: Item[] = [];
   const tmp = new Vector3();
+  // Reutilizados: se tocan en cada frame y crear vectores ahí es presión de GC.
+  const centro = new Vector3();
+  const hacia = new Vector3();
+  const aCamara = new Vector3();
   /** Los índices que de verdad se están dibujando en este momento. */
   let shown = new Set<number>();
   let placement: Placement = 'radial';
@@ -196,6 +215,7 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
           line,
           casing,
           world: anchor.anchor.clone(),
+          around: anchor.occludeAround?.clone() ?? null,
         });
       }
     },
@@ -212,6 +232,20 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
       const puestos: Puesto[] = [];
 
       for (const item of items) {
+        /* Cara de atrás del globo: se compara la dirección del punto desde el
+           centro con la dirección hacia la cámara. Si no apuntan al mismo lado,
+           el punto está literalmente al otro lado del planeta. */
+        if (item.around) {
+          centro.copy(item.around).applyMatrix4(group.matrixWorld);
+          hacia.copy(item.world).applyMatrix4(group.matrixWorld).sub(centro);
+          if (hacia.dot(aCamara.copy(camera.position).sub(centro)) <= 0) {
+            item.box.style.display = 'none';
+            item.line.style.display = 'none';
+            item.casing.style.display = 'none';
+            continue;
+          }
+        }
+
         tmp.copy(item.world).applyMatrix4(group.matrixWorld).project(camera);
 
         /* Detrás de la cámara: `project` devuelve coordenadas espejadas y la
@@ -240,7 +274,7 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
         una. Lo único que hay que resolver es que dos nombres seguidos no se
         pisen de lado, que con muchas categorías pasa.
       */
-      if (placement === 'point') {
+      if (placement === 'point' || placement === 'over') {
         // De izquierda a derecha en pantalla, para descartar en ese orden.
         puestos.sort((a, b) => a.x - b.x);
         let ocupadoHasta = -Infinity;
@@ -261,9 +295,13 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
           ocupadoHasta = x + ancho;
           shown.add(puesto.item.index);
 
+          /* `over` sube la etiqueta su propio alto más un respiro, para que el
+             marcador quede a la vista justo debajo. */
+          const y = placement === 'over' ? puesto.y - alto - 6 : puesto.y;
+
           puesto.item.line.style.display = 'none';
           puesto.item.casing.style.display = 'none';
-          puesto.item.box.style.transform = `translate(${Math.round(x)}px, ${Math.round(puesto.y)}px)`;
+          puesto.item.box.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
           puesto.item.box.dataset.side = 'center';
         }
         return;
