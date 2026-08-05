@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useOrigin } from '@/lib/use-origin';
+import { useHistoryState } from '@/lib/use-history-state';
 import Link from 'next/link';
 import '@/styles/editor.css';
 import { ChartCanvas } from '@/renderer/ChartCanvas';
@@ -84,8 +85,8 @@ function switchType(config: ChartConfig, type: ChartConfig['type']): Partial<Cha
       : data;
 
   /* Solo se pisan los datos de EJEMPLO. Si el usuario ya ha escrito los suyos,
-     cambiar de tipo no puede borrárselos: perder veinte filas pegadas por
-     tocar un botón es imperdonable, y aquí no hay deshacer todavía. */
+     cambiar de tipo no puede borrárselos. Ahora hay deshacer, pero eso no es
+     excusa: que una acción sea reversible no la vuelve aceptable. */
   const pristine = JSON.stringify(config.data) === JSON.stringify(INITIAL.data);
   const sample = CHART_TYPES.find((entry) => entry.id === type)?.sample;
 
@@ -109,7 +110,11 @@ function switchType(config: ChartConfig, type: ChartConfig['type']): Partial<Cha
 }
 
 export default function EditorPage() {
-  const [config, setConfig] = useState<ChartConfig>(INITIAL);
+  /* El config es la única fuente de verdad del editor, así que deshacer sale
+     casi gratis: basta con guardar el config de antes. Ver lib/history.ts. */
+  const history = useHistoryState<ChartConfig>(INITIAL);
+  const config = history.value;
+  const setConfig = history.set;
   const [copied, setCopied] = useState(false);
 
   const origin = useOrigin();
@@ -250,6 +255,31 @@ export default function EditorPage() {
             Voluma
           </Link>
           <span style={{ flex: 1 }} />
+
+          {/* Deshacer y rehacer. Los atajos (Ctrl/Cmd+Z) los pone el hook; los
+              botones están porque un atajo que nadie sabe que existe no
+              tranquiliza a nadie a la hora de experimentar. */}
+          <div className="undo">
+            <button
+              type="button"
+              onClick={history.undo}
+              disabled={!history.canUndo}
+              title="Deshacer (Ctrl+Z)"
+              aria-label="Deshacer"
+            >
+              ↶
+            </button>
+            <button
+              type="button"
+              onClick={history.redo}
+              disabled={!history.canRedo}
+              title="Rehacer (Ctrl+Shift+Z)"
+              aria-label="Rehacer"
+            >
+              ↷
+            </button>
+          </div>
+
           {url && !url.ok && (
             <span className="warn" style={{ fontSize: '0.75rem' }}>
               Pasa de {MAX_URL_LENGTH} caracteres
@@ -268,7 +298,11 @@ export default function EditorPage() {
                Resolverlo es trabajo de `parseConfig`. Cambiar de tema descarta
                los ajustes de forma y escena, que es lo que se espera de "empieza
                por aquí" — el fondo lo elige el usuario después. */
-            onChange={(id) => setConfig((c) => ({ ...c, theme: id, style: {}, scene: {} }))}
+            onChange={(id) =>
+              setConfig((c) => ({ ...c, theme: id, style: {}, scene: {} }), {
+                coalesce: false,
+              })
+            }
           />
         </Group>
 
@@ -276,7 +310,12 @@ export default function EditorPage() {
             y ordenar el panel al revés convierte la herramienta en un juguete de
             estilo con unos números de ejemplo pegados. */}
         <Group title="Datos" hint="Pega desde tu hoja">
-          <DataEditor config={config} onChange={(data) => patch({ data })} />
+          <DataEditor
+            config={config}
+            onChange={(data, discrete) =>
+              setConfig((c) => ({ ...c, data }), { coalesce: !discrete })
+            }
+          />
         </Group>
 
         <Group title="Tipo">
@@ -284,7 +323,11 @@ export default function EditorPage() {
             label="Tipo de gráfica"
             options={typeChoices}
             value={config.type}
-            onChange={(id) => patch(switchType(config, id as ChartConfig['type']))}
+            onChange={(id) =>
+              setConfig((c) => ({ ...c, ...switchType(c, id as ChartConfig['type']) }), {
+                coalesce: false,
+              })
+            }
           />
         </Group>
 

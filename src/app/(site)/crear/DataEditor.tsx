@@ -28,7 +28,13 @@ import type { ChartConfig } from '@/lib/config/schema';
 
 type Props = {
   config: ChartConfig;
-  onChange: (data: ChartConfig['data']) => void;
+  /**
+   * `discrete` marca las acciones que tienen que ser su propio paso de deshacer:
+   * pegar una tabla, añadir o quitar una fila o una columna. Escribir en una
+   * celda no lo es — teclear "1234" son cuatro cambios seguidos y deshacer tiene
+   * que llevarse la cifra entera, no un dígito.
+   */
+  onChange: (data: ChartConfig['data'], discrete?: boolean) => void;
 };
 
 const MAX_ROWS = 200;
@@ -48,8 +54,8 @@ export function DataEditor({ config, onChange }: Props) {
   const columnWord = isRace ? 'Periodo' : 'Serie';
   const known = isGlobe ? countKnown(labels) : 0;
 
-  const apply = (next: Partial<ChartConfig['data']>) =>
-    onChange({ ...config.data, ...next });
+  const apply = (next: Partial<ChartConfig['data']>, discrete = false) =>
+    onChange({ ...config.data, ...next }, discrete);
 
   // ── edición celda a celda ────────────────────────────────────────────────
 
@@ -88,7 +94,7 @@ export function DataEditor({ config, onChange }: Props) {
       const empty = current[0] === 0 && current[1] === 0;
       return place && empty ? [place.lat, place.lon] : current;
     });
-    apply({ coords: nextCoords });
+    apply({ coords: nextCoords }, true);
     setNotice(`Rellenadas ${known} coordenada(s) por el nombre de la fila.`);
   };
 
@@ -117,50 +123,62 @@ export function DataEditor({ config, onChange }: Props) {
 
   const addRow = () => {
     if (labels.length >= MAX_ROWS) return;
-    apply({
-      labels: [...labels, `Categoría ${labels.length + 1}`],
-      series: series.map((s) => ({ ...s, values: [...s.values, 0] })),
-      coords: coords ? [...coords, [0, 0]] : undefined,
-    });
+    apply(
+      {
+        labels: [...labels, `Categoría ${labels.length + 1}`],
+        series: series.map((s) => ({ ...s, values: [...s.values, 0] })),
+        coords: coords ? [...coords, [0, 0]] : undefined,
+      },
+      true,
+    );
   };
 
   const removeRow = (row: number) => {
     if (labels.length <= 1) return;
-    apply({
-      labels: labels.filter((_, i) => i !== row),
-      series: series.map((s) => ({ ...s, values: s.values.filter((_, i) => i !== row) })),
-      coords: coords?.filter((_, i) => i !== row),
-    });
+    apply(
+      {
+        labels: labels.filter((_, i) => i !== row),
+        series: series.map((s) => ({ ...s, values: s.values.filter((_, i) => i !== row) })),
+        coords: coords?.filter((_, i) => i !== row),
+      },
+      true,
+    );
   };
 
   const addColumn = () => {
     if (series.length >= 20) return;
-    apply({
-      series: [
-        ...series,
-        { name: `${columnWord} ${series.length + 1}`, values: labels.map(() => 0) },
-      ],
-    });
+    apply(
+      {
+        series: [
+          ...series,
+          { name: `${columnWord} ${series.length + 1}`, values: labels.map(() => 0) },
+        ],
+      },
+      true,
+    );
   };
 
   const removeColumn = (column: number) => {
     if (series.length <= 1) return;
-    apply({ series: series.filter((_, i) => i !== column) });
+    apply({ series: series.filter((_, i) => i !== column) }, true);
   };
 
   // ── pegar ────────────────────────────────────────────────────────────────
 
   const applyTable = (table: ParsedTable) => {
     const rows = Math.min(table.labels.length, MAX_ROWS);
-    apply({
-      labels: table.labels.slice(0, rows),
-      series: table.values.map((values, i) => ({
-        name: table.columns[i],
-        values: values.slice(0, rows),
-      })),
-      // Las coordenadas viejas ya no valen: son de otras filas.
-      coords: undefined,
-    });
+    apply(
+      {
+        labels: table.labels.slice(0, rows),
+        series: table.values.map((values, i) => ({
+          name: table.columns[i],
+          values: values.slice(0, rows),
+        })),
+        // Las coordenadas viejas ya no valen: son de otras filas.
+        coords: undefined,
+      },
+      true,
+    );
 
     const parts = [`${rows} fila(s) y ${table.values.length} columna(s).`, ...table.issues];
     if (table.usedHeader) parts.push('Se ha usado la primera fila como cabecera.');

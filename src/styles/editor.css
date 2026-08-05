@@ -565,3 +565,40 @@
   cursor: pointer;
   text-decoration: underline;
 }
+
+/* ── deshacer / rehacer ─────────────────────────────────────────────────── */
+
+.undo {
+  display: flex;
+  gap: 2px;
+  margin-right: var(--p-space-2);
+}
+
+.undo button {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--p-radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.9375rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background var(--p-dur-2) var(--p-ease-out),
+    color var(--p-dur-2) var(--p-ease-out);
+}
+
+.undo button:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--p-ink-0) 8%, transparent);
+  color: var(--text-primary);
+}
+
+/* Deshabilitado y visible, no escondido: que se vea que existe aunque no haya
+   nada que deshacer todavía es parte de lo que da confianza para trastear. */
+.undo button:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
