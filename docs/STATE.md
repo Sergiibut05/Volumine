@@ -142,8 +142,9 @@ mano desde el aviso.
      globo, leyenda, tooltip en las dos superficies, y marcadores `dot`/`pin`/
      `pulse`. Todo opcional y apagado por defecto.
 3. Tests de regresión visual con Playwright. El andamiaje está.
-3. Póster estático en servidor, para el fallback sin WebGL y las OG images. Es
-   lo único de la fase 5 que queda sin empezar.
+3. ~~Póster estático.~~ Hecho, pero **sin probar de punta a punta**: nadie ha
+   guardado una gráfica todavía, así que la subida a Storage no se ha ejecutado
+   nunca. Es lo primero que hay que comprobar al recorrer el camino completo.
 4. ~~Deshacer/rehacer.~~ Hecho.
 5. ~~El editor solo ofrece anillo, tarta y barras.~~ Hecho: los seis tipos.
 

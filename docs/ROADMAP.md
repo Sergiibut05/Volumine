@@ -91,7 +91,10 @@ presupuesto.
 - [x] Guardar / listar / duplicar / borrar gráficas
 - [x] `/embed/{slug}` desde BBDD, anónimo y sin cookies
 - [x] Tests de las políticas RLS — **escritos pero nunca ejecutados**, ver abajo
-- [ ] Generación de póster estático y OG image en servidor
+- [x] Póster estático y OG image. **Se captura en el NAVEGADOR al guardar**
+      (`canvas.toDataURL`) y se sube a Supabase Storage, no se re-renderiza en
+      servidor: WebGL sin GPU sería la pieza más frágil de todo el sistema y aun
+      así no daría el mismo píxel. Ver `supabase/migrations/0004_posters.sql`.
 
 Los permisos los decide Postgres y no el servidor de Next (ADR 0007): el código
 de la aplicación no lleva ni una comprobación de propiedad escrita a mano.
@@ -107,7 +110,8 @@ conecta y el magic link llega al servidor de auth.
    por MCP.
 2. Activar Google en Supabase → Auth → Providers (el magic link ya va).
 3. Recorrer el camino completo una vez: entrar, guardar, publicar, abrir el
-   `/embed/{slug}` desde otro navegador.
+   `/embed/{slug}` desde otro navegador y comprobar que el póster llega a
+   Storage y que la tarjeta de enlace sale bien (validador de Slack o Twitter).
 
 **Criterio de salida:** cierras el navegador y tu gráfica sigue ahí.
 

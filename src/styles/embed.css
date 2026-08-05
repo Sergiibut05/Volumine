@@ -425,3 +425,22 @@ canvas {
   font-size: 0.9em;
   opacity: 0.68;
 }
+
+/*
+  El póster: la gráfica congelada, debajo del canvas.
+
+  No se "activa" cuando falla WebGL — está SIEMPRE. Se ve desde el primer byte,
+  antes de que arranque WebGL, y sigue ahí si no arranca nunca. El canvas se
+  dibuja encima y lo tapa; nadie ve el cambio porque son la misma imagen.
+
+  Eso además quita el parpadeo de fondo vacío que había mientras se descargaba
+  y compilaba el bundle.
+*/
+.poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}

@@ -24,6 +24,13 @@ export type ChartCanvasProps = {
   onFrame?: (label: string | null) => void;
   className?: string;
   style?: React.CSSProperties;
+  /**
+   * Se rellena con una función que devuelve la escena actual en PNG.
+   *
+   * Por `ref` y no por callback porque no es un evento: es algo que el
+   * anfitrión PIDE cuando le hace falta —al guardar— y no algo que ocurra.
+   */
+  captureRef?: React.MutableRefObject<(() => string) | null>;
 };
 
 export function ChartCanvas({
@@ -32,6 +39,7 @@ export function ChartCanvas({
   onFrame,
   className,
   style,
+  captureRef,
 }: ChartCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const handleRef = useRef<ChartRendererHandle | null>(null);
@@ -58,10 +66,12 @@ export function ChartCanvas({
     handle.onHover((info) => onHoverRef.current?.(info));
     handle.onFrame((label) => onFrameRef.current?.(label));
     handleRef.current = handle;
+    if (captureRef) captureRef.current = () => handle.capture();
 
     return () => {
       handle.dispose();
       handleRef.current = null;
+      if (captureRef) captureRef.current = null;
     };
     // Solo al montar: el config se propaga en el efecto de abajo.
     // eslint-disable-next-line react-hooks/exhaustive-deps

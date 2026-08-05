@@ -23,6 +23,8 @@ export type ChartRow = {
   visibility: Visibility;
   /** Lo decide el servidor desde el plan del dueño. Nunca el cliente (ADR 0005). */
   watermark: boolean;
+  /** Ruta del póster dentro del bucket `posters`. `null` si aún no tiene. */
+  poster_path: string | null;
   created_at: string;
   updated_at: string;
 };

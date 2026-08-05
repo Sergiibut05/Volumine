@@ -280,6 +280,15 @@ export type ChartRendererHandle = {
   onFrame(callback: (label: string | null) => void): void;
   /** Un frame a mano, para capturas y tests visuales. */
   renderOnce(): void;
+  /**
+   * La escena tal y como se ve ahora, en PNG.
+   *
+   * Dibuja y lee el canvas EN LA MISMA VUELTA, sin ceder al navegador entre
+   * medias. Es lo que permite no activar `preserveDrawingBuffer`, que obliga a
+   * la GPU a conservar el buffer de cada frame y cuesta rendimiento en TODOS
+   * los embeds para algo que se usa una vez al guardar.
+   */
+  capture(): string;
 };
 
 /* Lo que se GUARDA de cada pieza. `labelled` no está aquí a propósito: no es un
@@ -1568,6 +1577,11 @@ export function createChartRenderer(
 
     renderOnce() {
       renderer.render(scene, camera);
+    },
+
+    capture() {
+      renderer.render(scene, camera);
+      return canvas.toDataURL('image/png');
     },
 
     dispose() {

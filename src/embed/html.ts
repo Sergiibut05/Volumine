@@ -191,6 +191,57 @@ export function describeChart(config: ResolvedChartConfig): string {
 }
 
 /**
+ * Etiquetas de tarjeta de enlace.
+ *
+ * Sin esto, pegar el link en Slack, Notion o WhatsApp enseña un rectángulo con
+ * el título y nada más. En un producto cuyo producto ES EL LINK, ese es el peor
+ * sitio donde fallar.
+ *
+ * Solo salen si HAY póster: una etiqueta `og:image` apuntando a una imagen que
+ * no existe es peor que no ponerla — algunos clientes enseñan un hueco roto.
+ */
+function socialTags(
+  config: ResolvedChartConfig,
+  poster: string | null | undefined,
+  canonical: string | null | undefined,
+): string {
+  if (!poster) return '';
+
+  const titulo = escapeHtml(config.title ?? 'Gráfica');
+  const alt = escapeHtml(describeChart(config).slice(0, 200));
+
+  return [
+    `<meta property="og:type" content="website">`,
+    `<meta property="og:title" content="${titulo}">`,
+    `<meta property="og:image" content="${escapeHtml(poster)}">`,
+    `<meta property="og:image:alt" content="${alt}">`,
+    canonical ? `<meta property="og:url" content="${escapeHtml(canonical)}">` : '',
+    /* `summary_large_image`: una gráfica en miniatura no se lee. Si va a salir
+       una imagen, que salga a tamaño de leerla. */
+    `<meta name="twitter:card" content="summary_large_image">`,
+    `<meta name="twitter:image" content="${escapeHtml(poster)}">`,
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+/**
+ * El póster dentro del escenario, DEBAJO del canvas.
+ *
+ * No es un respaldo que se activa: está siempre, y el canvas lo tapa al montar.
+ * Así se ve la gráfica desde el primer byte —antes de que arranque WebGL— y
+ * sigue viéndose si WebGL no arranca nunca. Un `<img>` con `alt` vacío porque
+ * el escenario ya lleva su `aria-label` y la tabla de datos completa.
+ */
+function posterImgHtml(
+  config: ResolvedChartConfig,
+  poster: string | null | undefined,
+): string {
+  if (!poster) return '';
+  return `<img class="poster" src="${escapeHtml(poster)}" alt="" aria-hidden="true" decoding="async">`;
+}
+
+/**
  * ¿El fondo del embed es claro u oscuro? `null` si es transparente.
  *
  * Transparente significa que detrás está la página de otra persona y que aquí no
@@ -251,10 +302,16 @@ export function embedHtml({
   config,
   css,
   scriptSrc,
+  poster,
+  canonical,
 }: {
   config: ResolvedChartConfig;
   css: string;
   scriptSrc: string;
+  /** URL pública del póster. `null` en los embeds de config-en-URL. */
+  poster?: string | null;
+  /** URL canónica de esta gráfica, para las tarjetas de enlace. */
+  canonical?: string | null;
 }): string {
   const watermark = config.layout.watermark
     ? `<a class="watermark" href="https://voluma.app" target="_blank" rel="noopener">Voluma</a>`
@@ -267,11 +324,13 @@ export function embedHtml({
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>${escapeHtml(config.title ?? 'Gráfica')}</title>
+${socialTags(config, poster, canonical)}
 <style>${css}</style>
 </head>
 <body>
 <div class="stage" role="img" aria-label="${escapeHtml(describeChart(config))}">
 ${dataTableHtml(config)}
+${posterImgHtml(config, poster)}
 <canvas id="voluma-canvas"></canvas>
 <div id="voluma-tooltip" class="tooltip" hidden></div>
 <div id="voluma-period" class="period" aria-hidden="true" hidden></div>

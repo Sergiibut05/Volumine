@@ -3,7 +3,9 @@
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import { createChart, updateChart } from '@/lib/charts/actions';
+import { createChart, setPoster, updateChart } from '@/lib/charts/actions';
+import { supabaseBrowser } from '@/lib/supabase/browser';
+import { dataUrlToBlob, posterPath } from '@/lib/charts/poster';
 import type { ChartConfig } from '@/lib/config/schema';
 import type { Visibility } from '@/lib/supabase/types';
 
@@ -22,9 +24,20 @@ type Props = {
   chartId: string | null;
   visibility: Visibility | null;
   signedIn: boolean;
+  /** Id del usuario, para componer la ruta del póster. */
+  userId: string | null;
+  /** Devuelve la escena actual en PNG. Lo rellena `ChartCanvas`. */
+  capture: React.MutableRefObject<(() => string) | null>;
 };
 
-export function SaveBar({ config, chartId, visibility, signedIn }: Props) {
+export function SaveBar({
+  config,
+  chartId,
+  visibility,
+  signedIn,
+  userId,
+  capture,
+}: Props) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +51,30 @@ export function SaveBar({ config, chartId, visibility, signedIn }: Props) {
     );
   }
 
+  /** Captura el canvas y lo deja en Storage. Silencioso: ver la nota de arriba. */
+  async function subirPoster(id: string, slug: string) {
+    const png = capture.current?.();
+    if (!png || !userId) return;
+
+    try {
+      const ruta = posterPath(userId, slug);
+      const { error } = await supabaseBrowser()
+        .storage.from('posters')
+        .upload(ruta, await dataUrlToBlob(png), {
+          contentType: 'image/png',
+          /* Al reguardar hay que PISAR el póster viejo: si no, el link seguiría
+             enseñando en Slack una versión de la gráfica que ya no existe. */
+          upsert: true,
+        });
+
+      /* El id sale del RESULTADO y no de `chartId`: en una gráfica nueva
+         `chartId` todavía es null cuando esto corre. */
+      if (!error) await setPoster(id, ruta);
+    } catch {
+      // Ver la nota de arriba: el póster nunca puede tumbar un guardado.
+    }
+  }
+
   const guardar = () =>
     startTransition(async () => {
       setError(null);
@@ -49,6 +86,16 @@ export function SaveBar({ config, chartId, visibility, signedIn }: Props) {
         setError(resultado.error);
         return;
       }
+
+      /*
+        El póster va DESPUÉS y aparte, sin bloquear el «Guardado».
+
+        Guardar la gráfica y tener vista previa en Slack son dos cosas de
+        importancia muy distinta: si la subida falla —sin conexión, cuota de
+        almacenamiento, un navegador raro— el trabajo ya está a salvo y no se
+        dice nada. Una gráfica sin póster funciona igual.
+      */
+      void subirPoster(resultado.id, resultado.slug);
 
       setGuardado(true);
       setTimeout(() => setGuardado(false), 1800);

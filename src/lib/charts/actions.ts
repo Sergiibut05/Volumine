@@ -178,6 +178,29 @@ export async function deleteChart(id: string): Promise<{ ok: boolean; error?: st
   return { ok: true };
 }
 
+/**
+ * Apunta en la fila dónde ha quedado el póster.
+ *
+ * La imagen la sube el navegador directamente a Storage —RLS le deja escribir
+ * solo en su propia carpeta— y aquí solo llega la RUTA. Mandar el PNG entero
+ * por una server action serían 200 KB de base64 dando un rodeo por nuestro
+ * servidor para acabar en el mismo sitio.
+ *
+ * Si falla, no se dice: una gráfica sin póster funciona igual. Perder la vista
+ * previa de Slack no puede impedirle a nadie guardar su trabajo.
+ */
+export async function setPoster(id: string, path: string): Promise<void> {
+  const { supabase } = await sessionOrRedirect();
+  const { data } = await supabase
+    .from('charts')
+    .update({ poster_path: path })
+    .eq('id', id)
+    .select('slug')
+    .maybeSingle<Pick<ChartRow, 'slug'>>();
+
+  if (data) revalidatePath(`/embed/${data.slug}`);
+}
+
 /** Publica o despublica. Es lo único que decide si el link funciona para nadie más. */
 export async function setVisibility(
   id: string,

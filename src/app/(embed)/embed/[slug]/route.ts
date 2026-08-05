@@ -4,6 +4,7 @@ import type { ChartConfig } from '@/lib/config/schema';
 import { embedHtml, errorHtml } from '@/embed/html';
 import { embedAssets, savedEmbedHeaders } from '@/embed/serve';
 import { chartForEmbed } from '@/lib/charts/queries';
+import { posterUrl } from '@/lib/charts/poster';
 
 /*
   /embed/{slug} — la misma gráfica, con link corto y guardada.
@@ -70,7 +71,19 @@ export async function GET(
     title: row.title ?? result.config.title,
   };
 
-  return new Response(embedHtml({ config, css, scriptSrc }), {
-    headers: savedEmbedHeaders,
-  });
+  /* La canónica se compone del origen de ESTA petición: en local, en la preview
+     de Vercel y en producción el dominio es distinto, y una `og:url` fija
+     mandaría a la gente al sitio equivocado desde una preview. */
+  const origen = new URL(request.url).origin;
+
+  return new Response(
+    embedHtml({
+      config,
+      css,
+      scriptSrc,
+      poster: posterUrl(row.poster_path),
+      canonical: `${origen}/embed/${row.slug}`,
+    }),
+    { headers: savedEmbedHeaders },
+  );
 }

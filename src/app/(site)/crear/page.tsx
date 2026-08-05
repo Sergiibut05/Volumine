@@ -57,6 +57,7 @@ export default async function CrearPage({
       chartId={chartId}
       visibility={visibility}
       signedIn={Boolean(user)}
+      userId={user?.id ?? null}
     />
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useOrigin } from '@/lib/use-origin';
 import { useHistoryState } from '@/lib/use-history-state';
 import Link from 'next/link';
@@ -141,9 +141,20 @@ export type EditorProps = {
   visibility: Visibility | null;
   /** Sin sesión no se puede guardar, pero el editor funciona igual. */
   signedIn: boolean;
+  /** Id del usuario. Para la ruta del póster; `null` sin sesión. */
+  userId: string | null;
 };
 
-export function Editor({ initial, chartId, visibility, signedIn }: EditorProps) {
+export function Editor({
+  initial,
+  chartId,
+  visibility,
+  signedIn,
+  userId,
+}: EditorProps) {
+  /* El póster se captura del canvas al guardar. Va por `ref` porque no es un
+     evento: es algo que se PIDE cuando hace falta. Ver lib/charts/poster.ts. */
+  const capture = useRef<(() => string) | null>(null);
   /* El config es la única fuente de verdad del editor, así que deshacer sale
      casi gratis: basta con guardar el config de antes. Ver lib/history.ts. */
   const history = useHistoryState<ChartConfig>(initial);
@@ -302,7 +313,7 @@ export function Editor({ initial, chartId, visibility, signedIn }: EditorProps) 
        es lo contrario, y ese contraste es intencionado. */
     <div className="editor" data-theme="dark">
       <div className="canvas-pane">
-        {parsed.ok && <ChartCanvas config={parsed.config} onHover={setHovered} />}
+        {parsed.ok && <ChartCanvas config={parsed.config} onHover={setHovered} captureRef={capture} />}
 
         {/* El tooltip existía en el embed y NO en el editor, así que la vista
             previa enseñaba menos de lo que iba a ver quien abriera el link. Es
@@ -405,6 +416,8 @@ export function Editor({ initial, chartId, visibility, signedIn }: EditorProps) 
             chartId={chartId}
             visibility={visibility}
             signedIn={signedIn}
+            userId={userId}
+            capture={capture}
           />
         </header>
 
