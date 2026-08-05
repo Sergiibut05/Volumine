@@ -135,9 +135,9 @@ mano desde el aviso.
      corre.
    - **Modo `legend`**: declarado en el contrato y sin implementar, como estaban
      los otros. Es el más barato ahora que existe la capa.
-   - **El editor no tiene tooltip.** El embed sí, así que la vista previa no
-     enseña del todo lo que verá quien abra el link — el mismo problema que
-     motivó meter las etiquetas en el renderer.
+   - ~~El editor no tiene tooltip.~~ Hecho.
+   - **Modo `legend`** y **marcadores del globo** (pulso, emoji, foto) son lo
+     único que queda de la representación de datos.
 3. Tests de regresión visual con Playwright. El andamiaje está.
 3. Póster estático en servidor, para el fallback sin WebGL y las OG images. Es
    lo único de la fase 5 que queda sin empezar.

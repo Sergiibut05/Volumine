@@ -141,7 +141,21 @@ export const defaults = {
     reducedMotion: 'respect',
   },
   labels: {
-    show: true,
+    /*
+      APAGADAS por defecto, y esto tuvo que cambiar de `true`.
+
+      El contrato declaraba `show: true` desde v1, pero las etiquetas no estaban
+      implementadas: el campo no hacía nada y nadie lo notó. Al implementarlas,
+      ese `true` habría encendido etiquetas en TODA gráfica que no dijera lo
+      contrario — incluidas las de cualquier link ya publicado, que es justo lo
+      que la regla 2 del proyecto prohíbe. Y en el editor dejaba el control
+      diciendo «Al pasar» mientras la vista previa las enseñaba.
+
+      Un default que nunca se ejecutó no es un compromiso adquirido: es una
+      línea que nadie llegó a comprobar. Se corrige antes de que exista el primer
+      link publicado, que es ahora.
+    */
+    show: false,
     mode: 'outside',
     showValues: true,
     showPercent: false,

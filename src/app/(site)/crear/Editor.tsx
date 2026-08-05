@@ -6,6 +6,8 @@ import { useHistoryState } from '@/lib/use-history-state';
 import Link from 'next/link';
 import '@/styles/editor.css';
 import { ChartCanvas } from '@/renderer/ChartCanvas';
+import type { HoverInfo } from '@/renderer/core/chart-renderer';
+import { formatter } from '@/lib/format';
 import { parseConfig } from '@/lib/config/parse';
 import { buildEmbedUrl, MAX_URL_LENGTH } from '@/lib/config/url';
 import { THEMES } from '@/lib/themes';
@@ -148,6 +150,7 @@ export function Editor({ initial, chartId, visibility, signedIn }: EditorProps) 
   const config = history.value;
   const setConfig = history.set;
   const [copied, setCopied] = useState(false);
+  const [hovered, setHovered] = useState<HoverInfo>(null);
 
   const origin = useOrigin();
 
@@ -299,7 +302,32 @@ export function Editor({ initial, chartId, visibility, signedIn }: EditorProps) 
        es lo contrario, y ese contraste es intencionado. */
     <div className="editor" data-theme="dark">
       <div className="canvas-pane">
-        {parsed.ok && <ChartCanvas config={parsed.config} />}
+        {parsed.ok && <ChartCanvas config={parsed.config} onHover={setHovered} />}
+
+        {/* El tooltip existía en el embed y NO en el editor, así que la vista
+            previa enseñaba menos de lo que iba a ver quien abriera el link. Es
+            el mismo motivo por el que las etiquetas viven en el renderer: si la
+            previa miente, deja de servir para decidir.
+
+            `labelled` lo pone el renderer: cuando el dato ya está escrito al
+            lado de su pieza, repetirlo aquí abajo sería decir lo mismo dos
+            veces en la misma pantalla. */}
+        {hovered && parsed.ok && !hovered.labelled && (
+          <div className="preview-tip">
+            <b>{hovered.label}</b>
+            <span>
+              {[
+                formatter(parsed.config).value(hovered.value),
+                hovered.fraction === null
+                  ? null
+                  : formatter(parsed.config).percent(hovered.fraction),
+                hovered.series,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </span>
+          </div>
+        )}
 
         {/* La MISMA función que escribe la cifra en el HTML del embed
             (lib/gauge.ts). Es lo que garantiza que lo que se ve aquí es lo que

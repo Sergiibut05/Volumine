@@ -878,3 +878,44 @@
     opacity 0.14s ease,
     box-shadow 0.14s ease;
 }
+
+/*
+  Tooltip de la vista previa.
+
+  Mismas medidas y mismo sitio que el del embed (styles/embed.css): si la previa
+  lo enseñara distinto, dejaría de servir para decidir cómo va a quedar el link.
+  No comparten hoja —el embed no puede cargar la del editor— así que es
+  duplicación consciente, igual que las etiquetas.
+*/
+.preview-tip {
+  position: absolute;
+  left: 50%;
+  /* En el embed va a 12 px del borde; aquí no puede, porque abajo está la barra
+     del link y el tooltip quedaba detrás. Se sube por encima de ella. Es la
+     única medida en la que la previa se aparta del embed a propósito, y es
+     porque el embed no tiene esa barra. */
+  bottom: 68px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 11px;
+  border-radius: 10px;
+  background: rgb(16 16 24 / 0.82);
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 8px 32px rgb(0 0 0 / 0.45),
+    inset 0 0 0 1px rgb(255 255 255 / 0.09);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.preview-tip b {
+  font-weight: 600;
+}
+
+.preview-tip span {
+  opacity: 0.62;
+}
