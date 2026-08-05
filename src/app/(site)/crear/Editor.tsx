@@ -526,6 +526,33 @@ export function Editor({ initial, chartId, visibility, signedIn }: EditorProps) 
               step={0.01}
               onChange={(dotSize) => patchGlobe({ dotSize })}
             />
+            <Choices
+              label="Marcador"
+              value={config.style?.globe?.marker ?? 'dot'}
+              onChange={(marker) =>
+                patchGlobe({ marker: marker as 'dot' | 'pin' | 'pulse' })
+              }
+              options={[
+                {
+                  id: 'dot',
+                  label: 'Punto',
+                  hint: 'Lo más sobrio.',
+                  preview: <MarkerPreview kind="dot" />,
+                },
+                {
+                  id: 'pin',
+                  label: 'Chincheta',
+                  hint: 'Se ve dónde toca, incluso de canto.',
+                  preview: <MarkerPreview kind="pin" />,
+                },
+                {
+                  id: 'pulse',
+                  label: 'Pulso',
+                  hint: 'Para «está pasando ahora».',
+                  preview: <MarkerPreview kind="pulse" />,
+                },
+              ]}
+            />
             <Slider
               label="Tamaño del marcador"
               value={style?.globe.markerSize ?? 0.62}
@@ -1312,6 +1339,47 @@ function LegendPreview() {
           />
         </i>
       ))}
+    </span>
+  );
+}
+
+/** Las tres formas de marcador, en pequeño. */
+function MarkerPreview({ kind }: { kind: 'dot' | 'pin' | 'pulse' }) {
+  return (
+    <span
+      aria-hidden
+      style={{
+        display: 'grid',
+        placeItems: 'center',
+        aspectRatio: '16/9',
+        borderRadius: 5,
+        background: 'var(--surface-sunken)',
+        position: 'relative',
+      }}
+    >
+      {kind === 'pulse' && (
+        <i
+          style={{
+            position: 'absolute',
+            width: 18,
+            height: 18,
+            borderRadius: '50%',
+            border: '1.5px solid #7c5cff',
+            opacity: 0.45,
+          }}
+        />
+      )}
+      <i
+        style={{
+          width: 7,
+          height: 7,
+          borderRadius: '50%',
+          background: '#7c5cff',
+          /* La chincheta se levanta y deja el palo debajo. */
+          transform: kind === 'pin' ? 'translateY(-6px)' : undefined,
+          boxShadow: kind === 'pin' ? '0 8px 0 -2.5px #7c5cff' : undefined,
+        }}
+      />
     </span>
   );
 }

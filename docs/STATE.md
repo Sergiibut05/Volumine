@@ -124,7 +124,7 @@ mano desde el aviso.
    de Google Cloud; la Redirect URI que pide Google es la de SUPABASE
    (`https://butxsqcragkopzxsrukz.supabase.co/auth/v1/callback`), no la nuestra.
    El magic link ya funciona sin configurar nada.
-2. **Terminar las etiquetas de datos.** Hecho: la capa (la monta el renderer, así
+2. ~~Terminar las etiquetas de datos.~~ Hecho: la capa (la monta el renderer, así
    que editor y embed enseñan lo mismo por construcción), las líneas guía del
    anillo y la tarta, los nombres bajo cada barra, y el resalte al señalar en vez
    de repetir el dato en el tooltip. Falta:
@@ -136,8 +136,11 @@ mano desde el aviso.
    - **Modo `legend`**: declarado en el contrato y sin implementar, como estaban
      los otros. Es el más barato ahora que existe la capa.
    - ~~El editor no tiene tooltip.~~ Hecho.
-   - **Modo `legend`** y **marcadores del globo** (pulso, emoji, foto) son lo
-     único que queda de la representación de datos.
+   - ~~Modo `legend`~~ y ~~marcadores del globo~~: hechos. La representación de
+     datos está **completa**: líneas guía en anillo y tarta, nombres bajo las
+     barras, etiquetas viajeras en la carrera, etiquetas con oclusión en el
+     globo, leyenda, tooltip en las dos superficies, y marcadores `dot`/`pin`/
+     `pulse`. Todo opcional y apagado por defecto.
 3. Tests de regresión visual con Playwright. El andamiaje está.
 3. Póster estático en servidor, para el fallback sin WebGL y las OG images. Es
    lo único de la fase 5 que queda sin empezar.

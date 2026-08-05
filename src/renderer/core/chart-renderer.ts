@@ -1,6 +1,8 @@
 import {
   ACESFilmicToneMapping,
   Color,
+  CylinderGeometry,
+  RingGeometry,
   DirectionalLight,
   DoubleSide,
   Group,
@@ -125,6 +127,12 @@ const BAR_SWAY_DEGREES = 13;
  */
 const MARKER_HIT_SCALE = 2.4;
 const MARKER_HIT_FLOOR = 0.055;
+
+/* Ejes de referencia para orientar las piezas del globo. Un cilindro de three
+   nace apuntando a +Y y un anillo mira a +Z; para tumbarlos sobre la normal de
+   su punto hace falta saber de dónde parten. */
+const UP = new Vector3(0, 1, 0);
+const FORWARD = new Vector3(0, 0, 1);
 
 /** Reutilizados en el raycast, que corre en cada frame. */
 const hitCenter = new Vector3();
@@ -885,9 +893,16 @@ export function createChartRenderer(
   let globeBody: Mesh | null = null;
   let globeLand: Points | null = null;
   let globeGlow: Mesh | null = null;
+  /* Palos de chincheta y anillos de pulso: acompañan a un marcador pero NO son
+     datos —no responden al ratón ni tienen tooltip—, así que van aquí y no en
+     `pieces`. Si estuvieran en `pieces`, señalar el palo de Madrid abriría el
+     tooltip de Madrid desde un sitio que no es Madrid. */
+  let globeExtras: Mesh[] = [];
+  /** Anillos que laten, con su desfase. Se animan en el bucle. */
+  let pulses: { mesh: Mesh; base: number; phase: number }[] = [];
 
   function disposeGlobe() {
-    for (const object of [globeBody, globeLand, globeGlow]) {
+    for (const object of [globeBody, globeLand, globeGlow, ...globeExtras]) {
       if (!object) continue;
       group.remove(object);
       object.geometry.dispose();
@@ -896,6 +911,8 @@ export function createChartRenderer(
     globeBody = null;
     globeLand = null;
     globeGlow = null;
+    globeExtras = [];
+    pulses = [];
   }
 
   function buildGlobe() {
@@ -979,6 +996,8 @@ export function createChartRenderer(
     /* Los marcadores SÍ son datos: mallas propias para que el raycaster y el
        tooltip funcionen igual que en el resto de tipos. Emisivos, para que se
        lean sobre la cara oscura del planeta sin depender de dónde dé la luz. */
+    const forma = config.style.globe.marker;
+
     for (const marker of layout.markers) {
       const color = colorForSegment(config, marker.index);
       const mesh = new Mesh(
@@ -986,6 +1005,59 @@ export function createChartRenderer(
         new MeshBasicMaterial({ color }),
       );
       mesh.position.copy(marker.position);
+
+      /*
+        CHINCHETA. La bola se despega de la superficie y se une con un palo fino
+        hasta el suelo.
+
+        No es adorno: en una esfera, los puntos cerca del limbo se ven de canto y
+        se confunden con la silueta del planeta. Levantándolos se recorta contra
+        el fondo la bola, y el palo dice exactamente dónde toca — que es el dato.
+      */
+      if (forma === 'pin') {
+        const alto = marker.radius * 3.4;
+        mesh.position.add(marker.normal.clone().multiplyScalar(alto));
+
+        const palo = new Mesh(
+          new CylinderGeometry(marker.radius * 0.16, marker.radius * 0.16, alto, 6),
+          new MeshBasicMaterial({ color, transparent: true, opacity: 0.75 }),
+        );
+        // El cilindro nace en Y; se tumba sobre la normal de su punto.
+        palo.position.copy(marker.position).add(marker.normal.clone().multiplyScalar(alto / 2));
+        palo.quaternion.setFromUnitVectors(UP, marker.normal);
+        palo.raycast = () => {};
+        group.add(palo);
+        globeExtras.push(palo);
+      }
+
+      /*
+        PULSO. Un anillo plano, pegado a la superficie y mirando hacia fuera, que
+        crece y se desvanece.
+
+        Dice «esto está pasando ahora», que es lo que un punto quieto no puede
+        decir. Se anima en el bucle escalando y bajando la opacidad; no se
+        reconstruye nada por frame.
+      */
+      if (forma === 'pulse') {
+        const anillo = new Mesh(
+          new RingGeometry(marker.radius * 1.5, marker.radius * 1.9, 24),
+          new MeshBasicMaterial({
+            color,
+            transparent: true,
+            opacity: 0.5,
+            side: DoubleSide,
+            depthWrite: false,
+          }),
+        );
+        anillo.position
+          .copy(marker.position)
+          .add(marker.normal.clone().multiplyScalar(marker.radius * 0.2));
+        anillo.quaternion.setFromUnitVectors(FORWARD, marker.normal);
+        anillo.raycast = () => {};
+        group.add(anillo);
+        globeExtras.push(anillo);
+        pulses.push({ mesh: anillo, base: marker.radius, phase: pulses.length * 0.35 });
+      }
       makeMarkerEasyToHit(mesh, marker.radius);
       group.add(mesh);
 
@@ -1221,6 +1293,7 @@ export function createChartRenderer(
   let lastTime = 0;
   let frame = 0;
   let swayPhase = 0;
+  let pulseTime = 0;
 
   /**
    * Avanza la carrera un frame.
@@ -1332,6 +1405,23 @@ export function createChartRenderer(
     }
 
     if (config.type === 'bar-race') updateRace(delta);
+
+    /*
+      El latido. Cada anillo crece de 1 a ~2,2 y se apaga al llegar, y vuelve a
+      empezar. Con desfase entre marcadores: todos a la vez late como un fallo
+      de sincronía, escalonados late como actividad.
+
+      Se escala y se cambia la opacidad de mallas que YA existen — nada de
+      geometría nueva por frame (CLAUDE.md).
+    */
+    if (pulses.length > 0 && motionEnabled()) {
+      pulseTime += delta;
+      for (const pulse of pulses) {
+        const t = (pulseTime * 0.55 + pulse.phase) % 1;
+        pulse.mesh.scale.setScalar(1 + t * 1.2);
+        (pulse.mesh.material as MeshBasicMaterial).opacity = 0.5 * (1 - t) ** 1.6;
+      }
+    }
 
     updateHover();
 

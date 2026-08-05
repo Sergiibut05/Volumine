@@ -103,6 +103,7 @@ a mano. **Un link publicado debe seguir funcionando para siempre.**
     "density": 0.72, // cuántos puntos
     "dotSize": 0.7,
     "markerSize": 0.62,
+    "marker": "dot"    // "dot" | "pin" (chincheta) | "pulse" (late)
   },
   // Solo `gauge`. Agrupado por lo mismo que `globe`.
   "gauge": {

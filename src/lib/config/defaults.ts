@@ -40,6 +40,7 @@ export type ResolvedChartConfig = {
       density: number;
       dotSize: number;
       markerSize: number;
+      marker: 'dot' | 'pin' | 'pulse';
     };
     gauge: {
       max: number;
@@ -94,6 +95,9 @@ export const defaults = {
       density: 0.72,
       dotSize: 0.7,
       markerSize: 0.62,
+      /* `dot` de default: es el que no cuenta ninguna historia además del dato,
+         y el default no debe elegir historia por nadie. */
+      marker: 'dot',
     },
     gauge: {
       /* 100 porque el caso abrumadoramente mayoritario es un porcentaje, y así

@@ -93,6 +93,16 @@ export const styleSchema = z.object({
       dotSize: unit.optional(),
       /** Tamaño del marcador mayor. */
       markerSize: unit.optional(),
+      /**
+       * Qué es un marcador.
+       *
+       * `dot` — una esfera. Lo de siempre y lo más sobrio.
+       * `pin` — chincheta: la esfera se levanta sobre un palo fino. Se ve
+       *   dónde toca el suelo aunque el punto quede de canto en el limbo.
+       * `pulse` — el punto con un anillo que late a su alrededor. Para «esto
+       *   está pasando ahora», que es lo que hace un mapa en vivo.
+       */
+      marker: z.enum(['dot', 'pin', 'pulse']).optional(),
     })
     .optional(),
   /**
