@@ -86,12 +86,24 @@ presupuesto.
 
 ## Fase 5 — Cuentas y persistencia
 
-- [ ] Supabase: esquema, RLS, migraciones (con `plan` y cuotas ya modelados)
-- [ ] Auth (Google + magic link)
-- [ ] Guardar / listar / duplicar / borrar gráficas
-- [ ] `/embed/{id}` desde BBDD
-- [ ] Tests de las políticas RLS
+- [x] Supabase: esquema, RLS, migraciones (con `plan` y cuotas ya modelados)
+- [x] Auth (Google + magic link)
+- [x] Guardar / listar / duplicar / borrar gráficas
+- [x] `/embed/{slug}` desde BBDD, anónimo y sin cookies
+- [x] Tests de las políticas RLS — **escritos pero nunca ejecutados**, ver abajo
 - [ ] Generación de póster estático y OG image en servidor
+
+Los permisos los decide Postgres y no el servidor de Next (ADR 0007): el código
+de la aplicación no lleva ni una comprobación de propiedad escrita a mano.
+
+**Falta para poder cerrar la fase:**
+
+1. Aplicar `supabase/migrations/0001_charts.sql` al proyecto.
+2. Poner `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` (ver
+   `.env.example`), y activar Google y el magic link en Supabase → Auth.
+3. **Ejecutar `rls.test.ts` contra una rama de Supabase.** Están escritos con
+   cuidado pero no se han corrido nunca: hasta que pasen, las políticas son una
+   intención, no un hecho.
 
 **Criterio de salida:** cierras el navegador y tu gráfica sigue ahí.
 

@@ -1,0 +1,299 @@
+/*
+  Entrar y listado de gráficas.
+
+  Misma dirección de arte que el marketing —papel pálido frío, el objeto
+  apoyado encima (docs/DESIGN.md)— y NO la del editor, que es oscuro a
+  propósito. Entrar y ver lo tuyo son pantallas de la casa, no del taller.
+
+  Las variables de color están duplicadas de `.studio` en marketing.css a
+  propósito: estas pantallas no arrastran esa hoja entera para usar seis
+  colores. Si crecen, se sube el bloque a un sitio común.
+*/
+
+.auth-page,
+.charts-page {
+  --paper: #ededf0;
+  --paper-deep: #dfdfe6;
+  --paper-edge: #cfcfd9;
+  --ink: #14141a;
+  --ink-soft: #55555f;
+  --ink-faint: #8a8a96;
+  --spark: #5b3ce6;
+
+  min-height: 100dvh;
+  background:
+    radial-gradient(120% 80% at 50% -10%, #f6f6f8 0%, var(--paper) 55%), var(--paper);
+  color: var(--ink);
+}
+
+.auth-page {
+  display: grid;
+  place-content: center;
+  gap: 1.25rem;
+  padding: 2rem 1.25rem;
+}
+
+.auth-card {
+  width: min(26rem, 100%);
+  padding: 2rem;
+  border: 1px solid var(--paper-edge);
+  border-radius: 1.25rem;
+  background: #fff;
+  /* Sombra baja y ancha: la tarjeta está APOYADA en el papel, no flotando. */
+  box-shadow: 0 24px 48px -32px rgb(20 20 26 / 0.4);
+}
+
+.auth-card h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.75rem;
+  line-height: 1.1;
+}
+
+.auth-card p {
+  margin: 0 0 1.5rem;
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.auth-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--paper-edge);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.16s var(--p-ease-out, ease);
+}
+
+.auth-google:hover:not(:disabled) {
+  border-color: var(--ink-faint);
+}
+
+.auth-google:disabled,
+.auth-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.auth-sep {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+  color: var(--ink-faint);
+  font-size: 0.8125rem;
+}
+
+.auth-sep::before,
+.auth-sep::after {
+  content: '';
+  height: 1px;
+  background: var(--paper-edge);
+}
+
+.auth-field {
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.auth-field span {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+.auth-field input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--paper-edge);
+  border-radius: 0.75rem;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+}
+
+.auth-field input:focus-visible {
+  outline: 2px solid var(--spark);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.auth-submit {
+  width: 100%;
+  justify-content: center;
+  border: 0;
+  cursor: pointer;
+}
+
+.auth-error {
+  margin: 1rem 0 0;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.625rem;
+  /* Rojo apagado sobre papel, no rojo de alerta de sistema: casi siempre es un
+     link caducado, que no es culpa de nadie. */
+  background: #fdecef;
+  color: #8c1c33;
+  font-size: 0.875rem;
+}
+
+.auth-note {
+  margin: 1.5rem 0 0 !important;
+  color: var(--ink-faint) !important;
+  font-size: 0.8125rem !important;
+  line-height: 1.5;
+}
+
+.auth-back {
+  color: var(--ink-faint);
+  text-decoration: none;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.auth-back:hover {
+  color: var(--ink);
+}
+
+/* ── listado de gráficas ─────────────────────────────────────────────────── */
+
+.charts-page {
+  padding: 2rem 1.25rem 6rem;
+}
+
+.charts-shell {
+  width: min(64rem, 100%);
+  margin: 0 auto;
+}
+
+.charts-head {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+.charts-head h1 {
+  margin: 0;
+  font-size: 1.75rem;
+}
+
+.charts-quota {
+  color: var(--ink-faint);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chart-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border: 1px solid var(--paper-edge);
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.chart-card h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  /* Un título largo no puede empujar la tarjeta ni partir la rejilla. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chart-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--ink-faint);
+  font-size: 0.8125rem;
+}
+
+/* Público / privado. Es el dato más importante de la tarjeta —dice si el link
+   funciona para alguien más—, así que se lee de un vistazo y no en un menú. */
+.chart-badge {
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.chart-badge[data-visibility='public'] {
+  background: color-mix(in oklab, var(--spark) 12%, #fff);
+  color: var(--spark);
+}
+
+.chart-badge[data-visibility='private'] {
+  background: var(--paper-deep);
+  color: var(--ink-soft);
+}
+
+.chart-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: auto;
+  padding-top: 0.25rem;
+}
+
+.chart-actions button,
+.chart-actions a {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--paper-edge);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.8125rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.chart-actions button:hover:not(:disabled),
+.chart-actions a:hover {
+  border-color: var(--ink-faint);
+  color: var(--ink);
+}
+
+.chart-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Borrar se separa y se tiñe solo al acercarse: presente pero no a mano. */
+.chart-actions .danger:hover:not(:disabled) {
+  border-color: #d4899b;
+  color: #8c1c33;
+}
+
+.charts-empty {
+  padding: 3rem 2rem;
+  border: 1px dashed var(--paper-edge);
+  border-radius: 1rem;
+  text-align: center;
+  color: var(--ink-soft);
+}

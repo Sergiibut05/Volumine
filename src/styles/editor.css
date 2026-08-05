@@ -684,3 +684,61 @@
   color: var(--p-amber-400, #ffd166);
   font-weight: 500;
 }
+
+/*
+  Guardar, en la cabecera del panel.
+
+  Discreto a propósito: en Voluma guardar es OPCIONAL —el link ya funciona sin
+  cuenta— así que este botón no puede pedir la atención que pide el de copiar
+  el link. Es una salida más, no la salida.
+*/
+.savebar {
+  display: flex;
+  align-items: center;
+  gap: var(--p-space-2);
+  margin-left: var(--p-space-3);
+}
+
+.savebar button,
+.savebar-link {
+  padding: 0.3125rem 0.75rem;
+  border: 1px solid var(--edge-subtle);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.8125rem;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.savebar-link {
+  margin-left: var(--p-space-3);
+}
+
+.savebar button:hover:not(:disabled),
+.savebar-link:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.savebar button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* «Publicada» avisa de que lo que se guarda cambia algo que ya está incrustado
+   en la página de alguien. Por eso está pegado al botón y no en otra pantalla. */
+.savebar-live {
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.savebar-error {
+  max-width: 16rem;
+  color: var(--p-amber-400, #ffd166);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
