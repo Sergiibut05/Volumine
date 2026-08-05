@@ -170,10 +170,18 @@ export function Editor({ initial, chartId, visibility, signedIn }: EditorProps) 
   const isGlobe = config.type === 'globe';
   const isRace = config.type === 'bar-race';
   const isGauge = config.type === 'gauge';
-  /* Por ahora las líneas guía radiales solo tienen sentido en el anillo y la
-     tarta. Las barras y el globo piden otra colocación —bajo el eje y al lado
-     del punto— y hasta que exista no se ofrece un control que no haría nada. */
-  const supportsLabels = config.type === 'donut' || config.type === 'pie';
+  /*
+    El anillo y la tarta llevan líneas guía a los lados; las barras, el nombre
+    bajo cada barra.
+
+    Fuera quedan tres, y por motivos distintos: el medidor ya escribe su cifra en
+    el centro, el globo pide marcadores propios —al lado del punto y ocultando
+    los de la cara de atrás— y la carrera necesita que la etiqueta VIAJE con su
+    barra, que no es colocar sino animar. Hasta que existan, no se ofrece un
+    control que no haría nada.
+  */
+  const supportsLabels =
+    config.type === 'donut' || config.type === 'pie' || config.type === 'bar';
   const gaugeReading = parsed.ok && isGauge ? gaugeReadout(parsed.config) : null;
 
   const bevelCeiling = useMemo(() => {
@@ -668,13 +676,13 @@ export function Editor({ initial, chartId, visibility, signedIn }: EditorProps) 
                   id: 'none',
                   label: 'Al pasar',
                   hint: 'Solo al poner el ratón encima.',
-                  preview: <LabelPreview leaders={false} />,
+                  preview: <LabelPreview leaders={false} bars={isBar || isRace} />,
                 },
                 {
                   id: 'outside',
                   label: 'Siempre',
                   hint: 'Con línea hasta cada parte.',
-                  preview: <LabelPreview leaders />,
+                  preview: <LabelPreview leaders bars={isBar || isRace} />,
                 },
               ]}
             />
@@ -1095,7 +1103,47 @@ function TrackPreview({ track }: { track: boolean }) {
 }
 
 /** Con y sin líneas guía. La diferencia se ve, no se explica. */
-function LabelPreview({ leaders }: { leaders: boolean }) {
+function LabelPreview({ leaders, bars }: { leaders: boolean; bars?: boolean }) {
+  if (bars) {
+    return (
+      <span
+        aria-hidden
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          alignItems: 'end',
+          gap: '14%',
+          aspectRatio: '16/9',
+          padding: '14% 16%',
+          borderRadius: 5,
+          background: 'var(--surface-sunken)',
+        }}
+      >
+        {[70, 100, 45].map((h, i) => (
+          <i key={h} style={{ display: 'grid', gap: 3, justifyItems: 'center' }}>
+            <i
+              style={{
+                width: '100%',
+                height: `${h * 0.32}px`,
+                borderRadius: 2,
+                background: ['#7c5cff', '#00d4ff', '#41ffc9'][i],
+              }}
+            />
+            <i
+              style={{
+                width: leaders ? '100%' : 0,
+                height: 2,
+                borderRadius: 2,
+                background: 'currentColor',
+                opacity: 0.5,
+              }}
+            />
+          </i>
+        ))}
+      </span>
+    );
+  }
+
   return (
     <span
       aria-hidden

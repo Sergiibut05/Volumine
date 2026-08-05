@@ -116,13 +116,20 @@ mano desde el aviso.
    de Google Cloud; la Redirect URI que pide Google es la de SUPABASE
    (`https://butxsqcragkopzxsrukz.supabase.co/auth/v1/callback`), no la nuestra.
    El magic link ya funciona sin configurar nada.
-2. **Terminar las etiquetas de datos.** Ya existe la capa (el renderer monta el
-   HTML encima del canvas, así que el editor y el embed lo enseñan igual por
-   construcción) y las líneas guía del anillo y la tarta. Falta lo de cada tipo:
-   nombres bajo el eje en barras, valor al final de la barra en la carrera,
-   etiqueta al lado del punto en el globo, y el modo `legend`. El globo pide
-   además marcadores propios al estilo de cobe —pulso, emoji, foto—, que es
-   campo nuevo en `style.globe`.
+2. **Terminar las etiquetas de datos.** Hecho: la capa (la monta el renderer, así
+   que editor y embed enseñan lo mismo por construcción), las líneas guía del
+   anillo y la tarta, los nombres bajo cada barra, y el resalte al señalar en vez
+   de repetir el dato en el tooltip. Falta:
+   - **Globo**: marcadores propios al estilo de cobe —pulso, emoji, foto— más la
+     etiqueta al lado del punto, ocultando los de la cara de atrás. Es campo
+     nuevo en `style.globe`, no solo colocación.
+   - **Carrera**: la etiqueta tiene que VIAJAR con su barra, que no es colocar
+     sino animar.
+   - **Modo `legend`**: declarado en el contrato y sin implementar, como estaban
+     los otros. Es el más barato ahora que existe la capa.
+   - **El editor no tiene tooltip.** El embed sí, así que la vista previa no
+     enseña del todo lo que verá quien abra el link — el mismo problema que
+     motivó meter las etiquetas en el renderer.
 3. Tests de regresión visual con Playwright. El andamiaje está.
 3. Póster estático en servidor, para el fallback sin WebGL y las OG images. Es
    lo único de la fase 5 que queda sin empezar.

@@ -328,3 +328,32 @@ canvas {
     stroke: rgb(17 17 24);
   }
 }
+
+/*
+  Resalte al señalar una pieza.
+
+  Cuando las etiquetas están a la vista, señalar un trozo NO saca un tooltip que
+  repita lo que ya pone al lado: destaca su etiqueta y atenúa las demás. Es la
+  respuesta al gesto —te digo cuál de todas estás tocando— sin duplicar el dato
+  en dos sitios de la pantalla a la vez.
+*/
+.voluma-label[data-state='dim'] {
+  opacity: 0.32;
+}
+
+.voluma-label[data-state='on'] {
+  opacity: 1;
+}
+
+.voluma-leader[data-state='dim'] {
+  opacity: 0.15;
+}
+
+.voluma-leader[data-state='on'] {
+  opacity: 0.8;
+}
+
+.voluma-label,
+.voluma-leader {
+  transition: opacity 0.14s ease;
+}

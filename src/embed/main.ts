@@ -74,7 +74,12 @@ function main() {
 
     handle.onHover((info: HoverInfo) => {
       if (!tooltip) return;
-      if (!info || !config!.interaction.tooltip) {
+      /* `info.labelled`: si el dato ya está escrito al lado de su pieza, el
+         tooltip repetiría abajo lo que se está leyendo arriba. El resalte de la
+         propia etiqueta es la respuesta al gesto; el tooltip sobra. Lo decide el
+         renderer, que es el único que sabe qué etiquetas ha llegado a dibujar —
+         las que no caben SÍ necesitan tooltip. */
+      if (!info || !config!.interaction.tooltip || info.labelled) {
         tooltip.hidden = true;
         return;
       }

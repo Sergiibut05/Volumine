@@ -24,6 +24,20 @@ import { fitLabels, stackLabels } from './labels';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
+/**
+ * Cómo se coloca una etiqueta respecto a su pieza.
+ *
+ * `radial` — se va a los lados de la escena y llega una línea guía. Es lo que
+ * pide un anillo: sus trozos rodean un centro, así que las etiquetas rodean el
+ * dibujo y las líneas dicen cuál es cuál.
+ *
+ * `point` — se queda pegada a su pieza, centrada debajo, sin línea. Es lo que
+ * pide una fila de barras: cada nombre va bajo SU barra, como el eje de
+ * cualquier gráfica de barras de toda la vida. Mandarlas a los lados con líneas
+ * sería inventarse un problema que las barras no tienen.
+ */
+export type Placement = 'radial' | 'point';
+
 /** Lo que el renderer sabe de cada etiqueta. El resto lo decide esta capa. */
 export type LabelAnchor = {
   index: number;
@@ -49,9 +63,19 @@ type Item = {
 
 export type LabelLayer = {
   /** Rehace el DOM. Se llama al reconstruir la escena, no en cada frame. */
-  rebuild(anchors: LabelAnchor[], config: ResolvedChartConfig): void;
+  rebuild(anchors: LabelAnchor[], config: ResolvedChartConfig, placement: Placement): void;
   /** Recoloca. Se llama en cada frame: solo escribe transforms. */
   update(camera: PerspectiveCamera, group: Object3D, width: number, height: number): void;
+  /**
+   * ¿Este dato tiene su etiqueta escrita y a la vista AHORA MISMO?
+   *
+   * No basta con que las etiquetas estén encendidas: con muchas categorías
+   * algunas se descartan por falta de sitio, y de esas el tooltip sigue siendo
+   * la única forma de leer el dato.
+   */
+  isLabelled(index: number): boolean;
+  /** Destaca la etiqueta de un dato y atenúa las demás. `null` las iguala. */
+  highlight(index: number | null): void;
   dispose(): void;
 };
 
@@ -84,6 +108,9 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
 
   let items: Item[] = [];
   const tmp = new Vector3();
+  /** Los índices que de verdad se están dibujando en este momento. */
+  let shown = new Set<number>();
+  let placement: Placement = 'radial';
 
   function clear() {
     for (const item of items) {
@@ -94,8 +121,10 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
   }
 
   return {
-    rebuild(anchors, config) {
+    rebuild(anchors, config, next) {
       clear();
+      placement = next;
+      shown = new Set();
       root.style.display =
         config.labels.show && config.labels.mode !== 'none' ? '' : 'none';
       if (!config.labels.show || config.labels.mode === 'none') return;
@@ -143,6 +172,7 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
 
     update(camera, group, width, height) {
       if (items.length === 0) return;
+      shown = new Set();
 
       // Alto real de la primera etiqueta: depende de la tipografía del anfitrión
       // y del tamaño que haya pedido el config, así que se mide, no se supone.
@@ -172,6 +202,39 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
         });
       }
 
+      /*
+        Colocación pegada a la pieza. Sin apilado vertical y sin línea: la
+        etiqueta ESTÁ donde está su barra, así que no hace falta nada que las
+        una. Lo único que hay que resolver es que dos nombres seguidos no se
+        pisen de lado, que con muchas categorías pasa.
+      */
+      if (placement === 'point') {
+        // De izquierda a derecha en pantalla, para descartar en ese orden.
+        puestos.sort((a, b) => a.x - b.x);
+        let ocupadoHasta = -Infinity;
+
+        for (const puesto of puestos) {
+          const ancho = puesto.item.box.offsetWidth;
+          const x = puesto.x - ancho / 2;
+
+          /* Si se solaparía con la anterior se esconde, en vez de moverla. Una
+             etiqueta desplazada bajo una barra que no es la suya miente sobre
+             qué barra es cuál, y eso es peor que no ponerla. */
+          if (x < ocupadoHasta + 4) {
+            puesto.item.box.style.display = 'none';
+            puesto.item.line.style.display = 'none';
+            continue;
+          }
+          ocupadoHasta = x + ancho;
+          shown.add(puesto.item.index);
+
+          puesto.item.line.style.display = 'none';
+          puesto.item.box.style.transform = `translate(${Math.round(x)}px, ${Math.round(puesto.y)}px)`;
+          puesto.item.box.dataset.side = 'center';
+        }
+        return;
+      }
+
       /* Se apilan las dos columnas por separado. Mezclarlas haría que una
          etiqueta de la izquierda empujase a una de la derecha, que no se pisan
          entre ellas porque están en lados opuestos de la pantalla. */
@@ -197,6 +260,7 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
             puesto.item.line.style.display = 'none';
             return;
           }
+          shown.add(puesto.item.index);
 
           const y = ys[i];
           const ancho = puesto.item.box.offsetWidth;
@@ -218,6 +282,28 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
             `${puesto.x.toFixed(1)},${puesto.y.toFixed(1)} ${codoX.toFixed(1)},${finY.toFixed(1)} ${finX.toFixed(1)},${finY.toFixed(1)}`,
           );
         });
+      }
+    },
+
+    isLabelled(index) {
+      return shown.has(index);
+    },
+
+    /*
+      Al señalar una pieza se destaca SU etiqueta y se atenúan las otras, en vez
+      de sacar un tooltip que repita lo que ya pone ahí. Es la respuesta al
+      gesto: te digo cuál de todas es la que estás tocando.
+    */
+    highlight(index) {
+      for (const item of items) {
+        if (index === null) {
+          delete item.box.dataset.state;
+          delete (item.line as unknown as HTMLElement).dataset.state;
+          continue;
+        }
+        const estado = item.index === index ? 'on' : 'dim';
+        item.box.dataset.state = estado;
+        (item.line as unknown as HTMLElement).dataset.state = estado;
       }
     },
 

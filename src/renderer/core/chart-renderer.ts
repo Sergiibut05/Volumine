@@ -246,6 +246,16 @@ export type HoverInfo = {
   fraction: number | null;
   /** Nombre de la serie. `null` cuando solo hay una. */
   series: string | null;
+  /**
+   * Este dato YA tiene su etiqueta escrita y visible en pantalla.
+   *
+   * Existe para que el anfitrión no repita en un tooltip lo que ya se está
+   * leyendo al lado de la pieza. Lo decide el renderer y no el anfitrión porque
+   * es el único que sabe qué etiquetas ha llegado a dibujar: con muchas
+   * categorías algunas se descartan por falta de sitio, y esas SÍ necesitan
+   * tooltip.
+   */
+  labelled: boolean;
 } | null;
 
 export type ChartRendererHandle = {
@@ -264,8 +274,13 @@ export type ChartRendererHandle = {
   renderOnce(): void;
 };
 
+/* Lo que se GUARDA de cada pieza. `labelled` no está aquí a propósito: no es un
+   dato de la pieza sino del momento —depende de si su etiqueta ha cabido en
+   pantalla ahora mismo— y se calcula al emitir el hover. */
+type PieceInfo = Omit<NonNullable<HoverInfo>, 'labelled'>;
+
 type Piece = {
-  info: NonNullable<HoverInfo>;
+  info: PieceInfo;
   mesh: Mesh;
   /** Sitio de la pieza en el grupo. El realce y el explode se suman a esto. */
   base: Vector3;
@@ -513,7 +528,7 @@ export function createChartRenderer(
   function addPiece(
     geometry: BufferGeometry,
     colorIndex: number,
-    info: NonNullable<HoverInfo>,
+    info: PieceInfo,
     base: Vector3,
     direction: Vector3,
     /**
@@ -720,6 +735,28 @@ export function createChartRenderer(
         /* Sin dirección: una barra realzada sube, no se aparta. Apartarla la
            sacaría de su celda y dejaría de estar donde dice su categoría. */
         new Vector3(0, 0, 0),
+        {
+          /*
+            La etiqueta va BAJO la barra, no encima.
+
+            Encima tendría que esquivar una altura que cambia con el dato, y con
+            dos barras muy desiguales las etiquetas quedarían a alturas
+            distintas — se leerían como si dijeran algo sobre el valor. Abajo
+            todas están en la misma línea, que es lo que hace un eje.
+
+            Se ancla en la CARA DELANTERA de la base (media profundidad hacia la
+            cámara). Desde el centro de la barra, la propia barra tapa el punto
+            en cuanto la escena se inclina, y la etiqueta parecería flotar
+            detrás. Al ir en el plano de la base y no en pantalla, hereda la
+            perspectiva: la fila de nombres se inclina con la gráfica, que es
+            justo el efecto de una gráfica 3D bien hecha.
+          */
+          anchor: new Vector3(
+            bar.x,
+            layout.baseline,
+            bar.z + Math.max(layout.width, 0.05) / 2,
+          ),
+        },
       );
     }
   }
@@ -997,7 +1034,10 @@ export function createChartRenderer(
         anchor: piece.anchor,
       });
     }
-    labelLayer.rebuild(anchors, config);
+    /* El anillo y la tarta rodean un centro, así que sus etiquetas rodean el
+       dibujo. Todo lo demás va pegado a su pieza. */
+    const radial = config.type === 'donut' || config.type === 'pie';
+    labelLayer.rebuild(anchors, config, radial ? 'radial' : 'point');
   }
 
   function applySceneSettings() {
@@ -1128,8 +1168,12 @@ export function createChartRenderer(
     hovered = next;
     canvas.style.cursor = next ? 'pointer' : '';
 
+    labelLayer.highlight(next ? next.info.index : null);
+
     if (!hoverCallback) return;
-    hoverCallback(next ? next.info : null);
+    hoverCallback(
+      next ? { ...next.info, labelled: labelLayer.isLabelled(next.info.index) } : null,
+    );
   }
 
   // ── bucle ─────────────────────────────────────────────────────────────────
