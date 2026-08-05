@@ -318,29 +318,26 @@ function cameraPosition(config: ResolvedChartConfig): Vector3 {
 }
 
 /** Clave de lo que obliga a regenerar la geometría. Nada más la regenera. */
-function geometryKey(config: ResolvedChartConfig): string {
-  const s = config.style;
-  return [
-    config.type,
-    // Todas las series: las barras usan más de una.
-    config.data.series.map((serie) => serie.values.join(',')).join(';'),
-    s.innerRadius,
-    s.height,
-    s.gap,
-    s.bevel,
-    s.cornerRadius,
-  ].join('|');
-}
-
-function materialKey(config: ResolvedChartConfig): string {
-  const s = config.style;
-  return [
-    s.material,
-    s.roughness,
-    s.metalness,
-    s.palette.join(','),
-    config.data.series[0]?.colors?.join(',') ?? '',
-  ].join('|');
+/**
+ * Qué obliga a reconstruir la escena.
+ *
+ * Se serializa TODO `data` y TODO `style` salvo lo que se aplica por frame.
+ *
+ * Antes esto era una lista de campos escrita a mano, y esa lista se quedaba
+ * corta con cada tipo nuevo: el globo llegó con `data.coords` y con
+ * `style.globe`, ninguno de los dos estaba enumerado, y el resultado era que
+ * cambiar una coordenada o mover el slider de densidad no repintaba nada. No
+ * daba error: simplemente no pasaba nada, que es el peor fallo posible.
+ *
+ * Enumerar lo que NO entra es una lista corta y estable —lo que se aplica en el
+ * bucle o al colocar la cámara—; enumerar lo que sí entra crece con cada tipo y
+ * alguien acaba olvidándose.
+ */
+function buildKey(config: ResolvedChartConfig): string {
+  /* `explode` mueve las piezas en el bucle, no cambia su forma: incluirlo
+     reconstruiría el globo entero —29.000 muestras— en cada paso del slider. */
+  const { explode: _explode, ...style } = config.style;
+  return JSON.stringify([config.type, config.data, style]);
 }
 
 export function createChartRenderer(
@@ -441,8 +438,7 @@ export function createChartRenderer(
   });
 
   let pieces: Piece[] = [];
-  let currentGeometryKey = '';
-  let currentMaterialKey = '';
+  let currentKey = '';
 
   // Reutilizables: crear objetos por frame es presión de GC y tirones.
   const raycaster = new Raycaster();
@@ -1108,8 +1104,7 @@ export function createChartRenderer(
   canvas.addEventListener('pointermove', onPointerMove);
   canvas.addEventListener('pointerleave', onPointerLeave);
 
-  currentGeometryKey = geometryKey(config);
-  currentMaterialKey = materialKey(config);
+  currentKey = buildKey(config);
   build();
   applySceneSettings();
   resize();
@@ -1120,16 +1115,11 @@ export function createChartRenderer(
       const previous = config;
       config = next;
 
-      const nextGeometryKey = geometryKey(next);
-      const nextMaterialKey = materialKey(next);
+      const nextKey = buildKey(next);
 
       // Regenerar geometría es caro: solo cuando cambia algo que la afecta.
-      if (
-        nextGeometryKey !== currentGeometryKey ||
-        nextMaterialKey !== currentMaterialKey
-      ) {
-        currentGeometryKey = nextGeometryKey;
-        currentMaterialKey = nextMaterialKey;
+      if (nextKey !== currentKey) {
+        currentKey = nextKey;
         build();
       }
 

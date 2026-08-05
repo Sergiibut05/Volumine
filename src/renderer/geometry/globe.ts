@@ -169,6 +169,11 @@ const EMPTY: MarkerLayout = { markers: [], largest: 0 };
  * Casos límite, decididos:
  * - Sin coordenada, esa etiqueta no se dibuja. No se inventa un sitio: poner un
  *   dato en el lugar equivocado de un mapa es peor que no ponerlo.
+ * - **(0, 0) cuenta como "sin poner"**. Es una coordenada válida —el golfo de
+ *   Guinea— pero es también lo que deja el editor en una fila nueva, y ver
+ *   aparecer un punto en mitad del Atlántico al añadir una fila desconcierta
+ *   mucho más de lo que ayuda. Un dato real justo ahí es prácticamente
+ *   imposible; una fila a medio rellenar, lo normal.
  * - Los negativos se ignoran: un área negativa no existe.
  * - Todo a cero no devuelve marcadores.
  */
@@ -184,7 +189,12 @@ export function computeMarkers(
       value: Number.isFinite(value) && value > 0 ? value : 0,
       index,
     }))
-    .filter((entry) => entry.value > 0 && coords[entry.index] !== undefined);
+    .filter((entry) => {
+      const place = coords[entry.index];
+      if (entry.value <= 0 || place === undefined) return false;
+      // Ver la nota sobre (0, 0) arriba.
+      return place[0] !== 0 || place[1] !== 0;
+    });
 
   if (usable.length === 0) return EMPTY;
 

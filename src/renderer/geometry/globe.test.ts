@@ -211,3 +211,27 @@ describe('computeMarkers', () => {
     expect(markers.reduce((total, m) => total + m.fraction, 0)).toBeCloseTo(1, 6);
   });
 });
+
+describe('coordenadas sin poner', () => {
+  it('(0,0) no dibuja marcador: es lo que deja una fila nueva del editor', () => {
+    /* Es una coordenada válida (golfo de Guinea), pero ver aparecer un punto en
+       mitad del Atlántico al añadir una fila desconcierta más de lo que ayuda. */
+    const coords: [number, number][] = [
+      [40.4, -3.7],
+      [0, 0],
+      [51.5, -0.1],
+    ];
+    const { markers } = computeMarkers([10, 20, 30], coords, { size: 1 });
+    expect(markers.map((m) => m.index)).toEqual([0, 2]);
+  });
+
+  it('una coordenada con un solo cero SÍ vale', () => {
+    // El meridiano de Greenwich y el ecuador existen.
+    const coords: [number, number][] = [
+      [51.5, 0],
+      [0, -46.6],
+    ];
+    const { markers } = computeMarkers([10, 20], coords, { size: 1 });
+    expect(markers).toHaveLength(2);
+  });
+});

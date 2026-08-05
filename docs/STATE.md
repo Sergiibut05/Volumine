@@ -40,7 +40,7 @@ verificado con `sandbox` puesto, que es lo que hace Confluence Cloud.
   bien **con la separación a 0**: los extremos son un redondeo convexo de
   verdad, así que dos vecinos pegados dejan un surco limpio.
 - Tabla de datos accesible y `aria-label` generado, siempre en el DOM.
-- **151 tests** unitarios de geometría, de contrato y de parseo de datos.
+- **153 tests** unitarios de geometría, de contrato y de parseo de datos.
 
 ## Interfaz
 
@@ -184,6 +184,14 @@ display: none }` o el elemento oculto se ve.
     vectorial: una máscara de tierra rasterizada a 0,5° son 6,5 KB comprimidos y
     se genera en build. Antes de dar algo por imposible por su coste, conviene
     comprobar si hay otra representación del mismo dato.
+
+16. **Una lista de campos escrita a mano se queda corta con cada tipo nuevo.**
+    La clave que decidía si había que reconstruir la escena enumeraba campos uno
+    a uno. El globo llegó con `data.coords` y `style.globe`, nadie los añadió, y
+    cambiar una coordenada o mover el slider de densidad no repintaba nada — sin
+    dar ningún error, que es el peor fallo posible. Ahora se serializa todo
+    `data` y todo `style` salvo lo que se aplica por frame: enumerar lo que NO
+    entra es una lista corta y estable.
 
 ## Problemas abiertos
 
