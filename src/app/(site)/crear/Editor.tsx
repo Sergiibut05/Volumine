@@ -175,16 +175,12 @@ export function Editor({ initial, chartId, visibility, signedIn }: EditorProps) 
     bajo cada barra.
 
     En el globo van sobre el punto, y las de la cara de atrás se esconden solas.
+    En la carrera viajan con su barra y se reescriben mientras corre.
 
-    Fuera quedan dos: el medidor ya escribe su cifra en el centro, y la carrera
-    necesita que la etiqueta VIAJE con su barra, que no es colocar sino animar.
-    Hasta entonces no se ofrece un control que no haría nada.
+    Fuera queda solo el medidor, que ya escribe su cifra en el centro: ofrecerle
+    un control de etiquetas sería ofrecer algo que no haría nada.
   */
-  const supportsLabels =
-    config.type === 'donut' ||
-    config.type === 'pie' ||
-    config.type === 'bar' ||
-    config.type === 'globe';
+  const supportsLabels = config.type !== 'gauge';
   const gaugeReading = parsed.ok && isGauge ? gaugeReadout(parsed.config) : null;
 
   const bevelCeiling = useMemo(() => {

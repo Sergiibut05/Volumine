@@ -842,6 +842,14 @@ export function createChartRenderer(
         { index, label, value: first[index] ?? 0, fraction: null, series: null },
         new Vector3(0, 0, 0),
         new Vector3(0, 0, 0),
+        {
+          /* Se crea aquí pero se MUEVE en cada frame (ver updateRace): en una
+             carrera la barra cambia de sitio y de altura constantemente, así que
+             una etiqueta fija dejaría de señalar a su barra al primer
+             adelantamiento. Es lo que separa este tipo de los demás: aquí
+             colocar no basta, hay que seguir. */
+          anchor: new Vector3(0, 0, 0),
+        },
       );
       raceLanes.push({
         piece: pieces[pieces.length - 1],
@@ -1047,12 +1055,15 @@ export function createChartRenderer(
       });
     }
     /* El anillo y la tarta rodean un centro, así que sus etiquetas rodean el
-       dibujo con línea guía. El globo las pone ENCIMA del punto —debajo taparían
-       el marcador—, y las barras debajo, donde va el eje. */
+       dibujo con línea guía. El globo y la carrera las ponen ENCIMA —debajo
+       taparían el marcador y la punta de la barra—, y las barras fijas debajo,
+       donde va el eje. La carrera no puede usar ese sitio: sus barras cambian de
+       carril constantemente y el nombre tiene que ir pegado a SU barra, no a una
+       posición del eje que un segundo después ocupa otra. */
     const colocacion =
       config.type === 'donut' || config.type === 'pie'
         ? 'radial'
-        : config.type === 'globe'
+        : config.type === 'globe' || config.type === 'bar-race'
           ? 'over'
           : 'point';
     labelLayer.rebuild(anchors, config, colocacion);
@@ -1245,7 +1256,11 @@ export function createChartRenderer(
 
       lane.piece.info.value = value;
       lane.piece.mesh.visible = target.visible;
+      /* Un carril que sale del top se lleva su etiqueta: dejarla dejaría un
+         nombre flotando sobre una barra que ya no está. */
+      labelLayer.setVisible(lane.piece.info.index, target.visible);
       if (!target.visible) return;
+      labelLayer.setValue(lane.piece.info.index, value);
 
       // Puesto: se persigue el destino en vez de saltar a él.
       lane.slot += (target.slot - lane.slot) * smoothing;
@@ -1270,7 +1285,17 @@ export function createChartRenderer(
       }
 
       lane.piece.mesh.scale.y = height / lane.builtHeight;
-      lane.piece.base.set(-PLOT_WIDTH / 2 + raceCell * (lane.slot + 0.5), 0, 0);
+      const x = -PLOT_WIDTH / 2 + raceCell * (lane.slot + 0.5);
+      lane.piece.base.set(x, 0, 0);
+
+      /* La etiqueta viaja con su barra y se queda ARRIBA, sobre la punta: es
+         donde el ojo ya está mirando para comparar alturas, y así el nombre no
+         se pierde entre las barras vecinas cuando la fila se aprieta.
+
+         La `z` se adelanta media barra hacia la cámara por lo mismo que en las
+         barras fijas: desde el centro, la propia barra tapa el punto en cuanto
+         la escena se inclina. */
+      lane.piece.anchor?.set(x, height, raceWidth / 2);
     });
   }
 

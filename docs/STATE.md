@@ -131,8 +131,8 @@ mano desde el aviso.
    - **Globo**: la etiqueta sobre el punto ya está, con oclusión de la cara de
      atrás. Faltan los MARCADORES propios al estilo de cobe —pulso, emoji,
      foto—, que es campo nuevo en `style.globe` y no solo colocación.
-   - **Carrera**: la etiqueta tiene que VIAJAR con su barra, que no es colocar
-     sino animar.
+   - ~~Carrera~~: hecho. La etiqueta viaja con su barra y se reescribe mientras
+     corre.
    - **Modo `legend`**: declarado en el contrato y sin implementar, como estaban
      los otros. Es el más barato ahora que existe la capa.
    - **El editor no tiene tooltip.** El embed sí, así que la vista previa no

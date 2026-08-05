@@ -49,7 +49,17 @@ export type LabelAnchor = {
   value: number;
   /** Fracción del total, para el porcentaje. `null` si no aplica. */
   fraction: number | null;
-  /** De dónde sale la línea, en coordenadas LOCALES del grupo. */
+  /**
+   * De dónde sale la línea, en coordenadas LOCALES del grupo.
+   *
+   * SE GUARDA LA REFERENCIA, NO UNA COPIA. En una carrera la barra cambia de
+   * sitio y de altura en cada frame, y el renderer mueve este mismo vector; con
+   * una copia, la etiqueta se quedaba clavada donde estaba la barra al empezar
+   * — todas amontonadas en el mismo punto, y el descarte por solape dejaba una
+   * sola a la vista.
+   *
+   * Quien lo pase es responsable de no reutilizarlo para otra cosa.
+   */
   anchor: Vector3;
   /**
    * Centro alrededor del cual el ancla puede quedar OCULTA, en locales.
@@ -75,6 +85,10 @@ const ELBOW = 18;
 type Item = {
   index: number;
   box: HTMLDivElement;
+  /** El `<span>` de la cifra, si lo hay. Para reescribirlo en una carrera. */
+  detail: HTMLSpanElement | null;
+  /** Fuera de la carrera: su carril ya no compite. */
+  hidden: boolean;
   /** Centro de oclusión en locales, si lo tiene. Ver `occludeAround`. */
   around: Vector3 | null;
   /**
@@ -107,6 +121,18 @@ export type LabelLayer = {
   isLabelled(index: number): boolean;
   /** Destaca la etiqueta de un dato y atenúa las demás. `null` las iguala. */
   highlight(index: number | null): void;
+  /**
+   * Reescribe la cifra de un dato. Para la carrera, donde el valor cambia en
+   * cada frame; en el resto de tipos el texto se escribe una vez y no se toca.
+   *
+   * Solo toca el DOM cuando el texto FORMATEADO cambia de verdad. Sin ese
+   * filtro serían doce escrituras por frame para acabar poniendo lo mismo:
+   * entre dos frames el valor se mueve una centésima y con cero decimales se
+   * formatea igual.
+   */
+  setValue(index: number, value: number): void;
+  /** Esconde la etiqueta de un dato. Los carriles que salen de la carrera. */
+  setVisible(index: number, visible: boolean): void;
   dispose(): void;
 };
 
@@ -146,6 +172,8 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
   /** Los índices que de verdad se están dibujando en este momento. */
   let shown = new Set<number>();
   let placement: Placement = 'radial';
+  /** El formateador del config actual. Lo necesita `setValue`. */
+  let fmt: ReturnType<typeof formatter> | null = null;
 
   function clear() {
     for (const item of items) {
@@ -165,7 +193,7 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
         config.labels.show && config.labels.mode !== 'none' ? '' : 'none';
       if (!config.labels.show || config.labels.mode === 'none') return;
 
-      const fmt = formatter(config);
+      fmt = formatter(config);
 
       for (const anchor of anchors) {
         const box = document.createElement('div');
@@ -190,8 +218,9 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
         if (config.labels.showPercent && anchor.fraction !== null) {
           partes.push(fmt.percent(anchor.fraction));
         }
+        let detalle: HTMLSpanElement | null = null;
         if (partes.length > 0) {
-          const detalle = document.createElement('span');
+          detalle = document.createElement('span');
           detalle.textContent = partes.join(' · ');
           box.appendChild(detalle);
         }
@@ -214,8 +243,11 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
           box,
           line,
           casing,
-          world: anchor.anchor.clone(),
+          // Referencia viva a propósito. Ver la nota en `LabelAnchor.anchor`.
+          world: anchor.anchor,
           around: anchor.occludeAround?.clone() ?? null,
+          detail: detalle,
+          hidden: false,
         });
       }
     },
@@ -232,6 +264,13 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
       const puestos: Puesto[] = [];
 
       for (const item of items) {
+        if (item.hidden) {
+          item.box.style.display = 'none';
+          item.line.style.display = 'none';
+          item.casing.style.display = 'none';
+          continue;
+        }
+
         /* Cara de atrás del globo: se compara la dirección del punto desde el
            centro con la dirección hacia la cámara. Si no apuntan al mismo lado,
            el punto está literalmente al otro lado del planeta. */
@@ -355,6 +394,18 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
           puesto.item.casing.setAttribute('points', puntos);
         });
       }
+    },
+
+    setValue(index, value) {
+      const item = items.find((i) => i.index === index);
+      if (!item?.detail || !fmt) return;
+      const texto = fmt.value(value);
+      if (item.detail.textContent !== texto) item.detail.textContent = texto;
+    },
+
+    setVisible(index, visible) {
+      const item = items.find((i) => i.index === index);
+      if (item) item.hidden = !visible;
     },
 
     isLabelled(index) {
