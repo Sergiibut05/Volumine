@@ -321,7 +321,7 @@ export function Editor({ initial, chartId, visibility, signedIn }: EditorProps) 
           style={{
             display: 'flex',
             alignItems: 'baseline',
-            marginBottom: 'var(--p-space-5)',
+            marginBottom: 'var(--p-space-6)',
           }}
         >
           <Link
@@ -995,6 +995,19 @@ function TypePreview({ id, ready }: { id: string; ready: boolean }) {
 
   /* Un globo con su retícula, no otra fila de barras: si dos tarjetas comparten
      silueta, el selector deja de decir nada. */
+  /*
+    El globo es una nube de PUNTOS, no una retícula.
+
+    La miniatura llevaba una malla de meridianos y paralelos, que es el icono
+    universal de "global" pero NO es lo que dibuja este tipo. Una miniatura que
+    no se parece a su resultado convierte el selector en una lotería: eliges por
+    el icono y te encuentras otra cosa. Ahora enseña puntos, como el planteamiento
+    tomado de cobe (ver renderer/geometry/globe.ts).
+
+    Los puntos van en un degradado radial repetido y no dibujados uno a uno: a 40
+    píxeles no se distingue, y dibujarlos de verdad serían cientos de nodos en
+    una tarjeta de un selector.
+  */
   if (id === 'globe') {
     return (
       <span
@@ -1003,9 +1016,11 @@ function TypePreview({ id, ready }: { id: string; ready: boolean }) {
           display: 'block',
           aspectRatio: '1',
           borderRadius: '50%',
-          background: `radial-gradient(circle at 34% 28%, #6f5adf 0%, #3b2f8f 60%, #241d5c 100%)`,
-          boxShadow: 'inset 0 0 0 1px rgb(255 255 255 / 0.18)',
-          backgroundBlendMode: 'normal',
+          background:
+            'radial-gradient(circle at 34% 28%, #2b2470 0%, #1a1550 62%, #111034 100%)',
+          /* Halo por fuera, como el atmosférico de la escena real. */
+          boxShadow:
+            'inset 0 0 0 1px rgb(255 255 255 / 0.1), 0 0 10px -2px rgb(124 92 255 / 0.55)',
           position: 'relative',
           overflow: 'hidden',
         }}
@@ -1015,9 +1030,17 @@ function TypePreview({ id, ready }: { id: string; ready: boolean }) {
             position: 'absolute',
             inset: 0,
             borderRadius: '50%',
-            background:
-              'repeating-linear-gradient(0deg, transparent 0 5px, rgb(255 255 255 / 0.22) 5px 6px),' +
-              'repeating-linear-gradient(90deg, transparent 0 5px, rgb(255 255 255 / 0.14) 5px 6px)',
+            backgroundImage: 'radial-gradient(circle, #8b7dff 0.6px, transparent 0.9px)',
+            /* Rejilla suelta y punto pequeño. Apretados y brillantes se leían
+               como una malla de tul y no como puntos sobre una superficie: a
+               este tamaño lo que hace de "esfera" es el sombreado, no el
+               detalle. */
+            backgroundSize: '5px 5px',
+            opacity: 0.75,
+            /* Se apagan hacia el borde: en la esfera de verdad los puntos del
+               limbo se ven de canto y casi desaparecen. Sin esto la miniatura se
+               lee como un disco perforado, no como una bola. */
+            maskImage: 'radial-gradient(circle at 38% 32%, #000 28%, transparent 78%)',
           }}
         />
       </span>

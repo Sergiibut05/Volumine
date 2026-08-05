@@ -39,7 +39,12 @@
 .panel {
   min-height: 0;
   overflow-y: auto;
-  padding: var(--p-space-6) var(--p-space-5) var(--p-space-12);
+  /* OJO: `--p-space-5` NO EXISTE. La escala salta de 4 a 6 (ver tokens.css), y
+     una variable indefinida invalida el `padding` ENTERO — no solo ese lado.
+     Aquí estuvo así desde el principio, dejando el panel sin nada de padding
+     lateral y las tarjetas a sangre contra el borde de la ventana. No daba
+     error en ningún sitio: simplemente no se aplicaba. */
+  padding: var(--p-space-6) var(--p-space-4) var(--p-space-12);
   border-left: 1px solid var(--edge-subtle);
   background: var(--surface-raised);
   scrollbar-width: thin;
@@ -55,17 +60,35 @@
 /* ── tarjeta de sección ─────────────────────────────────────────────────── */
 
 .group {
-  margin-bottom: var(--p-space-4);
+  /*
+    Una tarjeta gris plano sobre un fondo casi negro no se despega: se lee como
+    una mancha, no como un objeto. Tres capas muy sutiles la separan sin subir
+    el contraste general —que aplanaría la escena 3D de al lado, que es lo que
+    tiene que mandar en esta pantalla—:
+
+      · filo de 1 px algo más marcado que el de antes,
+      · brillo de un píxel en el borde SUPERIOR, que es de donde viene la luz,
+      · sombra baja y ancha por fuera, para que se apoye en el fondo.
+
+    Es el mismo criterio que la tarjeta de la pantalla de entrar: apoyada, no
+    flotando.
+  */
+  margin-bottom: var(--p-space-6);
   border-radius: var(--p-radius-lg);
   background: var(--surface-overlay);
-  box-shadow: inset 0 0 0 1px var(--edge-subtle);
+  box-shadow:
+    inset 0 0 0 1px var(--edge-subtle),
+    inset 0 1px 0 color-mix(in oklab, var(--p-ink-0) 6%, transparent),
+    0 8px 20px -14px rgb(0 0 0 / 0.7);
 }
 
 .group > header {
   display: flex;
   align-items: baseline;
   gap: var(--p-space-2);
-  padding: var(--p-space-4) var(--p-space-4) var(--p-space-2);
+  /* Más aire que antes: con 1 rem el título quedaba pegado al filo de la
+     tarjeta y al primer control, y las secciones parecían pisarse. */
+  padding: var(--p-space-6) var(--p-space-4) var(--p-space-3);
 }
 
 .group > header h2 {
@@ -86,8 +109,10 @@
 
 .group > div {
   display: grid;
-  gap: var(--p-space-4);
-  padding: var(--p-space-2) var(--p-space-4) var(--p-space-4);
+  /* El hueco ENTRE controles importa más que el de dentro: es lo que hace que
+     un slider se lea como una unidad con su etiqueta y no como texto suelto. */
+  gap: var(--p-space-6);
+  padding: var(--p-space-2) var(--p-space-4) var(--p-space-6);
 }
 
 /* ── rejilla de opciones con nombre (temas, materiales, tipos) ──────────── */
@@ -192,7 +217,9 @@
 
 .control {
   display: grid;
-  gap: 0.5rem;
+  /* Un pelo más que antes: el valor iba pegado a su barra y se leían como una
+     sola línea apretada. */
+  gap: 0.625rem;
 }
 
 .control > header {
@@ -547,8 +574,14 @@
 .data-notice {
   margin: 0;
   font-size: 0.75rem;
-  line-height: 1.45;
-  color: var(--text-muted);
+  line-height: 1.5;
+  /*
+    `secondary` y no `muted`: sobre un fondo casi negro, el gris de `muted` a
+    12 px se queda por debajo del contraste legible. Es texto que EXPLICA cómo
+    se usa la tabla —cómo pegar datos, qué necesita el globo—, así que es
+    justamente el que no puede costar leer. `muted` se queda para lo accesorio.
+  */
+  color: var(--text-secondary);
 }
 
 .data-notice {
