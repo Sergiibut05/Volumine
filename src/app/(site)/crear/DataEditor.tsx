@@ -354,6 +354,23 @@ export function DataEditor({ config, onChange }: Props) {
           ' Cada columna es un periodo: países en las filas, años en las columnas.'}
       </p>
 
+      {/*
+        El globo es el único tipo que no se entiende solo mirándolo.
+
+        Una fila necesita DOS cosas —un sitio y un valor— y si falta cualquiera
+        de las dos no se dibuja nada: el planeta se queda igual y parece que la
+        gráfica está rota. Se explica aquí, junto a la tabla donde se arregla, y
+        no en un tooltip ni en una página de ayuda que nadie va a abrir.
+      */}
+      {isGlobe && (
+        <p className="data-hint">
+          Cada fila es un punto en el mapa. Necesita <b>coordenadas</b> y un{' '}
+          <b>valor mayor que cero</b>: sin las dos cosas no se dibuja. Escribe una ciudad o
+          un país conocido y las coordenadas se rellenan solas; el valor decide el tamaño
+          del punto.
+        </p>
+      )}
+
       {notice && (
         <p className="data-notice">
           {notice}{' '}

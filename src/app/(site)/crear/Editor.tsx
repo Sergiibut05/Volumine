@@ -219,6 +219,16 @@ export function Editor({ initial, chartId, visibility, signedIn }: EditorProps) 
 
   /* Los ajustes del globo van anidados, así que hay que fusionar a dos niveles
      o cada cambio borraría los otros dos colores. */
+  /* El fondo va anidado dos niveles, así que hay que fusionar a mano o cada
+     cambio de color se llevaría por delante el tipo de fondo. */
+  const bgKind = config.scene?.background?.kind ?? 'transparent';
+  type Background = NonNullable<NonNullable<ChartConfig['scene']>['background']>;
+  const patchBackground = (next: Partial<Background>) =>
+    setConfig((c) => ({
+      ...c,
+      scene: { ...c.scene, background: { ...c.scene?.background, ...next } },
+    }));
+
   type GaugeStyle = NonNullable<NonNullable<ChartConfig['style']>['gauge']>;
   const patchGauge = (next: Partial<GaugeStyle>) =>
     setConfig((c) => ({
@@ -661,46 +671,84 @@ export function Editor({ initial, chartId, visibility, signedIn }: EditorProps) 
               }))
             }
           />
-        </Group>
 
-        <Group title="Movimiento">
-          {isRace && (
+          {/* Elegir "sólido" o "degradado" sin poder decir QUÉ color es medio
+              control: se veía el nombre de la opción y había que adivinar el
+              resultado. Los selectores aparecen solo cuando hay color que
+              elegir — en transparente no hay ninguno. */}
+          {bgKind !== 'transparent' && (
+            <div className="segments">
+              <ColorRow
+                label={bgKind === 'gradient' ? 'Desde' : 'Color'}
+                value={config.scene?.background?.from ?? '#0b0b12'}
+                onChange={(from) => patchBackground({ from })}
+              />
+              {bgKind === 'gradient' && (
+                <ColorRow
+                  label="Hasta"
+                  value={config.scene?.background?.to ?? '#1a1030'}
+                  onChange={(to) => patchBackground({ to })}
+                />
+              )}
+            </div>
+          )}
+
+          {bgKind === 'gradient' && (
             <Slider
-              label="Duración de cada periodo"
-              value={config.motion?.frameDuration ?? DEFAULT_FRAME_MS}
-              min={300}
-              max={4000}
-              step={50}
-              /* En segundos y no en milisegundos: nadie piensa una animación en
-                 milisegundos, y "1,2 s" se compara con la intuición de cuánto
-                 tarda en leerse un cambio. */
-              format={(v) => `${(v / 1000).toFixed(2).replace('.', ',')} s`}
-              onChange={(v) =>
-                setConfig((c) => ({ ...c, motion: { ...c.motion, frameDuration: v } }))
-              }
+              label="Ángulo"
+              value={config.scene?.background?.angle ?? 135}
+              min={0}
+              max={360}
+              step={5}
+              format={(v) => `${v}°`}
+              onChange={(angle) => patchBackground({ angle })}
             />
           )}
-          {/* Un medidor no gira: el hueco de abajo es el cero de la escala y
+        </Group>
+
+        {/* Un medidor no gira y no tiene periodos, así que no le queda ningún
+            control de movimiento. El grupo entero se va: una tarjeta con título
+            y nada dentro se lee como algo que se ha roto al cargar. */}
+        {(!isGauge || isRace) && (
+          <Group title="Movimiento">
+            {isRace && (
+              <Slider
+                label="Duración de cada periodo"
+                value={config.motion?.frameDuration ?? DEFAULT_FRAME_MS}
+                min={300}
+                max={4000}
+                step={50}
+                /* En segundos y no en milisegundos: nadie piensa una animación en
+                 milisegundos, y "1,2 s" se compara con la intuición de cuánto
+                 tarda en leerse un cambio. */
+                format={(v) => `${(v / 1000).toFixed(2).replace('.', ',')} s`}
+                onChange={(v) =>
+                  setConfig((c) => ({ ...c, motion: { ...c.motion, frameDuration: v } }))
+                }
+              />
+            )}
+            {/* Un medidor no gira: el hueco de abajo es el cero de la escala y
               moverlo borra por dónde empieza a contarse (ver el bucle en
               renderer/core/chart-renderer.ts). Un slider que no hace nada es
               peor que uno que falta, así que aquí directamente no está. */}
-          {!isGauge && (
-            <Slider
-              label={isRace || isBar ? 'Vaivén' : 'Velocidad de giro'}
-              value={config.motion?.speed ?? 0.9}
-              min={0}
-              max={4}
-              step={0.1}
-              format={(v) => (v === 0 ? 'Parado' : `${v.toFixed(1)} vueltas/min`)}
-              onChange={(v) =>
-                setConfig((c) => ({
-                  ...c,
-                  motion: { ...c.motion, speed: v, autoRotate: v > 0 },
-                }))
-              }
-            />
-          )}
-        </Group>
+            {!isGauge && (
+              <Slider
+                label={isRace || isBar ? 'Vaivén' : 'Velocidad de giro'}
+                value={config.motion?.speed ?? 0.9}
+                min={0}
+                max={4}
+                step={0.1}
+                format={(v) => (v === 0 ? 'Parado' : `${v.toFixed(1)} vueltas/min`)}
+                onChange={(v) =>
+                  setConfig((c) => ({
+                    ...c,
+                    motion: { ...c.motion, speed: v, autoRotate: v > 0 },
+                  }))
+                }
+              />
+            )}
+          </Group>
+        )}
 
         {/* Nivel 3 — avanzado. Cerrado por defecto: quien lo necesita lo abre. */}
         <details className="group" style={{ padding: 'var(--p-space-4)' }}>
