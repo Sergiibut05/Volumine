@@ -331,9 +331,14 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
           </Link>
 
           {signedIn && (
-            <Link className="panel-nav" href="/mis-graficas">
-              Mis gráficas
-            </Link>
+            <>
+              <span className="topbar-sep" aria-hidden>
+                /
+              </span>
+              <Link className="panel-nav" href="/mis-graficas">
+                Mis gráficas
+              </Link>
+            </>
           )}
 
           {/* El nombre, como parte de la ruta. Se edita en el sitio: al pulsarlo

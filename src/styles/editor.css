@@ -1037,15 +1037,16 @@
   white-space: nowrap;
 }
 
-.panel-nav::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 1px;
-  height: 0.9em;
-  transform: translateY(-50%);
-  background: var(--edge-subtle);
+/*
+  UN SOLO separador en la ruta.
+
+  Había dos a la vez: una barra vertical antes de «Mis gráficas» y una `/` antes
+  del nombre. Dos gramáticas distintas en cuatro palabras — el ojo no sabe si
+  son el mismo nivel o niveles distintos. Se queda la `/`, que es la que dice
+  «esto es una ruta».
+*/
+.panel-nav {
+  padding-left: 0;
 }
 
 .panel-nav:hover {
@@ -1073,48 +1074,13 @@
   y en la tarjeta de enlace cuando pegues el link.
 */
 /*
-  El nombre: TEXTO, no formulario.
+  El nombre, como parte de la ruta.
 
-  Antes llevaba etiqueta «NOMBRE» en mayúsculas, caja con fondo y borde. Casi
-  cien píxeles de alto en el panel donde el espacio vertical es lo que más
-  escasea, para explicar que «Reparto de ingresos» es un nombre. Se lee solo.
-
-  El envoltorio aparece al pasar por encima o al enfocar, que es cuando de verdad
-  hace falta saber que ahí se puede escribir. En reposo es lo que es: el título
-  de lo que estás haciendo.
+  Sin caja ni etiqueta en reposo: es texto, y se lee solo. El envoltorio aparece
+  al pasar por encima o al enfocar, que es cuando hace falta saber que ahí se
+  escribe. `min-width: 0` para que un título largo se recorte en vez de empujar
+  los botones fuera de la barra.
 */
-.chart-title {
-  width: 100%;
-  margin-bottom: var(--p-space-4);
-  padding: 0.3rem 0.5rem;
-  border: 1px solid transparent;
-  border-radius: var(--p-radius-md);
-  background: transparent;
-  color: var(--text-primary);
-  font-family: var(--font-display), sans-serif;
-  font-size: 1.125rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  transition:
-    background 0.14s ease,
-    border-color 0.14s ease;
-}
-
-.chart-title:hover {
-  border-color: var(--edge-subtle);
-}
-
-.chart-title::placeholder {
-  font-weight: 500;
-  color: var(--text-muted);
-}
-
-.chart-title:focus {
-  outline: none;
-  border-color: var(--accent);
-  background: var(--surface-sunken);
-}
-
 /*
   LA BARRA DE APLICACIÓN.
 
@@ -1162,15 +1128,18 @@
 }
 
 /*
-  El nombre, como parte de la ruta.
+  OJO CON EL MARGEN. Este bloque sustituye a otro que quedó vivo al mover el
+  campo del panel a la barra, y que llevaba `margin-bottom: 1rem` de cuando
+  estaba apilado en el panel.
 
-  Sin caja ni etiqueta en reposo: es texto, y se lee solo. El envoltorio aparece
-  al pasar por encima o al enfocar, que es cuando hace falta saber que ahí se
-  escribe. `min-width: 0` para que un título largo se recorte en vez de empujar
-  los botones fuera de la barra.
+  En un flex con `align-items: center` el item se centra CON SUS MÁRGENES, así
+  que un margen inferior de 16 px subía la caja visible 8 px: el título quedaba
+  más alto que la marca y que el resto de la ruta. Ocho píxeles bastan para que
+  una barra parezca mal montada.
 */
 .chart-title {
   flex: 0 1 auto;
+  margin: 0;
   min-width: 0;
   max-width: 26ch;
   padding: 0.25rem 0.5rem;
@@ -1210,6 +1179,8 @@
     gap: var(--p-space-2);
   }
 
+  /* Se recorta la ruta antes que nada: los botones son lo único que no puede
+     quedarse fuera de la barra. */
   .topbar-sep,
   .panel-nav {
     display: none;
