@@ -233,6 +233,16 @@ display: none }` o el elemento oculto se ve.
 
 ## Problemas abiertos
 
+- **No hay tests de regresión visual, y se nota.** La barra del editor se quedó
+  descolocada tres veces seguidas y las tres pasaron build, tipos y los 197
+  tests: el CSS no tiene tipos y un selector que desaparece —o una alineación de
+  4 px— no da error en ninguna parte. Lo que acabó encontrando el fallo fue
+  MEDIR la tinta con `TextMetrics` en la página real, no leer el diff.
+
+  Está en el roadmap como «tests visuales con Playwright, el andamiaje está».
+  Subirlo de prioridad: una captura de la barra contra una de referencia habría
+  cazado las tres.
+
 - **La cifra de peso de la landing hay que mantenerla a mano** y ya se quedó
   obsoleta una vez (decía 140 KB con el bundle en 147,7). En una página cuyo
   argumento ES ese número, mentir en él es peor que no ponerlo. Lo correcto sería

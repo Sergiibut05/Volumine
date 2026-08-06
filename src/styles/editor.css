@@ -1121,6 +1121,25 @@
   font-size: 0.9375rem;
 }
 
+/*
+  AJUSTE ÓPTICO DE LA MARCA, medido y no estimado.
+
+  La marca va en la fuente display a 17 px y sus vecinos en la de interfaz a 15;
+  centrando las cajas, su TINTA quedaba 2,55 px por encima de la del separador y
+  la del nombre. Centrar cajas no alinea nada cuando las cajas se calculan con
+  métricas distintas — y 2,5 px en una barra de 52 se ven perfectamente.
+
+  Va aquí y NO en `Wordmark.tsx` a propósito: no es una propiedad de la marca,
+  es una propiedad de ESTE emparejamiento. En la landing la marca va sola y no
+  necesita nada; si se corrigiera dentro del componente, allí quedaría torcida.
+
+  En `em` para que sobreviva a un cambio de cuerpo. Medido con TextMetrics sobre
+  la página real: `desviacion` baja de 2,55 a 0.
+*/
+.topbar .panel-brand {
+  transform: translateY(0.15em);
+}
+
 .topbar-warn {
   color: var(--p-amber-400, #ffd166);
   font-size: 0.75rem;

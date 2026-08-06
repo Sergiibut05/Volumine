@@ -71,7 +71,18 @@ export function Wordmark({ size = 1.0625 }: { size?: number }) {
         fontWeight: 700,
         fontSize: `${size}rem`,
         letterSpacing: '-0.025em',
-        lineHeight: 1,
+        /*
+          INTERLINEADO NORMAL, NO 1.
+
+          Con `line-height: 1` la caja se ciñe al cuerpo de la fuente y la tinta
+          del texto —que no llega abajo del todo porque «Voluma» no tiene
+          descendentes— queda ALTA dentro de ella. Sus vecinos en la barra usan
+          interlineado normal, así que su tinta sí se centra. Medido: la marca
+          quedaba 4,3 px por encima del separador y del nombre.
+
+          Centrar las CAJAS no basta cuando las cajas se calculan distinto. Se
+          igualan los interlineados y se centran solas.
+        */
         color: 'inherit',
       }}
     >
