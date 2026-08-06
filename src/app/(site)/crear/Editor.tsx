@@ -21,6 +21,7 @@ import type { ChartConfig } from '@/lib/config/schema';
 import type { ResolvedChartConfig } from '@/lib/config/defaults';
 import { Group, Slider, Choices, type Choice } from './controls';
 import { DataEditor } from './DataEditor';
+import { Wordmark } from '../Wordmark';
 import { SaveBar } from './SaveBar';
 import type { Visibility } from '@/lib/supabase/types';
 
@@ -145,13 +146,7 @@ export type EditorProps = {
   userId: string | null;
 };
 
-export function Editor({
-  initial,
-  chartId,
-  visibility,
-  signedIn,
-  userId,
-}: EditorProps) {
+export function Editor({ initial, chartId, visibility, signedIn, userId }: EditorProps) {
   /* El póster se captura del canvas al guardar. Va por `ref` porque no es un
      evento: es algo que se PIDE cuando hace falta. Ver lib/charts/poster.ts. */
   const capture = useRef<(() => string) | null>(null);
@@ -313,7 +308,9 @@ export function Editor({
        es lo contrario, y ese contraste es intencionado. */
     <div className="editor" data-theme="dark">
       <div className="canvas-pane">
-        {parsed.ok && <ChartCanvas config={parsed.config} onHover={setHovered} captureRef={capture} />}
+        {parsed.ok && (
+          <ChartCanvas config={parsed.config} onHover={setHovered} captureRef={capture} />
+        )}
 
         {/* El tooltip existía en el embed y NO en el editor, así que la vista
             previa enseñaba menos de lo que iba a ver quien abriera el link. Es
@@ -365,17 +362,25 @@ export function Editor({
         >
           <Link
             href="/"
-            style={{
-              fontFamily: 'var(--font-display), sans-serif',
-              fontWeight: 700,
-              fontSize: '1.0625rem',
-              color: 'var(--text-primary)',
-              textDecoration: 'none',
-            }}
+            style={{ color: 'var(--text-primary)', textDecoration: 'none' }}
+            aria-label="Voluma — inicio"
           >
-            Voluma
+            {/* Sube de 1,0625 a 1,25 rem y gana símbolo. A la medida anterior
+                el nombre pesaba menos que los títulos de las tarjetas de abajo,
+                así que la cabecera no se leía como cabecera. */}
+            <Wordmark size={1.25} />
           </Link>
           <span style={{ flex: 1 }} />
+
+          {/* SIN ESTE ENLACE, «Mis gráficas» no existía para el usuario: la
+              página estaba hecha y solo se llegaba a ella justo después de
+              entrar. Guardabas, se guardaba de verdad, y no había forma de
+              volver a encontrarlo. */}
+          {signedIn && (
+            <Link className="savebar-link" href="/mis-graficas">
+              Mis gráficas
+            </Link>
+          )}
 
           {/* Deshacer y rehacer. Los atajos (Ctrl/Cmd+Z) los pone el hook; los
               botones están porque un atajo que nadie sabe que existe no

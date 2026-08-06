@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { Wordmark } from './Wordmark';
+import { currentUser } from '@/lib/charts/queries';
 import '@/styles/marketing.css';
 import { HeroChart } from './HeroChart';
 import { TypeCard } from './TypeCard';
@@ -21,15 +23,29 @@ const SPECS = [
   { label: 'Registro', value: 'No', note: 'La config viaja en el link.' },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  /* Solo para decidir si se enseña «Mis gráficas». Sin sesión no consulta nada
+     y la landing sigue siendo estática para quien llega de fuera. */
+  const user = await currentUser();
+
   return (
     <div className="studio" data-theme="light">
       <header className="shell" style={{ paddingBlock: '1.75rem' }}>
         <nav style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <span className="display" style={{ fontSize: '1.25rem' }}>
-            Voluma
-          </span>
+          <Wordmark size={1.25} />
           <span style={{ flex: 1 }} />
+          {user && (
+            <Link
+              href="/mis-graficas"
+              style={{
+                color: 'var(--ink-soft)',
+                textDecoration: 'none',
+                fontSize: '0.875rem',
+              }}
+            >
+              Mis gráficas
+            </Link>
+          )}
           <Link
             href="/crear"
             style={{

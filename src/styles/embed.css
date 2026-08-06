@@ -208,18 +208,30 @@ canvas {
    su propia píldora translúcida para tener contraste siempre. */
 .watermark {
   position: absolute;
-  right: 8px;
-  bottom: 8px;
-  padding: 3px 7px;
+  right: 10px;
+  bottom: 10px;
+  /* Sube de 10 a 11,5 px y gana símbolo. A 10 px era una palabra gris que el
+     ojo descartaba como parte del fondo, que es lo contrario de para lo que
+     está: cada embed es la única publicidad gratis que tiene el producto. */
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px 4px 6px;
   border-radius: 999px;
-  background: rgb(16 16 24 / 0.42);
+  background: rgb(16 16 24 / 0.46);
   backdrop-filter: blur(6px);
-  font-size: 10px;
+  font-size: 11.5px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  color: rgb(255 255 255 / 0.82);
+  letter-spacing: -0.005em;
+  color: rgb(255 255 255 / 0.88);
   text-decoration: none;
   transition: background 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.watermark svg {
+  width: 13px;
+  height: 13px;
+  flex: none;
 }
 
 .watermark:hover {

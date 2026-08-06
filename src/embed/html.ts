@@ -313,8 +313,23 @@ export function embedHtml({
   /** URL canónica de esta gráfica, para las tarjetas de enlace. */
   canonical?: string | null;
 }): string {
+  /*
+    La marca de agua lleva SÍMBOLO además del nombre.
+
+    A 10 px, «Voluma» en texto es una palabra gris que el ojo descarta como
+    parte del fondo — que es justo lo contrario de para lo que está. El símbolo
+    da una silueta reconocible aunque no se llegue a leer el nombre, y de paso
+    dice qué hace el producto: es el mismo anillo con canto que dibuja.
+
+    El SVG va en línea porque el embed no puede pedirle una imagen a nadie
+    (ADR 0005), y son 180 bytes.
+  */
   const watermark = config.layout.watermark
-    ? `<a class="watermark" href="https://voluma.app" target="_blank" rel="noopener">Voluma</a>`
+    ? `<a class="watermark" href="https://voluma.app" target="_blank" rel="noopener" aria-label="Hecho con Voluma">` +
+      `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">` +
+      `<ellipse cx="12" cy="14.2" rx="9" ry="5.6" stroke="currentColor" stroke-width="3.6" opacity=".42"/>` +
+      `<ellipse cx="12" cy="11" rx="9" ry="5.6" stroke="currentColor" stroke-width="3.6"/>` +
+      `</svg>Voluma</a>`
     : '';
 
   return `<!doctype html>
