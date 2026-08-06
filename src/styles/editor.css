@@ -978,3 +978,73 @@
   font-size: 0.9em;
   opacity: 0.68;
 }
+
+/*
+  La barra de la cabecera del panel.
+
+  Dos zonas: identidad y sitio a la izquierda, acciones a la derecha. Todos los
+  controles miden lo mismo de alto (28 px) y se alinean por el CENTRO — con
+  `baseline`, que es lo que había, cada uno se alineaba por su propia línea de
+  texto y un icono no tiene, así que quedaban descuadrados.
+*/
+.panel-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--p-space-3);
+  margin-bottom: var(--p-space-6);
+}
+
+.panel-head-left,
+.panel-head-right {
+  display: flex;
+  align-items: center;
+  gap: var(--p-space-3);
+}
+
+.panel-head-right {
+  margin-left: auto;
+  gap: var(--p-space-2);
+}
+
+.panel-brand {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+/* «Mis gráficas» es NAVEGACIÓN, no una acción: enlace de texto y no botón. Si
+   pareciera botón competiría con «Guardar», que es lo que de verdad se pulsa
+   aquí. */
+.panel-nav {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.panel-nav:hover {
+  color: var(--text-primary);
+}
+
+.panel-head-warn {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--p-amber-400, #ffd166);
+  font-size: 0.75rem;
+}
+
+/* Los tres controles de la derecha comparten alto. Es lo único que hace que
+   una fila de cosas distintas se lea como una barra y no como un montón. */
+.panel-head .undo button,
+.panel-head .savebar button,
+.panel-head .savebar-link {
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel-head .savebar,
+.panel-head .savebar-link {
+  margin-left: 0;
+}

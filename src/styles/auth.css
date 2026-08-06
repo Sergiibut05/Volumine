@@ -338,3 +338,32 @@
   text-align: center;
   color: var(--ink-soft);
 }
+
+/* ── miniatura de la tarjeta ──────────────────────────────────────────────
+   Un listado de gráficas sin gráficas es una lista de títulos, y los títulos
+   que pone la gente se parecen entre sí. La imagen se reconoce de un vistazo. */
+.chart-thumb {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  margin: -1.25rem -1.25rem 0;
+  border-radius: 1rem 1rem 0 0;
+  overflow: hidden;
+  /* Cuadros: el póster es un PNG con transparencia, y sobre blanco liso una
+     gráfica de tonos claros desaparece. Los cuadros dicen además «esto tiene
+     fondo transparente», que es lo que hace bien al incrustarla. */
+  background: repeating-conic-gradient(#f4f4f7 0% 25%, #eaeaef 0% 50%) 0 0 / 14px 14px;
+  color: var(--ink-faint);
+  font-size: 0.8125rem;
+}
+
+.chart-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.chart-card {
+  /* La miniatura sangra hasta el borde, así que la tarjeta necesita recortar. */
+  overflow: hidden;
+}

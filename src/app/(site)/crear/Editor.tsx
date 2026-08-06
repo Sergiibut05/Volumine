@@ -353,77 +353,78 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
       </div>
 
       <aside className="panel">
-        <header
-          style={{
-            display: 'flex',
-            alignItems: 'baseline',
-            marginBottom: 'var(--p-space-6)',
-          }}
-        >
-          <Link
-            href="/"
-            style={{ color: 'var(--text-primary)', textDecoration: 'none' }}
-            aria-label="Voluma — inicio"
-          >
-            {/* Sube de 1,0625 a 1,25 rem y gana símbolo. A la medida anterior
-                el nombre pesaba menos que los títulos de las tarjetas de abajo,
-                así que la cabecera no se leía como cabecera. */}
-            <Wordmark size={1.25} />
-          </Link>
-          <span style={{ flex: 1 }} />
+        {/*
+          LA BARRA DEL EDITOR.
 
-          {/* SIN ESTE ENLACE, «Mis gráficas» no existía para el usuario: la
-              página estaba hecha y solo se llegaba a ella justo después de
-              entrar. Guardabas, se guardaba de verdad, y no había forma de
-              volver a encontrarlo. */}
-          {signedIn && (
-            <Link className="savebar-link" href="/mis-graficas">
-              Mis gráficas
+          Antes era una fila con `align-items: baseline` y estilos en línea
+          mezclando cinco cosas de pesos muy distintos: marca, un enlace de
+          texto, dos botones cuadrados y un botón con borde. Con `baseline` cada
+          uno se alineaba por su propia línea de texto —un icono no tiene—, así
+          que quedaban a alturas distintas; y el enlace de «Mis gráficas»
+          aparecía y desaparecía según hubiera sesión, moviendo todo lo demás.
+
+          Ahora son dos zonas con un papel claro cada una: IDENTIDAD Y SITIO a la
+          izquierda, ACCIONES sobre lo que estás haciendo a la derecha. Todos los
+          controles miden lo mismo de alto y se alinean por el centro, que es lo
+          único que hace que una fila de cosas heterogéneas parezca una barra y
+          no un montón.
+        */}
+        <header className="panel-head">
+          <div className="panel-head-left">
+            <Link href="/" className="panel-brand" aria-label="Voluma — inicio">
+              <Wordmark size={1.25} />
             </Link>
-          )}
 
-          {/* Deshacer y rehacer. Los atajos (Ctrl/Cmd+Z) los pone el hook; los
-              botones están porque un atajo que nadie sabe que existe no
-              tranquiliza a nadie a la hora de experimentar. */}
-          <div className="undo">
-            <button
-              type="button"
-              onClick={history.undo}
-              disabled={!history.canUndo}
-              title="Deshacer (Ctrl+Z)"
-              aria-label="Deshacer"
-            >
-              ↶
-            </button>
-            <button
-              type="button"
-              onClick={history.redo}
-              disabled={!history.canRedo}
-              title="Rehacer (Ctrl+Shift+Z)"
-              aria-label="Rehacer"
-            >
-              ↷
-            </button>
+            {/* Sin este enlace «Mis gráficas» no existía para el usuario: la
+                página estaba hecha y solo se llegaba justo después de entrar. */}
+            {signedIn && (
+              <Link className="panel-nav" href="/mis-graficas">
+                Mis gráficas
+              </Link>
+            )}
           </div>
 
-          {url && !url.ok && (
-            <span className="warn" style={{ fontSize: '0.75rem' }}>
-              Pasa de {MAX_URL_LENGTH} caracteres
-            </span>
-          )}
+          <div className="panel-head-right">
+            {/* Deshacer y rehacer. Los atajos los pone el hook; los botones
+                están porque un atajo que nadie sabe que existe no tranquiliza a
+                nadie a la hora de experimentar. */}
+            <div className="undo">
+              <button
+                type="button"
+                onClick={history.undo}
+                disabled={!history.canUndo}
+                title="Deshacer (Ctrl+Z)"
+                aria-label="Deshacer"
+              >
+                ↶
+              </button>
+              <button
+                type="button"
+                onClick={history.redo}
+                disabled={!history.canRedo}
+                title="Rehacer (Ctrl+Shift+Z)"
+                aria-label="Rehacer"
+              >
+                ↷
+              </button>
+            </div>
 
-          {/* Guardar va aquí y no en la barra del link de abajo: son dos cosas
-              distintas y conviene que no se confundan. Abajo está el link que
-              YA funciona sin cuenta; esto es para tener uno corto y poder
-              volver. Ver SaveBar.tsx. */}
-          <SaveBar
-            config={config}
-            chartId={chartId}
-            visibility={visibility}
-            signedIn={signedIn}
-            userId={userId}
-            capture={capture}
-          />
+            <SaveBar
+              config={config}
+              chartId={chartId}
+              visibility={visibility}
+              signedIn={signedIn}
+              userId={userId}
+              capture={capture}
+            />
+          </div>
+
+          {/* El aviso de URL larga va FUERA de las dos zonas y a lo ancho: es
+              una condición de lo que estás editando, no un control, y metido
+              entre botones estrechaba todo lo demás. */}
+          {url && !url.ok && (
+            <p className="panel-head-warn">Pasa de {MAX_URL_LENGTH} caracteres</p>
+          )}
         </header>
 
         {/* Nivel 1 — un control, y con esto ya se puede publicar. */}

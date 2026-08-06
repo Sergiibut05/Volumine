@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useTransition } from 'react';
 import { deleteChart, duplicateChart, setVisibility } from '@/lib/charts/actions';
 import type { ChartSummary } from '@/lib/supabase/types';
+import { posterUrl } from '@/lib/charts/poster';
 
 const NOMBRE_TIPO: Record<string, string> = {
   donut: 'Anillo',
@@ -60,8 +61,30 @@ export function ChartCard({ chart, origin }: { chart: ChartSummary; origin: stri
     if (confirm(aviso)) correr(() => deleteChart(chart.id));
   };
 
+  const poster = posterUrl(chart.poster_path);
+
   return (
     <li className="chart-card">
+      {/*
+        LA MINIATURA ES LA TARJETA.
+
+        Un listado de gráficas sin gráficas es una lista de títulos: para saber
+        cuál es cuál hay que leer, y los títulos que pone la gente se parecen
+        entre sí («Ventas», «Ventas 2», «Ventas final»). La imagen la reconoces
+        de un vistazo, que es como se busca de verdad entre cosas propias.
+
+        Se aprovecha el póster que ya se sube al guardar — no cuesta nada nuevo.
+        Las de antes del póster caen al hueco con el nombre del tipo, que al
+        menos distingue un globo de un anillo.
+      */}
+      <Link className="chart-thumb" href={`/crear?id=${chart.id}`} tabIndex={-1} aria-hidden>
+        {poster ? (
+          <img src={poster} alt="" loading="lazy" decoding="async" />
+        ) : (
+          <span>{NOMBRE_TIPO[chart.type] ?? chart.type}</span>
+        )}
+      </Link>
+
       <h2 title={chart.title ?? 'Sin título'}>{chart.title || 'Sin título'}</h2>
 
       <div className="chart-meta">

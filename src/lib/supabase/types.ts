@@ -46,7 +46,10 @@ export type PlanLimitRow = {
 /** Lo que se enseña en el listado. Sin `config`, que pesa y no se usa ahí. */
 export type ChartSummary = Pick<
   ChartRow,
-  'id' | 'slug' | 'title' | 'type' | 'visibility' | 'updated_at'
+  'id' | 'slug' | 'title' | 'type' | 'visibility' | 'updated_at' | 'poster_path'
 >;
 
-export const CHART_SUMMARY_COLUMNS = 'id, slug, title, type, visibility, updated_at';
+/* Sigue sin traer `config`, que es lo que pesa: una lista de veinte gráficas
+   con sus datos dentro son cientos de KB para enseñar cinco campos. */
+export const CHART_SUMMARY_COLUMNS =
+  'id, slug, title, type, visibility, updated_at, poster_path';

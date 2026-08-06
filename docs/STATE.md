@@ -233,6 +233,17 @@ display: none }` o el elemento oculto se ve.
 
 ## Problemas abiertos
 
+- **`/mis-graficas` con estilo, pero SIN VERIFICAR con sesión.** Tiene tarjetas
+  con miniatura del póster, insignia de pública/privada y acciones, y el CSS
+  está escrito, pero no se ha visto nunca con un usuario dentro: el login es por
+  magic link, así que una prueba automática no puede entrar. Hay que mirarlo a
+  ojo.
+- **Pendientes de configuración**, ninguno es código: dar de alta Google como
+  proveedor, y la plantilla de correo del magic link, que llega con el diseño
+  genérico de Supabase (Auth → Email Templates). El remitente propio importa más
+  que el diseño: un magic link desde el dominio de Supabase acaba en spam más a
+  menudo.
+
 - ~~Las políticas RLS siguen sin probarse.~~ Probadas: 18 en verde.
 - **Nadie ha guardado una gráfica todavía.** El camino completo —entrar, pulsar
   guardar, ver la fila en `/mis-graficas`, abrir `/embed/{slug}` desde otro
