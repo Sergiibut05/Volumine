@@ -13,6 +13,9 @@
 
 .editor {
   display: grid;
+  /* Una fila para la barra de aplicación y otra para el trabajo. La barra cruza
+     las dos columnas: es de la APLICACIÓN, no del panel. */
+  grid-template-rows: auto minmax(0, 1fr);
   grid-template-columns: minmax(0, 1fr) 380px;
   height: 100dvh;
   overflow: hidden;
@@ -23,7 +26,7 @@
 @media (max-width: 960px) {
   .editor {
     grid-template-columns: 1fr;
-    grid-template-rows: 46dvh minmax(0, 1fr);
+    grid-template-rows: auto 46dvh minmax(0, 1fr);
   }
 }
 
@@ -1007,34 +1010,7 @@
   opacity: 0.68;
 }
 
-/*
-  La barra de la cabecera del panel.
-
-  Dos zonas: identidad y sitio a la izquierda, acciones a la derecha. Todos los
-  controles miden lo mismo de alto (28 px) y se alinean por el CENTRO — con
-  `baseline`, que es lo que había, cada uno se alineaba por su propia línea de
-  texto y un icono no tiene, así que quedaban descuadrados.
-*/
-.panel-head {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--p-space-3);
-  margin-bottom: var(--p-space-6);
-}
-
-.panel-head-left,
-.panel-head-right {
-  display: flex;
-  align-items: center;
-  gap: var(--p-space-3);
-}
-
-.panel-head-right {
-  margin-left: auto;
-  gap: var(--p-space-2);
-}
-
+/* La marca y la navegación viven ahora en `.topbar`. */
 .panel-brand {
   color: var(--text-primary);
   text-decoration: none;
@@ -1076,13 +1052,6 @@
   color: var(--text-primary);
 }
 
-.panel-head-warn {
-  flex-basis: 100%;
-  margin: 0;
-  color: var(--p-amber-400, #ffd166);
-  font-size: 0.75rem;
-}
-
 /* Los tres controles de la derecha comparten alto. Es lo único que hace que
    una fila de cosas distintas se lea como una barra y no como un montón. */
 /*
@@ -1096,20 +1065,6 @@
   ahí sí debe leerse como no disponible, y esa diferencia solo funciona si el
   estado normal es claro.
 */
-.panel-head .undo button,
-.panel-head .savebar button,
-.panel-head .savebar-link {
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.panel-head .savebar,
-.panel-head .savebar-link {
-  margin-left: 0;
-}
-
 /*
   El nombre de la gráfica.
 
@@ -1158,4 +1113,105 @@
   outline: none;
   border-color: var(--accent);
   background: var(--surface-sunken);
+}
+
+/*
+  LA BARRA DE APLICACIÓN.
+
+  Cruza las dos columnas: dice dónde estás y qué puedes hacer con la gráfica
+  entera, no con el panel. Vivía dentro del panel y ahí no cabía —380 px entre
+  marca, navegación, deshacer y guardar dejaban el nombre fuera, que tuvo que
+  bajar al panel robándole cien píxeles a los ajustes.
+
+  Ruta a la izquierda, acciones a la derecha. No es imitar a Figma por imitar:
+  es la disposición que la gente ya sabe leer sin mirar.
+*/
+.topbar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: var(--p-space-4);
+  min-height: 52px;
+  padding: 0 var(--p-space-4);
+  border-bottom: 1px solid var(--edge-subtle);
+  background: var(--surface-raised);
+}
+
+.topbar-left,
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--p-space-3);
+  min-width: 0;
+}
+
+.topbar-right {
+  margin-left: auto;
+  gap: var(--p-space-2);
+}
+
+.topbar-sep {
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+}
+
+.topbar-warn {
+  color: var(--p-amber-400, #ffd166);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/*
+  El nombre, como parte de la ruta.
+
+  Sin caja ni etiqueta en reposo: es texto, y se lee solo. El envoltorio aparece
+  al pasar por encima o al enfocar, que es cuando hace falta saber que ahí se
+  escribe. `min-width: 0` para que un título largo se recorte en vez de empujar
+  los botones fuera de la barra.
+*/
+.chart-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 26ch;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--p-radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-display), sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  transition:
+    background 0.14s ease,
+    border-color 0.14s ease;
+}
+
+.chart-title:hover {
+  border-color: var(--edge-subtle);
+}
+
+.chart-title::placeholder {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.chart-title:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface-sunken);
+}
+
+/* En móvil la barra se aprieta: la ruta se recorta antes que los botones, que
+   son lo único que no se puede dejar fuera. */
+@media (max-width: 640px) {
+  .topbar {
+    gap: var(--p-space-2);
+  }
+
+  .topbar-sep,
+  .panel-nav {
+    display: none;
+  }
 }

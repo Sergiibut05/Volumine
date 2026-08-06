@@ -307,6 +307,93 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
        modo de taller y el 3D con luz IBL se lee mejor sobre oscuro. La landing
        es lo contrario, y ese contraste es intencionado. */
     <div className="editor" data-theme="dark">
+      {/*
+        LA BARRA DE LA APLICACIÓN, A TODO LO ANCHO.
+
+        Vivía DENTRO del panel lateral, y ahí no cabía nada: 380 px repartidos
+        entre marca, navegación, deshacer y guardar dejaban el nombre de la
+        gráfica fuera —tuvo que bajar al panel como un control más, robándole
+        cien píxeles de alto a los ajustes.
+
+        Sacándola fuera hay sitio de sobra para las tres cosas que dicen DÓNDE
+        ESTÁS —marca, tus gráficas, y qué gráfica es esta— a la izquierda, y las
+        que dicen QUÉ PUEDES HACER a la derecha. El panel empieza directamente
+        por «Tema», que es lo que se viene a tocar.
+
+        Es además la disposición que espera cualquiera que haya usado Figma o
+        Notion, y eso no es imitar por imitar: la ruta a la izquierda y las
+        acciones a la derecha es lo que la gente ya sabe leer sin mirar.
+      */}
+      <header className="topbar">
+        <div className="topbar-left">
+          <Link href="/" className="panel-brand" aria-label="Voluma — inicio">
+            <Wordmark size={1.0625} />
+          </Link>
+
+          {signedIn && (
+            <Link className="panel-nav" href="/mis-graficas">
+              Mis gráficas
+            </Link>
+          )}
+
+          {/* El nombre, como parte de la ruta. Se edita en el sitio: al pulsarlo
+              se enfoca y ya está — sin diálogo ni botón de lápiz, que son dos
+              pasos para cambiar una palabra. */}
+          <span className="topbar-sep" aria-hidden>
+            /
+          </span>
+          <input
+            className="chart-title"
+            value={config.title ?? ''}
+            placeholder="Sin título"
+            maxLength={200}
+            aria-label="Nombre de la gráfica"
+            onChange={(e) =>
+              setConfig((c) => ({ ...c, title: e.target.value || undefined }))
+            }
+          />
+        </div>
+
+        <div className="topbar-right">
+          {url && !url.ok && (
+            <span className="topbar-warn">Pasa de {MAX_URL_LENGTH} caracteres</span>
+          )}
+
+          {/* Deshacer y rehacer. Los atajos los pone el hook; los botones están
+              porque un atajo que nadie sabe que existe no tranquiliza a nadie a
+              la hora de experimentar. */}
+          <div className="undo">
+            <button
+              type="button"
+              onClick={history.undo}
+              disabled={!history.canUndo}
+              title="Deshacer (Ctrl+Z)"
+              aria-label="Deshacer"
+            >
+              ↶
+            </button>
+            <button
+              type="button"
+              onClick={history.redo}
+              disabled={!history.canRedo}
+              title="Rehacer (Ctrl+Shift+Z)"
+              aria-label="Rehacer"
+            >
+              ↷
+            </button>
+          </div>
+
+          <SaveBar
+            config={config}
+            chartId={chartId}
+            visibility={visibility}
+            signedIn={signedIn}
+            userId={userId}
+            capture={capture}
+          />
+        </div>
+      </header>
+
       <div className="canvas-pane">
         {parsed.ok && (
           <ChartCanvas config={parsed.config} onHover={setHovered} captureRef={capture} />
@@ -353,107 +440,6 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
       </div>
 
       <aside className="panel">
-        {/*
-          LA BARRA DEL EDITOR.
-
-          Antes era una fila con `align-items: baseline` y estilos en línea
-          mezclando cinco cosas de pesos muy distintos: marca, un enlace de
-          texto, dos botones cuadrados y un botón con borde. Con `baseline` cada
-          uno se alineaba por su propia línea de texto —un icono no tiene—, así
-          que quedaban a alturas distintas; y el enlace de «Mis gráficas»
-          aparecía y desaparecía según hubiera sesión, moviendo todo lo demás.
-
-          Ahora son dos zonas con un papel claro cada una: IDENTIDAD Y SITIO a la
-          izquierda, ACCIONES sobre lo que estás haciendo a la derecha. Todos los
-          controles miden lo mismo de alto y se alinean por el centro, que es lo
-          único que hace que una fila de cosas heterogéneas parezca una barra y
-          no un montón.
-        */}
-        <header className="panel-head">
-          <div className="panel-head-left">
-            <Link href="/" className="panel-brand" aria-label="Voluma — inicio">
-              <Wordmark size={1.25} />
-            </Link>
-
-            {/* Sin este enlace «Mis gráficas» no existía para el usuario: la
-                página estaba hecha y solo se llegaba justo después de entrar. */}
-            {signedIn && (
-              <Link className="panel-nav" href="/mis-graficas">
-                Mis gráficas
-              </Link>
-            )}
-          </div>
-
-          <div className="panel-head-right">
-            {/* Deshacer y rehacer. Los atajos los pone el hook; los botones
-                están porque un atajo que nadie sabe que existe no tranquiliza a
-                nadie a la hora de experimentar. */}
-            <div className="undo">
-              <button
-                type="button"
-                onClick={history.undo}
-                disabled={!history.canUndo}
-                title="Deshacer (Ctrl+Z)"
-                aria-label="Deshacer"
-              >
-                ↶
-              </button>
-              <button
-                type="button"
-                onClick={history.redo}
-                disabled={!history.canRedo}
-                title="Rehacer (Ctrl+Shift+Z)"
-                aria-label="Rehacer"
-              >
-                ↷
-              </button>
-            </div>
-
-            <SaveBar
-              config={config}
-              chartId={chartId}
-              visibility={visibility}
-              signedIn={signedIn}
-              userId={userId}
-              capture={capture}
-            />
-          </div>
-
-          {/* El aviso de URL larga va FUERA de las dos zonas y a lo ancho: es
-              una condición de lo que estás editando, no un control, y metido
-              entre botones estrechaba todo lo demás. */}
-          {url && !url.ok && (
-            <p className="panel-head-warn">Pasa de {MAX_URL_LENGTH} caracteres</p>
-          )}
-        </header>
-
-        {/*
-          EL NOMBRE, y va antes que nada.
-
-          No había forma de ponerlo. El contrato tiene `title` desde v1 y el
-          editor no lo exponía, así que al guardar se quedaba el título del
-          EJEMPLO —«Reparto de ingresos»— y aparecía en el listado un nombre que
-          el usuario no había escrito nunca. Es de las cosas que más
-          desconciertan: parece que la aplicación se ha inventado algo.
-
-          Sin envolver en `<Group>` y SIN ETIQUETA NI CAJA: la etiqueta «NOMBRE»
-          más la tarjeta más el texto sumaban casi cien píxeles de alto en un
-          panel donde el espacio vertical es lo que más escasea, para explicar
-          que «Reparto de ingresos» es un nombre. Se lee solo.
-
-          Queda un texto grande y transparente, con el envoltorio apareciendo al
-          pasar por encima o al enfocarlo — que es cuando de verdad hace falta
-          saber que se puede escribir ahí.
-        */}
-        <input
-          className="chart-title"
-          value={config.title ?? ''}
-          placeholder="Sin título"
-          maxLength={200}
-          aria-label="Nombre de la gráfica"
-          onChange={(e) => setConfig((c) => ({ ...c, title: e.target.value || undefined }))}
-        />
-
         {/* Nivel 1 — un control, y con esto ya se puede publicar. */}
         <Group title="Tema" hint="Empieza por aquí">
           <Choices
