@@ -43,7 +43,22 @@ export async function GET(request: Request): Promise<Response> {
     return fail(result.issues[0]?.message ?? 'Configuración inválida', 422);
   }
 
-  return new Response(embedHtml({ config: result.config, css, scriptSrc }), {
-    headers: urlEmbedHeaders,
-  });
+  /* El origen sale de la cabecera `Host` y no de `request.url`, que Next
+     normaliza: detrás de un proxy son dominios distintos. Mismo motivo que en
+     el endpoint oEmbed. */
+  const h = request.headers;
+  const host = h.get('x-forwarded-host') ?? h.get('host');
+  const proto =
+    h.get('x-forwarded-proto') ??
+    (host?.startsWith('localhost') || host?.startsWith('127.') ? 'http' : 'https');
+
+  return new Response(
+    embedHtml({
+      config: result.config,
+      css,
+      scriptSrc,
+      origin: host ? `${proto}://${host}` : null,
+    }),
+    { headers: urlEmbedHeaders },
+  );
 }

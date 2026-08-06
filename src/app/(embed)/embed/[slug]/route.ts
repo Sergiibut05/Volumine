@@ -83,6 +83,7 @@ export async function GET(
       scriptSrc,
       poster: posterUrl(row.poster_path, row.updated_at),
       canonical: `${origen}/embed/${row.slug}`,
+      origin: origen,
     }),
     { headers: savedEmbedHeaders },
   );

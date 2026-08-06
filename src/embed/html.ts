@@ -381,6 +381,10 @@ export function embedHtml({
   scriptSrc,
   poster,
   canonical,
+  /* OJO: si `origin` no se desestructura aquí, dentro de la función NO da error
+     de tipos — apunta al `origin` GLOBAL del runtime. El embed devolvía 500 y
+     `tsc` pasaba limpio. Es el riesgo de nombrar un parámetro como un global. */
+  origin,
 }: {
   config: ResolvedChartConfig;
   css: string;
@@ -389,6 +393,19 @@ export function embedHtml({
   poster?: string | null;
   /** URL canónica de esta gráfica, para las tarjetas de enlace. */
   canonical?: string | null;
+  /**
+   * Origen desde el que se sirve. A dónde lleva la marca de agua.
+   *
+   * Estaba escrito a mano como `https://voluma.app` — un dominio que no existe.
+   * O sea que TODOS los embeds publicados llevaban un enlace muerto, y la marca
+   * de agua es la única publicidad gratis que tiene este producto: alguien la
+   * pulsaba y no llegaba a ninguna parte.
+   *
+   * Se pasa desde la ruta y no se constantiza porque el dominio cambia —local,
+   * preview de Vercel, producción, y el propio cuando lo haya—. Escribirlo a
+   * mano es garantizar que vuelva a quedarse viejo.
+   */
+  origin?: string | null;
 }): string {
   /*
     La marca de agua lleva SÍMBOLO además del nombre.
@@ -401,8 +418,9 @@ export function embedHtml({
     El SVG va en línea porque el embed no puede pedirle una imagen a nadie
     (ADR 0005), y son 180 bytes.
   */
+  const inicio = origin ?? (canonical ? new URL(canonical).origin : 'https://voluma.app');
   const watermark = config.layout.watermark
-    ? `<a class="watermark" href="https://voluma.app" target="_blank" rel="noopener" aria-label="Hecho con Voluma">` +
+    ? `<a class="watermark" href="${escapeHtml(inicio)}" target="_blank" rel="noopener" aria-label="Hecho con Voluma">` +
       `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">` +
       `<ellipse cx="12" cy="14.2" rx="9" ry="5.6" stroke="currentColor" stroke-width="3.6" opacity=".42"/>` +
       `<ellipse cx="12" cy="11" rx="9" ry="5.6" stroke="currentColor" stroke-width="3.6"/>` +
