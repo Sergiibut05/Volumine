@@ -1,6 +1,7 @@
 import { chartForEmbed } from '@/lib/charts/queries';
 import { posterUrl } from '@/lib/charts/poster';
 import { parseConfig } from '@/lib/config/parse';
+import { decodeConfig } from '@/lib/config/url';
 import type { ChartConfig } from '@/lib/config/schema';
 
 /*
@@ -85,25 +86,50 @@ export async function GET(request: Request) {
     dominio. Sin esa comprobación, cualquiera podría pedirnos que describiéramos
     la URL de otro y usar nuestro endpoint de intermediario.
   */
-  let slug: string | null = null;
+  let url: URL;
   try {
-    const url = new URL(target);
-    if (url.host !== new URL(origen).host) {
-      return json({ error: 'URL de otro dominio' }, 404);
-    }
-    const match = url.pathname.match(/^\/embed\/([2-9a-km-np-zA-HJ-NP-Z]{12})$/);
-    slug = match?.[1] ?? null;
+    url = new URL(target);
   } catch {
     return json({ error: 'URL inválida' }, 400);
   }
+  if (url.host !== new URL(origen).host) {
+    return json({ error: 'URL de otro dominio' }, 404);
+  }
 
-  if (!slug) return json({ error: 'Esa URL no es una gráfica' }, 404);
+  /*
+    DOS FORMAS DE GRÁFICA, y las dos se describen aquí:
 
-  const row = await chartForEmbed(slug);
-  // Privada, borrada o inexistente: la misma respuesta para las tres.
-  if (!row) return json({ error: 'Esa gráfica no existe' }, 404);
+      /embed/{slug}   guardada — hay que ir a la base de datos
+      /embed?c=…      la config viaja en el propio link, sin cuenta
 
-  const parsed = parseConfig(row.config as ChartConfig);
+    La segunda es la promesa del producto —no hace falta registrarse— así que
+    tiene que poder incrustarse igual. Lo único que no tiene es póster: nadie
+    ha capturado nunca esa gráfica porque no está guardada.
+  */
+  const slug = url.pathname.match(/^\/embed\/([2-9a-km-np-zA-HJ-NP-Z]{12})$/)?.[1];
+  const encoded = url.pathname === '/embed' ? url.searchParams.get('c') : null;
+
+  let config: ChartConfig | null = null;
+  let title: string | null = null;
+  let poster: string | null = null;
+
+  if (slug) {
+    const row = await chartForEmbed(slug);
+    // Privada, borrada o inexistente: la misma respuesta para las tres.
+    if (!row) return json({ error: 'Esa gráfica no existe' }, 404);
+    config = row.config as ChartConfig;
+    title = row.title;
+    poster = posterUrl(row.poster_path, row.updated_at);
+  } else if (encoded) {
+    const decoded = decodeConfig(encoded);
+    if (decoded === null) return json({ error: 'La configuración no se pudo leer' }, 404);
+    config = decoded as ChartConfig;
+    title = (decoded as ChartConfig).title ?? null;
+  } else {
+    return json({ error: 'Esa URL no es una gráfica' }, 404);
+  }
+
+  const parsed = parseConfig(config);
   const aspect = parsed.ok ? ASPECTS[parsed.config.layout.aspect] : ASPECTS['16:9'];
 
   const pedido = Number(params.get('maxwidth'));
@@ -113,17 +139,20 @@ export async function GET(request: Request) {
   );
   const height = Math.round(width * (aspect ?? 9 / 16));
 
-  const src = `${origen}/embed/${slug}`;
+  /* Se devuelve la MISMA URL que nos han dado, no una reconstruida: en la
+     config-en-URL el `?c=` entero es la gráfica y perderlo daría un iframe
+     vacío. */
+  const src = `${origen}${url.pathname}${url.search}`;
 
   /*
     `loading="lazy"` y `allowfullscreen` no: una gráfica no va a pantalla
     completa. Sí `title`, que es lo que lee un lector de pantalla al llegar al
     iframe — sin él dice «marco», que no ayuda a nadie.
   */
-  const title = row.title ?? 'Gráfica';
+  const nombre = title ?? 'Gráfica';
   const html =
     `<iframe src="${src}" width="${width}" height="${height}" ` +
-    `title="${title.replace(/"/g, '&quot;')}" ` +
+    `title="${nombre.replace(/"/g, '&quot;')}" ` +
     `frameborder="0" loading="lazy" style="border:0;max-width:100%"></iframe>`;
 
   return json({
@@ -131,15 +160,15 @@ export async function GET(request: Request) {
     type: 'rich',
     provider_name: 'Voluma',
     provider_url: origen,
-    title,
+    title: nombre,
     html,
     width,
     height,
     /* La miniatura es el póster. Quien no sepa incrustar un iframe —o el usuario
        que prefiera una imagen— se queda al menos con la gráfica. */
-    ...(row.poster_path
+    ...(poster
       ? {
-          thumbnail_url: posterUrl(row.poster_path, row.updated_at),
+          thumbnail_url: poster,
           thumbnail_width: 1200,
           thumbnail_height: Math.round(1200 * (aspect ?? 9 / 16)),
         }

@@ -205,7 +205,15 @@ function socialTags(
   poster: string | null | undefined,
   canonical: string | null | undefined,
 ): string {
-  if (!poster) return '';
+  /*
+    LAS DOS FAMILIAS SON INDEPENDIENTES, y tenerlas juntas era un fallo.
+
+    Las de IMAGEN necesitan póster. Las de REPRODUCTOR solo necesitan que la
+    gráfica tenga una URL estable. Estaban las dos detrás del mismo `if
+    (!poster)`, así que una gráfica sin cuenta —que nunca tiene póster, porque
+    nadie la ha capturado— se quedaba sin poder incrustarse en ningún sitio.
+  */
+  if (!poster && !canonical) return '';
 
   const titulo = escapeHtml(config.title ?? 'Gráfica');
   const alt = escapeHtml(describeChart(config).slice(0, 200));
@@ -221,15 +229,22 @@ function socialTags(
   return [
     `<meta property="og:type" content="website">`,
     `<meta property="og:title" content="${titulo}">`,
-    `<meta property="og:image" content="${escapeHtml(poster)}">`,
-    `<meta property="og:image:alt" content="${alt}">`,
     canonical ? `<meta property="og:url" content="${escapeHtml(canonical)}">` : '',
+
+    // Solo con póster: apuntar a una imagen que no existe enseña un hueco roto.
+    ...(poster
+      ? [
+          `<meta property="og:image" content="${escapeHtml(poster)}">`,
+          `<meta property="og:image:alt" content="${alt}">`,
+          `<meta name="twitter:image" content="${escapeHtml(poster)}">`,
+        ]
+      : []),
     /* `summary_large_image`: una gráfica en miniatura no se lee. Si va a salir
        una imagen, que salga a tamaño de leerla. */
-    /* `player` cuando se puede incrustar, `summary_large_image` si no. Con
-       `summary_large_image` Twitter enseña la foto aunque haya reproductor. */
+    /* `player` cuando se puede incrustar, `summary_large_image` si solo hay
+       foto. Con `summary_large_image` Twitter enseña la imagen aunque haya
+       reproductor, así que el orden importa. */
     `<meta name="twitter:card" content="${canonical ? 'player' : 'summary_large_image'}">`,
-    `<meta name="twitter:image" content="${escapeHtml(poster)}">`,
 
     /*
       ETIQUETAS DE REPRODUCTOR.

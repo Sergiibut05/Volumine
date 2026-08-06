@@ -58,6 +58,25 @@ export async function GET(request: Request): Promise<Response> {
       css,
       scriptSrc,
       origin: host ? `${proto}://${host}` : null,
+      /*
+        LA CONFIG-EN-URL TAMBIÉN SE PUEDE INCRUSTAR.
+
+        Antes solo se anunciaban las gráficas guardadas, con el argumento de que
+        estas son URLs infinitas —cada movimiento de un slider produce otra— e
+        indexarlas llenaría un buscador de duplicados.
+
+        El argumento confundía dos cosas separables: que un BUSCADOR lo indexe y
+        que NOTION pueda incrustarlo. Y la promesa del producto es «no hace falta
+        cuenta»; con esto apagado, el link sin cuenta no se podía pegar donde la
+        gente lo quiere pegar. La promesa se cumplía a medias.
+
+        El riesgo de indexación es además menor de lo que parecía: un buscador
+        solo indexa lo que descubre, y estas URLs viven dentro de iframes, que no
+        se siguen como enlaces.
+
+        Su canónica es la petición entera, `?c=` incluido: eso ES la gráfica.
+      */
+      canonical: host ? `${proto}://${host}${new URL(request.url).pathname}${new URL(request.url).search}` : null,
     }),
     { headers: urlEmbedHeaders },
   );

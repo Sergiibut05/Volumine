@@ -225,6 +225,13 @@ ratón dentro de una página ajena es un embed que la gente quita.
 
 ## Config en URL
 
+Las gráficas de config-en-URL **se pueden incrustar igual que las guardadas**:
+llevan enlace de oEmbed (`/api/oembed`) y etiquetas de reproductor, así que
+pegar el link en Notion o Canva enseña la gráfica viva. Es la promesa de «no
+hace falta cuenta» llevada hasta el final. Lo único que no tienen es póster —
+nadie ha capturado nunca esa gráfica— así que no dan tarjeta con imagen.
+
+
 ```
 /embed?c=<lz-string compressed base64url del JSON>
 /embed/{id}                      # config desde BBDD
