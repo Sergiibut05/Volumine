@@ -427,6 +427,30 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
           )}
         </header>
 
+        {/*
+          EL NOMBRE, y va antes que nada.
+
+          No había forma de ponerlo. El contrato tiene `title` desde v1 y el
+          editor no lo exponía, así que al guardar se quedaba el título del
+          EJEMPLO —«Reparto de ingresos»— y aparecía en el listado un nombre que
+          el usuario no había escrito nunca. Es de las cosas que más
+          desconciertan: parece que la aplicación se ha inventado algo.
+
+          Sin envolver en `<Group>`: es la identidad de lo que estás haciendo, no
+          un ajuste más entre ajustes.
+        */}
+        <label className="chart-title">
+          <span>Nombre</span>
+          <input
+            value={config.title ?? ''}
+            placeholder="Sin título"
+            maxLength={200}
+            onChange={(e) =>
+              setConfig((c) => ({ ...c, title: e.target.value || undefined }))
+            }
+          />
+        </label>
+
         {/* Nivel 1 — un control, y con esto ya se puede publicar. */}
         <Group title="Tema" hint="Empieza por aquí">
           <Choices

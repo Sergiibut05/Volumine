@@ -129,9 +129,9 @@ export async function duplicateChart(id: string): Promise<ActionResult> {
 
   const { data: source } = await supabase
     .from('charts')
-    .select('title, type, config')
+    .select('title, type, config, poster_path')
     .eq('id', id)
-    .maybeSingle<Pick<ChartRow, 'title' | 'type' | 'config'>>();
+    .maybeSingle<Pick<ChartRow, 'title' | 'type' | 'config' | 'poster_path'>>();
 
   if (!source) return { ok: false, error: 'Esa gráfica no existe o no es tuya.' };
 
@@ -143,6 +143,11 @@ export async function duplicateChart(id: string): Promise<ActionResult> {
       type: source.type,
       config: source.config,
       visibility: 'private',
+      /* La copia HEREDA el póster del original. Son la misma gráfica hasta que
+         alguien la toque, así que la miniatura del listado es correcta desde el
+         primer momento; sin esto la copia salía como un hueco gris y parecía
+         que se había duplicado mal. Se reemplaza sola al guardar la copia. */
+      poster_path: source.poster_path,
     })
     .select('id, slug')
     .single<Pick<ChartRow, 'id' | 'slug'>>();

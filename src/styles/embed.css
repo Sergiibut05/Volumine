@@ -448,6 +448,12 @@ canvas {
   Eso además quita el parpadeo de fondo vacío que había mientras se descargaba
   y compilaba el bundle.
 */
+/* Se apaga en cuanto el renderer ha montado. El canvas es TRANSPARENTE, así que
+   no tapa nada: sin esta regla se veían las dos imágenes a la vez. */
+.stage[data-mounted] .poster {
+  display: none;
+}
+
 .poster {
   position: absolute;
   inset: 0;

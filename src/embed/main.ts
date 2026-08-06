@@ -66,6 +66,20 @@ function main() {
     if (handle) return;
     handle = createChartRenderer(canvas!, config!);
 
+    /*
+      APAGAR EL PÓSTER AL MONTAR.
+
+      El póster está en el DOM desde el primer byte para que se vea la gráfica
+      antes de que arranque WebGL. Di por hecho que el canvas lo taparía al
+      dibujar encima — y NO, porque el canvas es TRANSPARENTE: esa es la premisa
+      del embed. Así que quedaban las dos imágenes superpuestas, la fija y la
+      viva, ligeramente desalineadas.
+
+      Se apaga cuando ya hay algo dibujado. Un frame de más con las dos no se
+      ve; sin esto se veía siempre.
+    */
+    stage!.dataset.mounted = '1';
+
     handle.onFrame((label) => {
       if (!period) return;
       period.hidden = label === null;
@@ -102,6 +116,9 @@ function main() {
   function unmount() {
     handle?.dispose();
     handle = null;
+    /* Al salir del viewport se destruye el contexto WebGL, así que el póster
+       vuelve: mejor la imagen fija que un hueco vacío al volver a subir. */
+    delete stage!.dataset.mounted;
   }
 
   /* El canvas no se monta hasta entrar en viewport y se desmonta al salir. Un

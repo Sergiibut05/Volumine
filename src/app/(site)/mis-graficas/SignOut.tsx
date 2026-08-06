@@ -22,7 +22,11 @@ export function SignOut() {
   const salir = () =>
     startTransition(async () => {
       await supabaseBrowser().auth.signOut();
-      router.replace('/');
+      /* Al editor y no a la landing: el editor FUNCIONA sin cuenta —es la
+         premisa del producto— así que cerrar sesión no puede dejarte fuera de
+         lo único que se usa aquí. Mandar a la landing daba la sensación de
+         haber sido expulsado, sin puerta de vuelta a la vista. */
+      router.replace('/crear');
       router.refresh();
     });
 
@@ -40,7 +44,10 @@ export function SignOut() {
         cursor: 'pointer',
       }}
     >
-      Salir
+      {/* «Salir» no decía qué se salía de dónde: leído en una barra, suena a
+          «volver». Cerrar sesión es una acción con consecuencias —pierdes
+          acceso a tus gráficas hasta volver a entrar— y tiene que nombrarse. */}
+      {pendiente ? 'Cerrando…' : 'Cerrar sesión'}
     </button>
   );
 }

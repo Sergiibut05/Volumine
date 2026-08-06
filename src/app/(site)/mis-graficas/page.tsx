@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import '@/styles/auth.css';
 import { allowance, currentUser, myCharts } from '@/lib/charts/queries';
 import { ChartCard } from './ChartCard';
+import { Wordmark } from '../Wordmark';
 import { SignOut } from './SignOut';
 
 export const metadata: Metadata = {
@@ -34,17 +35,25 @@ export default async function MisGraficasPage() {
     <div className="charts-page" data-theme="light">
       <div className="charts-shell">
         <header className="charts-head">
-          <h1 className="display">Mis gráficas</h1>
-          {cupo && (
-            <span className="charts-quota">
-              {cupo.used} de {cupo.max}
-            </span>
-          )}
-          <span style={{ flex: 1 }} />
-          <Link className="cta" href="/crear">
-            Nueva gráfica
+          <Link href="/" className="charts-brand" aria-label="Voluma — inicio">
+            <Wordmark size={1.0625} />
           </Link>
-          <SignOut />
+
+          <div className="charts-title">
+            <h1 className="display">Mis gráficas</h1>
+            {cupo && (
+              <p className="charts-quota">
+                {cupo.used} de {cupo.max} · plan {cupo.plan}
+              </p>
+            )}
+          </div>
+
+          <div className="charts-head-actions">
+            <Link className="cta" href="/crear">
+              Nueva gráfica
+            </Link>
+            <SignOut />
+          </div>
         </header>
 
         {/* El cupo se avisa ANTES de que falle. Quien decide es el trigger de la
@@ -57,8 +66,23 @@ export default async function MisGraficasPage() {
         )}
 
         {charts.length === 0 ? (
+          /*
+            El vacío es una PANTALLA, no un hueco.
+
+            Un recuadro de puntos ocupando el ancho de la ventana con una frase
+            dentro se lee como algo que ha fallado al cargar. Es además el primer
+            momento de alguien que acaba de registrarse, así que es donde hay que
+            explicar para qué sirve esto — no dejarle mirando un rectángulo.
+          */
           <div className="charts-empty">
-            <p>Todavía no has guardado ninguna.</p>
+            <span className="charts-empty-mark" aria-hidden>
+              <Wordmark size={1.5} />
+            </span>
+            <h2>Aún no has guardado ninguna</h2>
+            <p>
+              Guardar te da un link corto que puedes pegar en Notion, en tu web o
+              donde quieras, y volver a editar cuando te apetezca.
+            </p>
             <Link className="cta" href="/crear">
               Hacer la primera
             </Link>
