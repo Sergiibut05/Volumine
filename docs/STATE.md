@@ -238,11 +238,19 @@ display: none }` o el elemento oculto se ve.
   está escrito, pero no se ha visto nunca con un usuario dentro: el login es por
   magic link, así que una prueba automática no puede entrar. Hay que mirarlo a
   ojo.
-- **Pendientes de configuración**, ninguno es código: dar de alta Google como
-  proveedor, y la plantilla de correo del magic link, que llega con el diseño
-  genérico de Supabase (Auth → Email Templates). El remitente propio importa más
-  que el diseño: un magic link desde el dominio de Supabase acaba en spam más a
-  menudo.
+- **SMTP PROPIO — esto ya no es cosmético, BLOQUEA.** El servicio de correo
+  integrado de Supabase permite del orden de **2 envíos por hora** y está
+  pensado solo para probar. Se agota en una tarde de desarrollo y a partir de
+  ahí `signInWithOtp` devuelve `429 over_email_send_rate_limit`: nadie puede
+  entrar. Comprobado en los logs de auth el 2026-08-06.
+
+  Hace falta un proveedor propio (Resend, Postmark, SES) en Auth → SMTP
+  Settings. De paso resuelve las otras dos: la plantilla genérica y el remitente
+  —que es lo que de verdad decide si el magic link acaba en spam—.
+
+- **Google como proveedor**, pendiente de dar de alta. Necesita un OAuth client
+  de Google Cloud; la Redirect URI que pide Google es la de SUPABASE
+  (`https://butxsqcragkopzxsrukz.supabase.co/auth/v1/callback`), no la nuestra.
 
 - ~~Las políticas RLS siguen sin probarse.~~ Probadas: 18 en verde.
 - **Nadie ha guardado una gráfica todavía.** El camino completo —entrar, pulsar

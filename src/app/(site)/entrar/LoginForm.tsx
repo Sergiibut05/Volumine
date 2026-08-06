@@ -11,6 +11,33 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
   Aquí no aporta nada — no hay nada que proteger que no proteja ya el correo.
 */
 
+/**
+ * Traduce el fallo de auth a algo accionable.
+ *
+ * Antes TODO decía «revisa la dirección», y eso manda a la gente a buscar donde
+ * no es: el caso más frecuente con diferencia no es una dirección mal escrita,
+ * es la CUOTA DE CORREO. El servicio integrado de Supabase permite un puñado de
+ * envíos por hora —es para probar, no para usar— y se agota enseguida mientras
+ * desarrollas.
+ *
+ * Un mensaje de error que acusa a la entrada equivocada es peor que uno
+ * genérico: te hace perder el tiempo comprobando algo que estaba bien.
+ */
+function explicar(error: { message: string; status?: number; code?: string }): string {
+  const limite =
+    error.status === 429 ||
+    error.code === 'over_email_send_rate_limit' ||
+    /rate limit/i.test(error.message);
+
+  if (limite) {
+    return 'Se han enviado demasiados correos en poco rato. Espera unos minutos y vuelve a intentarlo — no es culpa de tu dirección.';
+  }
+  if (/invalid|email/i.test(error.message)) {
+    return 'Esa dirección no parece válida. Revísala.';
+  }
+  return 'No se ha podido enviar el correo. Inténtalo de nuevo en un momento.';
+}
+
 type Estado =
   | { fase: 'reposo' }
   | { fase: 'enviando' }
@@ -46,12 +73,7 @@ export function LoginForm({ next }: { next: string }) {
     });
 
     setEstado(
-      error
-        ? {
-            fase: 'error',
-            mensaje: 'No se ha podido enviar el correo. Revisa la dirección.',
-          }
-        : { fase: 'enviado', email },
+      error ? { fase: 'error', mensaje: explicar(error) } : { fase: 'enviado', email },
     );
   };
 
