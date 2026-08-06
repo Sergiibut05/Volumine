@@ -226,6 +226,24 @@ function socialTags(
 }
 
 /**
+ * El enlace de descubrimiento de oEmbed.
+ *
+ * ES LA PIEZA que convierte una URL pegada en Notion, Canva o WordPress en la
+ * gráfica VIVA. Esos sitios no adivinan: buscan esta etiqueta, llaman al
+ * endpoint que apunta y le preguntan cómo se incrusta. Sin ella, lo máximo que
+ * sacan es la tarjeta con la imagen de `og:image`.
+ *
+ * Solo en el embed GUARDADO: la config-en-URL no tiene una URL estable que
+ * describir —cada cambio produce otra— y no se comparte como link, se pega en
+ * un iframe a mano.
+ */
+function oembedLink(canonical: string | null | undefined): string {
+  if (!canonical) return '';
+  const endpoint = `${new URL(canonical).origin}/api/oembed?url=${encodeURIComponent(canonical)}`;
+  return `<link rel="alternate" type="application/json+oembed" href="${escapeHtml(endpoint)}" title="Voluma">`;
+}
+
+/**
  * El póster dentro del escenario, DEBAJO del canvas.
  *
  * No es un respaldo que se activa: está siempre, y el canvas lo tapa al montar.
@@ -340,6 +358,7 @@ export function embedHtml({
 <meta name="robots" content="noindex,nofollow">
 <title>${escapeHtml(config.title ?? 'Gráfica')}</title>
 ${socialTags(config, poster, canonical)}
+${oembedLink(canonical)}
 <style>${css}</style>
 </head>
 <body>
