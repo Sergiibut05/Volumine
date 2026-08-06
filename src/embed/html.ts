@@ -226,6 +226,29 @@ function socialTags(
 }
 
 /**
+ * La directiva para robots.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * EL EMBED GUARDADO NO PUEDE LLEVAR `noindex`. Iframely —y por tanto Notion y
+ * Canva— RESPETAN esa directiva y se niegan a leer la página: «the robots
+ * directive of this page prevents Iframely from parsing it». O sea que el
+ * `noindex` que puse por prudencia estaba impidiendo justo lo que el producto
+ * necesita, que es que otros lean este link y lo conviertan en un iframe.
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * La config-en-URL sí lo mantiene: son URLs infinitas y generadas, cada ajuste
+ * de un slider produce otra. Indexarlas sería llenar un buscador de duplicados
+ * de la misma gráfica, y además nadie las comparte — se pegan en un iframe a
+ * mano.
+ *
+ * El embed guardado es lo contrario: una URL estable que alguien ha decidido
+ * publicar. Que se pueda leer es el requisito, no el riesgo.
+ */
+function robotsTag(canonical: string | null | undefined): string {
+  return canonical ? '' : '<meta name="robots" content="noindex,nofollow">';
+}
+
+/**
  * El enlace de descubrimiento de oEmbed.
  *
  * ES LA PIEZA que convierte una URL pegada en Notion, Canva o WordPress en la
@@ -355,7 +378,7 @@ export function embedHtml({
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow">
+${robotsTag(canonical)}
 <title>${escapeHtml(config.title ?? 'Gráfica')}</title>
 ${socialTags(config, poster, canonical)}
 ${oembedLink(canonical)}
@@ -380,7 +403,10 @@ ${watermark}
 export function errorHtml(message: string, css: string): string {
   return `<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow"><title>Voluma</title><style>${css}</style></head>
+${
+  /* Una página de error SÍ lleva `noindex` siempre: no hay nada que indexar
+     ni nada que incrustar. */ ''
+}<meta name="robots" content="noindex,nofollow"><title>Voluma</title><style>${css}</style></head>
 <body><div class="stage" style="display:grid;place-content:center;padding:1rem">
 <p style="color:#9a9aab;font-size:13px;margin:0;text-align:center">${escapeHtml(message)}</p>
 </div></body></html>`;
