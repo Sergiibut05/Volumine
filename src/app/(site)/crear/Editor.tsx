@@ -161,6 +161,11 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
   const setConfig = history.set;
   const [copied, setCopied] = useState(false);
   const [hovered, setHovered] = useState<HoverInfo>(null);
+  /* Se enciende al intentar guardar sin nombre y se apaga en cuanto se escribe
+     algo. No se enciende al cargar: avisar de un campo vacío que nadie ha
+     intentado usar todavía es regañar por adelantado. */
+  const [faltaNombre, setFaltaNombre] = useState(false);
+  const tituloRef = useRef<HTMLInputElement>(null);
 
   const origin = useOrigin();
 
@@ -352,14 +357,18 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
             /
           </span>
           <input
+            ref={tituloRef}
             className="chart-title"
             value={config.title ?? ''}
-            placeholder="Sin título"
+            placeholder="Ponle un nombre"
             maxLength={200}
             aria-label="Nombre de la gráfica"
-            onChange={(e) =>
-              setConfig((c) => ({ ...c, title: e.target.value || undefined }))
-            }
+            aria-invalid={faltaNombre || undefined}
+            data-missing={faltaNombre || undefined}
+            onChange={(e) => {
+              if (faltaNombre) setFaltaNombre(false);
+              setConfig((c) => ({ ...c, title: e.target.value || undefined }));
+            }}
           />
         </div>
 
@@ -399,6 +408,13 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
             signedIn={signedIn}
             userId={userId}
             capture={capture}
+            onMissingTitle={() => {
+              setFaltaNombre(true);
+              /* Además de teñir el borde, se lleva el cursor al campo: señalar
+                 sin llevar hasta allí obliga a buscar con el ratón lo que la
+                 aplicación ya sabe dónde está. */
+              tituloRef.current?.focus();
+            }}
           />
         </div>
       </header>

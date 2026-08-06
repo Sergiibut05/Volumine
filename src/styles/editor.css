@@ -1193,3 +1193,19 @@
     display: none;
   }
 }
+
+/*
+  El nombre que falta.
+
+  Se tiñe al INTENTAR guardar, no al cargar: avisar de un campo vacío que nadie
+  ha intentado usar todavía es regañar por adelantado. Y se apaga en cuanto se
+  escribe una letra — el aviso ha cumplido, mantenerlo sería castigo.
+*/
+.chart-title[data-missing] {
+  border-color: #e5678a;
+  background: color-mix(in oklab, #e5678a 10%, transparent);
+}
+
+.chart-title[data-missing]::placeholder {
+  color: #e5678a;
+}

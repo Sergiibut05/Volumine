@@ -67,17 +67,6 @@ export function Wordmark({ size = 1.0625 }: { size?: number }) {
         display: 'inline-flex',
         alignItems: 'center',
         gap: `${size * 0.42}rem`,
-        /*
-          Se alinea por la ALTURA DE MAYÚSCULA del texto, no por su caja.
-
-          La caja de una línea incluye el espacio del descendente, y «Voluma» no
-          tiene ninguno: su tinta ocupa solo de la mayúscula a la línea base, así
-          que su centro óptico queda por encima del centro de la caja. Centrando
-          las dos cajas, el símbolo parece caído respecto a la palabra.
-
-          Este desplazamiento sube el símbolo lo que sube el texto. Es el ajuste
-          de siempre al montar un logotipo con símbolo y palabra.
-        */
         fontFamily: 'var(--font-display), sans-serif',
         fontWeight: 700,
         fontSize: `${size}rem`,
@@ -86,9 +75,19 @@ export function Wordmark({ size = 1.0625 }: { size?: number }) {
         color: 'inherit',
       }}
     >
-      <span style={{ display: 'flex', transform: 'translateY(-0.055em)' }}>
-        <VolumaMark size={size * 19} />
-      </span>
+      {/*
+        SIN ajuste óptico: el símbolo se centra con su caja y ya está.
+
+        Llevaba un `translateY(-0.055em)` para compensar que el texto no tiene
+        descendentes y su tinta queda alta. En teoría es correcto —es el ajuste
+        de siempre al montar un logotipo—, pero sumado a haber centrado la tinta
+        del símbolo dentro de su caja, se pasaba: el símbolo quedaba visiblemente
+        por encima de la palabra.
+
+        Dos correcciones ópticas en la misma dirección se acumulan. Con la tinta
+        ya centrada, esta sobra.
+      */}
+      <VolumaMark size={size * 19} />
       Voluma
     </span>
   );

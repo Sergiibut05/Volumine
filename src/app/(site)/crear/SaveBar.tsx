@@ -28,6 +28,14 @@ type Props = {
   userId: string | null;
   /** Devuelve la escena actual en PNG. Lo rellena `ChartCanvas`. */
   capture: React.MutableRefObject<(() => string) | null>;
+  /**
+   * Se llama al intentar guardar sin nombre.
+   *
+   * El botón NO se apaga: uno apagado no dice qué falta, solo que no puedes, y
+   * te deja buscando. Se deja pulsable y al pulsarlo se señala el campo que
+   * falta — que es donde hay que mirar.
+   */
+  onMissingTitle: () => void;
 };
 
 export function SaveBar({
@@ -37,6 +45,7 @@ export function SaveBar({
   signedIn,
   userId,
   capture,
+  onMissingTitle,
 }: Props) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
@@ -80,7 +89,12 @@ export function SaveBar({
      nombre, y «Sin título» repetido cinco veces no distingue nada. */
   const sinNombre = !config.title?.trim();
 
-  const guardar = () =>
+  const guardar = () => {
+    if (sinNombre) {
+      onMissingTitle();
+      return;
+    }
+
     startTransition(async () => {
       setError(null);
       const resultado = chartId
@@ -110,6 +124,7 @@ export function SaveBar({
          no `push` para no dejar el estado «sin guardar» en el historial. */
       if (!chartId) router.replace(`/crear?id=${resultado.id}`);
     });
+  };
 
   return (
     <div className="savebar">
@@ -143,8 +158,7 @@ export function SaveBar({
       <button
         type="button"
         onClick={guardar}
-        disabled={pendiente || sinNombre}
-        title={sinNombre ? 'Ponle un nombre a la gráfica para poder guardarla' : undefined}
+        disabled={pendiente}
       >
         {pendiente ? 'Guardando…' : guardado ? 'Guardado' : chartId ? 'Guardar' : 'Guardar'}
       </button>
