@@ -81,7 +81,7 @@ export async function GET(
       config,
       css,
       scriptSrc,
-      poster: posterUrl(row.poster_path),
+      poster: posterUrl(row.poster_path, row.updated_at),
       canonical: `${origen}/embed/${row.slug}`,
     }),
     { headers: savedEmbedHeaders },

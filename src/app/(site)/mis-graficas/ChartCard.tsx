@@ -61,7 +61,7 @@ export function ChartCard({ chart, origin }: { chart: ChartSummary; origin: stri
     if (confirm(aviso)) correr(() => deleteChart(chart.id));
   };
 
-  const poster = posterUrl(chart.poster_path);
+  const poster = posterUrl(chart.poster_path, chart.updated_at);
 
   return (
     <li className="chart-card">

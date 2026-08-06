@@ -617,9 +617,10 @@
   border: 0;
   border-radius: var(--p-radius-sm);
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font: inherit;
-  font-size: 0.9375rem;
+  /* Las flechas son glifos finos: al cuerpo del texto de al lado se pierden. */
+  font-size: 1.0625rem;
   line-height: 1;
   cursor: pointer;
   transition:
@@ -632,10 +633,19 @@
   color: var(--text-primary);
 }
 
-/* Deshabilitado y visible, no escondido: que se vea que existe aunque no haya
-   nada que deshacer todavía es parte de lo que da confianza para trastear. */
+/*
+  Deshabilitado y VISIBLE, no escondido.
+
+  Estaba en 0,28 — sobre un fondo casi negro eso es invisible. Y al abrir el
+  editor están las dos deshabilitadas, así que era el estado que veía todo el
+  mundo al llegar: parecía que la barra no tenía botones.
+
+  Que se vea que existen aunque no haya nada que deshacer es justo lo que da
+  confianza para trastear con los sliders. 0,45 sigue leyéndose como «ahora no»
+  sin desaparecer.
+*/
 .undo button:disabled {
-  opacity: 0.28;
+  opacity: 0.45;
   cursor: default;
 }
 
@@ -761,12 +771,30 @@
   cursor: not-allowed;
 }
 
-/* «Publicada» avisa de que lo que se guarda cambia algo que ya está incrustado
-   en la página de alguien. Por eso está pegado al botón y no en otra pantalla. */
+/*
+  «Publicada» avisa de que lo que guardes cambia algo que ya está incrustado en
+  la página de alguien. Por eso está pegado al botón.
+
+  Pero es un ESTADO PASIVO: iba en violeta lleno mientras «Guardar» era un borde
+  discreto, así que el ojo leía la etiqueta como el botón y el botón como
+  decoración. El color de acento se reserva para lo que se PULSA. Un punto de
+  color basta para decir «esto está vivo».
+*/
 .savebar-live {
-  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--text-secondary);
   font-size: 0.75rem;
   font-weight: 500;
+  white-space: nowrap;
+}
+
+.savebar-live i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
 }
 
 .savebar-error {
@@ -1022,10 +1050,12 @@
   como un enlace a otro sitio. Una línea vertical es lo más barato que separa
   dos cosas sin añadir peso.
 */
+/* De `muted` a `secondary`: en `muted` no se leía como algo pulsable, y es la
+   única forma de volver a tus gráficas desde aquí. */
 .panel-nav {
   position: relative;
   padding-left: var(--p-space-3);
-  color: var(--text-muted);
+  color: var(--text-secondary);
   text-decoration: none;
   font-size: 0.8125rem;
   white-space: nowrap;
@@ -1055,6 +1085,17 @@
 
 /* Los tres controles de la derecha comparten alto. Es lo único que hace que
    una fila de cosas distintas se lea como una barra y no como un montón. */
+/*
+  Deshacer y rehacer TIENEN que verse.
+
+  Estaban en un gris tan bajo sobre el fondo casi negro que se perdían. Son las
+  herramientas que hacen que uno se atreva a tocar los sliders: si no se ven, no
+  tranquilizan a nadie, que es exactamente para lo que están.
+
+  El estado apagado se reserva para cuando de verdad no hay nada que deshacer —
+  ahí sí debe leerse como no disponible, y esa diferencia solo funciona si el
+  estado normal es claro.
+*/
 .panel-head .undo button,
 .panel-head .savebar button,
 .panel-head .savebar-link {
@@ -1076,38 +1117,45 @@
   de lo que estás haciendo. Y va lo primero porque es lo que verás en el listado
   y en la tarjeta de enlace cuando pegues el link.
 */
+/*
+  El nombre: TEXTO, no formulario.
+
+  Antes llevaba etiqueta «NOMBRE» en mayúsculas, caja con fondo y borde. Casi
+  cien píxeles de alto en el panel donde el espacio vertical es lo que más
+  escasea, para explicar que «Reparto de ingresos» es un nombre. Se lee solo.
+
+  El envoltorio aparece al pasar por encima o al enfocar, que es cuando de verdad
+  hace falta saber que ahí se puede escribir. En reposo es lo que es: el título
+  de lo que estás haciendo.
+*/
 .chart-title {
-  display: grid;
-  gap: 0.375rem;
-  margin-bottom: var(--p-space-6);
-}
-
-.chart-title span {
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.chart-title input {
   width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--edge-subtle);
+  margin-bottom: var(--p-space-4);
+  padding: 0.3rem 0.5rem;
+  border: 1px solid transparent;
   border-radius: var(--p-radius-md);
-  background: var(--surface-sunken);
+  background: transparent;
   color: var(--text-primary);
   font-family: var(--font-display), sans-serif;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  transition:
+    background 0.14s ease,
+    border-color 0.14s ease;
 }
 
-.chart-title input::placeholder {
-  font-weight: 400;
+.chart-title:hover {
+  border-color: var(--edge-subtle);
+}
+
+.chart-title::placeholder {
+  font-weight: 500;
   color: var(--text-muted);
 }
 
-.chart-title input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-  border-color: transparent;
+.chart-title:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface-sunken);
 }

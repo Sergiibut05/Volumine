@@ -436,20 +436,23 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
           el usuario no había escrito nunca. Es de las cosas que más
           desconciertan: parece que la aplicación se ha inventado algo.
 
-          Sin envolver en `<Group>`: es la identidad de lo que estás haciendo, no
-          un ajuste más entre ajustes.
+          Sin envolver en `<Group>` y SIN ETIQUETA NI CAJA: la etiqueta «NOMBRE»
+          más la tarjeta más el texto sumaban casi cien píxeles de alto en un
+          panel donde el espacio vertical es lo que más escasea, para explicar
+          que «Reparto de ingresos» es un nombre. Se lee solo.
+
+          Queda un texto grande y transparente, con el envoltorio apareciendo al
+          pasar por encima o al enfocarlo — que es cuando de verdad hace falta
+          saber que se puede escribir ahí.
         */}
-        <label className="chart-title">
-          <span>Nombre</span>
-          <input
-            value={config.title ?? ''}
-            placeholder="Sin título"
-            maxLength={200}
-            onChange={(e) =>
-              setConfig((c) => ({ ...c, title: e.target.value || undefined }))
-            }
-          />
-        </label>
+        <input
+          className="chart-title"
+          value={config.title ?? ''}
+          placeholder="Sin título"
+          maxLength={200}
+          aria-label="Nombre de la gráfica"
+          onChange={(e) => setConfig((c) => ({ ...c, title: e.target.value || undefined }))}
+        />
 
         {/* Nivel 1 — un control, y con esto ya se puede publicar. */}
         <Group title="Tema" hint="Empieza por aquí">

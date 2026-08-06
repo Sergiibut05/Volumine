@@ -31,10 +31,27 @@ export function posterPath(ownerId: string, slug: string): string {
  * para siempre — mover el proyecto o poner un CDN delante obligaría a reescribir
  * todas las filas.
  */
-export function posterUrl(path: string | null | undefined): string | null {
+export function posterUrl(
+  path: string | null | undefined,
+  version?: string | null,
+): string | null {
   if (!path) return null;
   const { url } = supabaseEnv();
-  return `${url}/storage/v1/object/public/posters/${path}`;
+  const base = `${url}/storage/v1/object/public/posters/${path}`;
+
+  /*
+    `?v=` CON LA FECHA DE LA ÚLTIMA EDICIÓN.
+
+    Al reguardar, el PNG se sube con `upsert` y PISA al anterior — pero la ruta
+    es la misma, así que la URL también, y ni el navegador ni el CDN de Storage
+    se enteran: seguían enseñando la miniatura vieja durante una hora. La gráfica
+    estaba bien guardada y bien subida; lo que mentía era la caché.
+
+    El parámetro no lo mira el servidor, solo cambia la clave de caché. Va con
+    `updated_at` y no con `Date.now()` a propósito: dos visitas a la misma
+    versión comparten caché, que es lo que se quiere.
+  */
+  return version ? `${base}?v=${encodeURIComponent(version)}` : base;
 }
 
 /**

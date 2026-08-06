@@ -117,8 +117,22 @@ export function SaveBar({
       {/* Que sea pública se dice AQUÍ, junto al botón, y no en otra pantalla:
           es lo que decide si al guardar cambias algo que ya está incrustado en
           la página de alguien. */}
+      {/*
+        ESTADO PASIVO, y por eso NO puede ser lo más brillante de la barra.
+
+        Iba en violeta lleno y «Guardar» en un borde discreto: el ojo leía
+        «Publicada» como el botón y el botón como decoración. En una interfaz, el
+        color de acento se reserva para lo que se PULSA. Aquí lo único que se
+        pulsa es guardar.
+
+        Ahora es una píldora neutra con un punto de color: el punto basta para
+        decir «esto está vivo» sin competir con nada.
+      */}
       {chartId && visibility === 'public' && !error && (
-        <span className="savebar-live">Publicada</span>
+        <span className="savebar-live">
+          <i aria-hidden />
+          Publicada
+        </span>
       )}
 
       <button type="button" onClick={guardar} disabled={pendiente}>
