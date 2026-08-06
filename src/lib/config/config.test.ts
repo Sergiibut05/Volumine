@@ -264,13 +264,13 @@ describe('config en URL', () => {
         series: [{ values: Array.from({ length: 200 }, (_, i) => i + 1) }],
       },
     };
-    const r = buildEmbedUrl(enorme, 'https://voluma.app');
+    const r = buildEmbedUrl(enorme, 'https://volumine.app');
     expect(r.ok).toBe(false);
     expect(r.length).toBeGreaterThan(MAX_URL_LENGTH);
   });
 
   it('un config normal cabe de sobra', () => {
-    const r = buildEmbedUrl(minimal, 'https://voluma.app');
+    const r = buildEmbedUrl(minimal, 'https://volumine.app');
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.length).toBeLessThan(300);

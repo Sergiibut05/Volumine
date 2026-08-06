@@ -6,7 +6,7 @@ diseño: ahí manda `docs/PERFORMANCE-BUDGET.md`.
 ## La idea
 
 Un producto que vende gráficas bonitas y tiene una web fea no vende nada. La
-propia web **es** la demo: el hero es una gráfica Voluma real, renderizada en
+propia web **es** la demo: el hero es una gráfica Volumine real, renderizada en
 vivo, con el mismo renderer que usan los clientes. Si el hero va a 60 fps y se
 ve caro, la venta está hecha antes del primer scroll.
 

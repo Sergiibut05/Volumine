@@ -140,7 +140,7 @@ export type LabelLayer = {
 
 export function createLabelLayer(container: HTMLElement): LabelLayer {
   const root = document.createElement('div');
-  root.className = 'voluma-labels';
+  root.className = 'volumine-labels';
   root.setAttribute('aria-hidden', 'true');
 
   /* Inline y no en la hoja de estilos: son las reglas sin las cuales la capa no
@@ -204,7 +204,7 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
 
   function buildLegend(anchors: LabelAnchor[], config: ResolvedChartConfig) {
     legend = document.createElement('div');
-    legend.className = 'voluma-legend';
+    legend.className = 'volumine-legend';
     const fmt = formatter(config);
 
     for (const anchor of anchors) {
@@ -250,7 +250,7 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
          Esta línea faltaba, así que el CSS caía siempre en el `1` de reserva y
          el slider de tamaño no hacía nada. No daba error: movías el control y no
          pasaba nada, que es de los fallos más difíciles de atribuir. */
-      root.style.setProperty('--voluma-label-scale', String(config.labels.size));
+      root.style.setProperty('--volumine-label-scale', String(config.labels.size));
 
       if (!config.labels.show || config.labels.mode === 'none') return;
 
@@ -263,7 +263,7 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
 
       for (const anchor of anchors) {
         const box = document.createElement('div');
-        box.className = 'voluma-label';
+        box.className = 'volumine-label';
         Object.assign(box.style, {
           position: 'absolute',
           top: '0',
@@ -292,11 +292,11 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
         }
 
         const casing = document.createElementNS(SVG_NS, 'polyline');
-        casing.setAttribute('class', 'voluma-leader-casing');
+        casing.setAttribute('class', 'volumine-leader-casing');
         casing.setAttribute('fill', 'none');
 
         const line = document.createElementNS(SVG_NS, 'polyline');
-        line.setAttribute('class', 'voluma-leader');
+        line.setAttribute('class', 'volumine-leader');
         line.setAttribute('fill', 'none');
 
         /* El contorno va ANTES en el DOM: en SVG pinta primero lo que está

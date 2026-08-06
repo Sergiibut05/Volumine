@@ -335,7 +335,7 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
       */}
       <header className="topbar">
         <div className="topbar-left">
-          <Link href="/" className="panel-brand" aria-label="Voluma — inicio">
+          <Link href="/" className="panel-brand" aria-label="Volumine — inicio">
             <Wordmark size={1.0625} />
           </Link>
 

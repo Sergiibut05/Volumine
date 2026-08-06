@@ -1,5 +1,5 @@
 /*
-  Tokens de Voluma — tres capas, en este orden y sin saltárselas:
+  Tokens de Volumine — tres capas, en este orden y sin saltárselas:
 
     1. PRIMITIVAS  valores crudos. No se usan nunca en un componente.
     2. SEMÁNTICAS  significado ("superficie", "texto atenuado"). Cambian con el tema.

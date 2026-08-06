@@ -35,8 +35,8 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Voluma — gráficas 3D que se incrustan con un link',
-    template: '%s · Voluma',
+    default: 'Volumine — gráficas 3D que se incrustan con un link',
+    template: '%s · Volumine',
   },
   description:
     'Crea una gráfica 3D preciosa e incrústala en tu web, Notion o Confluence con un link.',

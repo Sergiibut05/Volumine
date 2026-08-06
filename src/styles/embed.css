@@ -294,7 +294,7 @@ canvas {
   mitad de las veces, y a poca opacidad se lee como una capa de interfaz sobre
   la escena, que es lo que es.
 */
-.voluma-label {
+.volumine-label {
   display: flex;
   flex-direction: column;
   gap: 0.05em;
@@ -306,7 +306,7 @@ canvas {
      translúcido casi no se distingue. */
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
   color: rgb(255 255 255 / 0.95);
-  font-size: calc(0.8125rem * var(--voluma-label-scale, 1));
+  font-size: calc(0.8125rem * var(--volumine-label-scale, 1));
   line-height: 1.3;
   /* Sin esto el texto baila de ancho al animarse. */
   font-variant-numeric: tabular-nums;
@@ -314,16 +314,16 @@ canvas {
 
 /* A la izquierda el texto se alinea a la derecha, pegado a su línea guía. Al
    revés, la línea llegaría al aire. */
-.voluma-label[data-side='left'] {
+.volumine-label[data-side='left'] {
   text-align: right;
   align-items: flex-end;
 }
 
-.voluma-label b {
+.volumine-label b {
   font-weight: 600;
 }
 
-.voluma-label span {
+.volumine-label span {
   font-size: 0.88em;
   opacity: 0.68;
 }
@@ -336,14 +336,14 @@ canvas {
   como sobre una foto. Es la técnica de las carreteras en cartografía y aquí
   hace falta por lo mismo — el fondo no lo elegimos nosotros.
 */
-.voluma-leader-casing {
+.volumine-leader-casing {
   stroke: rgb(0 0 0 / 0.4);
   stroke-width: 3.5;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.voluma-leader {
+.volumine-leader {
   stroke: rgb(255 255 255 / 0.85);
   stroke-width: 1.4;
   stroke-linecap: round;
@@ -357,23 +357,23 @@ canvas {
   lo que ya pone al lado: destaca su etiqueta y atenúa las demás. Es la
   respuesta al gesto sin duplicar el dato en dos sitios de la pantalla.
 */
-.voluma-label[data-state='dim'] {
+.volumine-label[data-state='dim'] {
   opacity: 0.4;
 }
 
-.voluma-label[data-state='on'] {
+.volumine-label[data-state='on'] {
   opacity: 1;
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.24);
 }
 
-.voluma-leader[data-state='dim'],
-.voluma-leader-casing[data-state='dim'] {
+.volumine-leader[data-state='dim'],
+.volumine-leader-casing[data-state='dim'] {
   opacity: 0.25;
 }
 
-.voluma-label,
-.voluma-leader,
-.voluma-leader-casing {
+.volumine-label,
+.volumine-leader,
+.volumine-leader-casing {
   transition:
     opacity 0.14s ease,
     box-shadow 0.14s ease;
@@ -389,7 +389,7 @@ canvas {
   Misma píldora de vidrio que las etiquetas y por el mismo motivo: el fondo de
   la página anfitriona no lo elegimos nosotros.
 */
-.voluma-legend {
+.volumine-legend {
   position: absolute;
   top: 12px;
   left: 12px;
@@ -401,7 +401,7 @@ canvas {
   backdrop-filter: blur(10px);
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
   color: rgb(255 255 255 / 0.95);
-  font-size: calc(0.8125rem * var(--voluma-label-scale, 1));
+  font-size: calc(0.8125rem * var(--volumine-label-scale, 1));
   line-height: 1.3;
   font-variant-numeric: tabular-nums;
   /* Nunca puede comerse el dibujo: si hay veinte categorías, la leyenda hace
@@ -411,7 +411,7 @@ canvas {
   scrollbar-width: thin;
 }
 
-.voluma-legend > div {
+.volumine-legend > div {
   display: flex;
   align-items: center;
   gap: 0.5em;
@@ -420,18 +420,18 @@ canvas {
 
 /* La muestra de color es lo ÚNICO que une esta lista con el dibujo, así que
    tiene que ser inconfundible: redonda, sólida y del tamaño del texto. */
-.voluma-legend i {
+.volumine-legend i {
   width: 0.7em;
   height: 0.7em;
   flex: none;
   border-radius: 50%;
 }
 
-.voluma-legend b {
+.volumine-legend b {
   font-weight: 600;
 }
 
-.voluma-legend span {
+.volumine-legend span {
   margin-left: auto;
   padding-left: 0.75em;
   font-size: 0.9em;

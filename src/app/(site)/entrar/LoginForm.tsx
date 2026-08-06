@@ -104,7 +104,7 @@ export function LoginForm({ next }: { next: string }) {
 
   return (
     <div className="auth-card">
-      <h1 className="display">Entra en Voluma</h1>
+      <h1 className="display">Entra en Volumine</h1>
       <p>Para guardar tus gráficas y que el link siga funcionando mañana.</p>
 
       <button type="button" className="auth-google" onClick={conGoogle} disabled={ocupado}>

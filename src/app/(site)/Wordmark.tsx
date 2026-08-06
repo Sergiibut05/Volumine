@@ -15,7 +15,7 @@
   el editor y en el HTML del embed, que no puede pedir una imagen a nadie.
 */
 
-export function VolumaMark({ size = 20 }: { size?: number }) {
+export function VolumineMark({ size = 20 }: { size?: number }) {
   return (
     <svg
       width={size}
@@ -75,7 +75,7 @@ export function Wordmark({ size = 1.0625 }: { size?: number }) {
           INTERLINEADO NORMAL, NO 1.
 
           Con `line-height: 1` la caja se ciñe al cuerpo de la fuente y la tinta
-          del texto —que no llega abajo del todo porque «Voluma» no tiene
+          del texto —que no llega abajo del todo porque «Volumine» no tiene
           descendentes— queda ALTA dentro de ella. Sus vecinos en la barra usan
           interlineado normal, así que su tinta sí se centra. Medido: la marca
           quedaba 4,3 px por encima del separador y del nombre.
@@ -98,8 +98,8 @@ export function Wordmark({ size = 1.0625 }: { size?: number }) {
         Dos correcciones ópticas en la misma dirección se acumulan. Con la tinta
         ya centrada, esta sobra.
       */}
-      <VolumaMark size={size * 19} />
-      Voluma
+      <VolumineMark size={size * 19} />
+      Volumine
     </span>
   );
 }

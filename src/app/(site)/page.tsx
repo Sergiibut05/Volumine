@@ -9,7 +9,7 @@ import { CHART_TYPES } from '@/lib/chart-types';
 /*
   Landing.
 
-  Dirección: "estudio". Una gráfica de Voluma es un objeto con volumen, canto y
+  Dirección: "estudio". Una gráfica de Volumine es un objeto con volumen, canto y
   luz encima, así que la página se comporta como el set donde se fotografía un
   producto — papel pálido, sombra real— en lugar de como una landing de SaaS.
 
@@ -152,7 +152,7 @@ export default async function HomePage() {
 
       <footer className="shell studio-foot">
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-          <span>Voluma</span>
+          <span>Volumine</span>
           <span style={{ flex: 1 }} />
           <Link href="/dev/embed" style={{ color: 'inherit' }}>
             Ver un embed real

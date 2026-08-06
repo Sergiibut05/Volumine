@@ -1,4 +1,4 @@
-# Voluma — PRD
+# Volumine — PRD
 
 ## Una frase
 
@@ -66,7 +66,7 @@ para no migrar nada cuando toque. Si llega tracción, el corte natural es:
 
 ## Cómo sabemos si funciona
 
-Métrica norte: **embeds activos** (dominios únicos distintos de voluma.* que
+Métrica norte: **embeds activos** (dominios únicos distintos de volumine.* que
 cargan `/embed` en 7 días). No usuarios registrados, no gráficas creadas.
 
 Secundarias: creada→publicada (%), p75 de LCP del embed, dominios anfitriones

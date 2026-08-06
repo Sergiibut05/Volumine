@@ -158,7 +158,7 @@ export async function GET(request: Request) {
   return json({
     version: '1.0',
     type: 'rich',
-    provider_name: 'Voluma',
+    provider_name: 'Volumine',
     provider_url: origen,
     title: nombre,
     html,

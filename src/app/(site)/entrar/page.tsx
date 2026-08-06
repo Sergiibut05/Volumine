@@ -7,7 +7,7 @@ import { currentUser } from '@/lib/charts/queries';
 import { supabaseConfigured } from '@/lib/supabase/env';
 
 export const metadata: Metadata = {
-  title: 'Entrar · Voluma',
+  title: 'Entrar · Volumine',
   // Una pantalla de acceso no pinta nada en un buscador.
   robots: { index: false, follow: false },
 };

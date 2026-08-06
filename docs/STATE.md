@@ -150,8 +150,8 @@ mano desde el aviso.
 
 ## Decisiones pendientes de Manuel
 
-- [ ] Confirmar el nombre "Voluma" y renombrar la carpeta
-      (`Rename-Item C:\Users\mnsa1\Desktop\3d-web-chart voluma`).
+- [ ] Confirmar el nombre "Volumine" y renombrar la carpeta
+      (`Rename-Item C:\Users\mnsa1\Desktop\3d-web-chart volumine`).
 - [ ] Dominio, cuando el nombre esté cerrado.
 
 ## Lecciones caras, para no repetirlas

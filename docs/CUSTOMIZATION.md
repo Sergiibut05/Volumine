@@ -1,6 +1,6 @@
 # Personalización
 
-Cómo se plantea el apartado de personalización de Voluma: qué se puede tocar,
+Cómo se plantea el apartado de personalización de Volumine: qué se puede tocar,
 cómo se le presenta a la gente y qué reglas lo mantienen coherente.
 
 Complementa `docs/chart-config-schema.md` (el contrato) y `docs/DESIGN.md` (el

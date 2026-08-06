@@ -18,7 +18,7 @@ import type { Visibility } from '@/lib/supabase/types';
 */
 
 export const metadata: Metadata = {
-  title: 'Editor · Voluma',
+  title: 'Editor · Volumine',
 };
 
 export default async function CrearPage({

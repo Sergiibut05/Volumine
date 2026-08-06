@@ -32,7 +32,7 @@ export default function EmbedDevPage() {
   // Escucha lo que el embed le cuenta a la página anfitriona.
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      if (event.data?.source !== 'voluma') return;
+      if (event.data?.source !== 'volumine') return;
       setMessages((prev) => [...prev.slice(-4), event.data as Message]);
     };
     window.addEventListener('message', onMessage);
@@ -80,7 +80,7 @@ export default function EmbedDevPage() {
       >
         <iframe
           src={url.url}
-          title="Gráfica de ejemplo de Voluma"
+          title="Gráfica de ejemplo de Volumine"
           width="100%"
           height="440"
           style={{ display: 'block', border: 0 }}

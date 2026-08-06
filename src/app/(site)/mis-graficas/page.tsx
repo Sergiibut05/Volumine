@@ -9,7 +9,7 @@ import { Wordmark } from '../Wordmark';
 import { SignOut } from './SignOut';
 
 export const metadata: Metadata = {
-  title: 'Mis gráficas · Voluma',
+  title: 'Mis gráficas · Volumine',
   robots: { index: false, follow: false },
 };
 
@@ -35,7 +35,7 @@ export default async function MisGraficasPage() {
     <div className="charts-page" data-theme="light">
       <div className="charts-shell">
         <header className="charts-head">
-          <Link href="/" className="charts-brand" aria-label="Voluma — inicio">
+          <Link href="/" className="charts-brand" aria-label="Volumine — inicio">
             <Wordmark size={1.0625} />
           </Link>
 

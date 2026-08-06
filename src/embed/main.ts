@@ -15,7 +15,7 @@ import { createChartRenderer, type HoverInfo } from '@/renderer/core/chart-rende
 const OUT_OF_VIEW_GRACE_MS = 10_000;
 
 function readConfig(): ResolvedChartConfig | null {
-  const node = document.getElementById('voluma-config');
+  const node = document.getElementById('volumine-config');
   if (!node?.textContent) return null;
   try {
     return JSON.parse(node.textContent) as ResolvedChartConfig;
@@ -37,14 +37,14 @@ function post(payload: Record<string, unknown>) {
   if (window.parent === window) return;
   // targetOrigin '*': no sabemos quién nos incrusta, y no enviamos nada
   // sensible — solo dimensiones y avisos del propio config del usuario.
-  window.parent.postMessage({ source: 'voluma', ...payload }, '*');
+  window.parent.postMessage({ source: 'volumine', ...payload }, '*');
 }
 
 function main() {
   const stage = document.querySelector<HTMLElement>('.stage');
-  const canvas = document.querySelector<HTMLCanvasElement>('#voluma-canvas');
-  const tooltip = document.querySelector<HTMLElement>('#voluma-tooltip');
-  const period = document.querySelector<HTMLElement>('#voluma-period');
+  const canvas = document.querySelector<HTMLCanvasElement>('#volumine-canvas');
+  const tooltip = document.querySelector<HTMLElement>('#volumine-tooltip');
+  const period = document.querySelector<HTMLElement>('#volumine-period');
   const config = readConfig();
 
   if (!stage || !canvas || !config) return;

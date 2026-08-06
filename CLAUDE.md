@@ -1,4 +1,4 @@
-# Voluma
+# Volumine
 
 Embeds de gráficas 3D interactivas. El producto es **el link**, no el editor.
 

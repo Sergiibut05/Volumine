@@ -24,7 +24,7 @@ export async function embedAssets(): Promise<Assets> {
   const root = process.cwd();
   const css = await readFile(path.join(root, 'src/styles/embed.css'), 'utf8');
 
-  let scriptSrc = '/embed-bundle/voluma.js';
+  let scriptSrc = '/embed-bundle/volumine.js';
   try {
     const manifest = JSON.parse(
       await readFile(path.join(root, 'public/embed-bundle/manifest.json'), 'utf8'),

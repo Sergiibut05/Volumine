@@ -314,7 +314,7 @@ function robotsTag(canonical: string | null | undefined): string {
 function oembedLink(canonical: string | null | undefined): string {
   if (!canonical) return '';
   const endpoint = `${new URL(canonical).origin}/api/oembed?url=${encodeURIComponent(canonical)}`;
-  return `<link rel="alternate" type="application/json+oembed" href="${escapeHtml(endpoint)}" title="Voluma">`;
+  return `<link rel="alternate" type="application/json+oembed" href="${escapeHtml(endpoint)}" title="Volumine">`;
 }
 
 /**
@@ -411,7 +411,7 @@ export function embedHtml({
   /**
    * Origen desde el que se sirve. A dónde lleva la marca de agua.
    *
-   * Estaba escrito a mano como `https://voluma.app` — un dominio que no existe.
+   * Estaba escrito a mano como `https://volumine.app` — un dominio que no existe.
    * O sea que TODOS los embeds publicados llevaban un enlace muerto, y la marca
    * de agua es la única publicidad gratis que tiene este producto: alguien la
    * pulsaba y no llegaba a ninguna parte.
@@ -425,7 +425,7 @@ export function embedHtml({
   /*
     La marca de agua lleva SÍMBOLO además del nombre.
 
-    A 10 px, «Voluma» en texto es una palabra gris que el ojo descarta como
+    A 10 px, «Volumine» en texto es una palabra gris que el ojo descarta como
     parte del fondo — que es justo lo contrario de para lo que está. El símbolo
     da una silueta reconocible aunque no se llegue a leer el nombre, y de paso
     dice qué hace el producto: es el mismo anillo con canto que dibuja.
@@ -433,13 +433,13 @@ export function embedHtml({
     El SVG va en línea porque el embed no puede pedirle una imagen a nadie
     (ADR 0005), y son 180 bytes.
   */
-  const inicio = origin ?? (canonical ? new URL(canonical).origin : 'https://voluma.app');
+  const inicio = origin ?? (canonical ? new URL(canonical).origin : 'https://volumine.app');
   const watermark = config.layout.watermark
-    ? `<a class="watermark" href="${escapeHtml(inicio)}" target="_blank" rel="noopener" aria-label="Hecho con Voluma">` +
+    ? `<a class="watermark" href="${escapeHtml(inicio)}" target="_blank" rel="noopener" aria-label="Hecho con Volumine">` +
       `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">` +
       `<ellipse cx="12" cy="14.2" rx="9" ry="5.6" stroke="currentColor" stroke-width="3.6" opacity=".42"/>` +
       `<ellipse cx="12" cy="11" rx="9" ry="5.6" stroke="currentColor" stroke-width="3.6"/>` +
-      `</svg>Voluma</a>`
+      `</svg>Volumine</a>`
     : '';
 
   return `<!doctype html>
@@ -457,13 +457,13 @@ ${oembedLink(canonical)}
 <div class="stage" role="img" aria-label="${escapeHtml(describeChart(config))}">
 ${dataTableHtml(config)}
 ${posterImgHtml(config, poster)}
-<canvas id="voluma-canvas"></canvas>
-<div id="voluma-tooltip" class="tooltip" hidden></div>
-<div id="voluma-period" class="period" aria-hidden="true" hidden></div>
+<canvas id="volumine-canvas"></canvas>
+<div id="volumine-tooltip" class="tooltip" hidden></div>
+<div id="volumine-period" class="period" aria-hidden="true" hidden></div>
 ${readoutHtml(config)}
 ${watermark}
 </div>
-<script type="application/json" id="voluma-config">${escapeJson(config)}</script>
+<script type="application/json" id="volumine-config">${escapeJson(config)}</script>
 <script src="${scriptSrc}" defer></script>
 </body>
 </html>`;
@@ -475,7 +475,7 @@ export function errorHtml(message: string, css: string): string {
 ${
   /* Una página de error SÍ lleva `noindex` siempre: no hay nada que indexar
      ni nada que incrustar. */ ''
-}<meta name="robots" content="noindex,nofollow"><title>Voluma</title><style>${css}</style></head>
+}<meta name="robots" content="noindex,nofollow"><title>Volumine</title><style>${css}</style></head>
 <body><div class="stage" style="display:grid;place-content:center;padding:1rem">
 <p style="color:#9a9aab;font-size:13px;margin:0;text-align:center">${escapeHtml(message)}</p>
 </div></body></html>`;

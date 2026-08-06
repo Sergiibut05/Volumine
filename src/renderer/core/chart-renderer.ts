@@ -62,7 +62,7 @@ import { colorForSegment, createMaterial } from './materials';
 import { createLabelLayer, type LabelAnchor } from './label-layer';
 
 /*
-  El renderer de Voluma, en three plano. Sin React (ADR 0006).
+  El renderer de Volumine, en three plano. Sin React (ADR 0006).
 
   Es UNA sola implementación de la escena: la usan el embed y el editor. Eso es
   lo que garantiza por construcción que "mismo config, mismos píxeles" siga
