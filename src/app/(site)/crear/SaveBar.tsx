@@ -75,6 +75,11 @@ export function SaveBar({
     }
   }
 
+  /* Sin nombre no se guarda. No es una validación por validar: en el listado y
+     en la tarjeta de enlace lo único que distingue una gráfica de otra es su
+     nombre, y «Sin título» repetido cinco veces no distingue nada. */
+  const sinNombre = !config.title?.trim();
+
   const guardar = () =>
     startTransition(async () => {
       setError(null);
@@ -135,7 +140,12 @@ export function SaveBar({
         </span>
       )}
 
-      <button type="button" onClick={guardar} disabled={pendiente}>
+      <button
+        type="button"
+        onClick={guardar}
+        disabled={pendiente || sinNombre}
+        title={sinNombre ? 'Ponle un nombre a la gráfica para poder guardarla' : undefined}
+      >
         {pendiente ? 'Guardando…' : guardado ? 'Guardado' : chartId ? 'Guardar' : 'Guardar'}
       </button>
     </div>

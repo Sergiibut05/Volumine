@@ -26,10 +26,21 @@ export function VolumaMark({ size = 20 }: { size?: number }) {
       focusable="false"
       style={{ display: 'block', flex: 'none' }}
     >
+      {/*
+        LA TINTA VA CENTRADA EN LA CAJA.
+
+        Antes las elipses iban en cy=11 y cy=14.2 con radio 5,6: la tinta ocupaba
+        de 5,4 a 19,8, o sea centrada en 12,6 dentro de una caja de 24. Medio
+        píxel de caída a este tamaño, pero al alinear el símbolo con el texto por
+        el centro de su CAJA, ese medio píxel se ve — un logotipo descuadrado se
+        nota antes que se explica.
+
+        Bajadas las dos 0,6 para que la tinta quede centrada en 12.
+      */}
       {/* El canto: la misma elipse desplazada hacia abajo. Es lo que da grosor. */}
       <ellipse
         cx="12"
-        cy="14.2"
+        cy="13.6"
         rx="9"
         ry="5.6"
         stroke="currentColor"
@@ -37,7 +48,7 @@ export function VolumaMark({ size = 20 }: { size?: number }) {
         opacity="0.42"
       />
       {/* La cara de arriba. */}
-      <ellipse cx="12" cy="11" rx="9" ry="5.6" stroke="currentColor" strokeWidth="3.6" />
+      <ellipse cx="12" cy="10.4" rx="9" ry="5.6" stroke="currentColor" strokeWidth="3.6" />
     </svg>
   );
 }
@@ -56,6 +67,17 @@ export function Wordmark({ size = 1.0625 }: { size?: number }) {
         display: 'inline-flex',
         alignItems: 'center',
         gap: `${size * 0.42}rem`,
+        /*
+          Se alinea por la ALTURA DE MAYÚSCULA del texto, no por su caja.
+
+          La caja de una línea incluye el espacio del descendente, y «Voluma» no
+          tiene ninguno: su tinta ocupa solo de la mayúscula a la línea base, así
+          que su centro óptico queda por encima del centro de la caja. Centrando
+          las dos cajas, el símbolo parece caído respecto a la palabra.
+
+          Este desplazamiento sube el símbolo lo que sube el texto. Es el ajuste
+          de siempre al montar un logotipo con símbolo y palabra.
+        */
         fontFamily: 'var(--font-display), sans-serif',
         fontWeight: 700,
         fontSize: `${size}rem`,
@@ -64,7 +86,9 @@ export function Wordmark({ size = 1.0625 }: { size?: number }) {
         color: 'inherit',
       }}
     >
-      <VolumaMark size={size * 19} />
+      <span style={{ display: 'flex', transform: 'translateY(-0.055em)' }}>
+        <VolumaMark size={size * 19} />
+      </span>
       Voluma
     </span>
   );

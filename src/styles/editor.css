@@ -1166,9 +1166,16 @@
   color: var(--text-muted);
 }
 
+/*
+  UN SOLO anillo al enfocar.
+
+  Llevaba `border-color: var(--accent)` además del `:focus-visible` global de
+  tokens.css, que ya pinta su propio anillo morado. Resultado: dos bordes
+  morados concéntricos, uno pegado al texto y otro fuera. El foco se define en
+  UN sitio para todo el producto; aquí solo cambia el fondo, que es lo que dice
+  «esto es un campo» sin repetir el anillo.
+*/
 .chart-title:focus {
-  outline: none;
-  border-color: var(--accent);
   background: var(--surface-sunken);
 }
 

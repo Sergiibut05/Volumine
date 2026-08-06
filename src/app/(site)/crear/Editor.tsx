@@ -47,7 +47,11 @@ import type { Visibility } from '@/lib/supabase/types';
 export const INITIAL: ChartConfig = {
   v: 1,
   type: 'donut',
-  title: 'Reparto de ingresos',
+  /* SIN título. Lo tenía, y al guardar se quedaba en el listado un nombre que
+     el usuario no había escrito nunca — parecía que la aplicación se lo
+     inventaba. El campo arranca vacío con su marcador de posición y no se puede
+     guardar hasta ponerle uno: es lo que vas a ver en tu listado y en la tarjeta
+     de enlace, así que merece un segundo de tu atención. */
   data: {
     labels: ['Suscripciones', 'Servicios', 'Licencias', 'Formación', 'Otros'],
     series: [{ values: [42, 26, 17, 9, 6] }],
