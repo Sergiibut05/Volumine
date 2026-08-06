@@ -17,7 +17,7 @@ import { CHART_TYPES } from '@/lib/chart-types';
 */
 
 const SPECS = [
-  { label: 'Peso', value: '140 KB', note: 'Todo el visor 3D, comprimido.' },
+  { label: 'Peso', value: '148 KB', note: 'Todo el visor 3D, comprimido.' },
   { label: 'Peticiones', value: '1', note: 'Un archivo. Nada más.' },
   { label: 'Terceros', value: '0', note: 'Sin cookies ni analítica ajena.' },
   { label: 'Registro', value: 'No', note: 'La config viaja en el link.' },

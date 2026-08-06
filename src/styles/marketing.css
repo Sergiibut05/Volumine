@@ -16,7 +16,19 @@
   --paper-edge: #cfcfd9;
   --ink: #14141a;
   --ink-soft: #55555f;
-  --ink-faint: #8a8a96;
+  /*
+    Medido: el #8a8a96 de antes daba ~2,9:1 sobre el papel — muy por debajo del
+    4,5:1 que pide AA para texto normal. Y no lo llevaba texto decorativo: lo
+    llevaban las etiquetas del specsheet (PESO, PETICIONES, TERCEROS), que son
+    justo el argumento diferenciador de la página. Un dato que no se lee no es
+    un argumento.
+
+    El primer intento (#6b6b78) tampoco bastaba: quedaba en 3,96 porque el fondo
+    rebajado de las celdas es más oscuro que el papel y se comía la ganancia.
+    Medido en la página real, no calculado sobre el color de al lado — que es
+    donde se falla siempre con esto.
+  */
+  --ink-faint: #5c5c68;
   --spark: #5b3ce6;
 
   min-height: 100dvh;
@@ -152,18 +164,35 @@
 
 /* ── ficha técnica ──────────────────────────────────────────────────────── */
 
+/*
+  La ficha técnica, SIN LÍNEAS.
+
+  Antes se separaba con `gap: 1px` sobre un fondo gris más un `border-block`:
+  una rejilla de filetes de 1 px. Es exactamente lo que docs/DESIGN.md prohíbe
+  —separar con líneas en vez de con espacio, color o elevación— y es el detalle
+  que más hacía que la página pareciera una plantilla, porque la rejilla con
+  filetes es el recurso por defecto de cualquier tema de SaaS.
+
+  Ahora separa el ESPACIO, y cada celda se hunde levemente en el papel. Un
+  hueco rebajado se lee como una pieza física sobre una superficie, que es la
+  tesis entera de esta landing: el dato apoyado, no encuadrado.
+*/
 .specsheet {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
-  gap: 1px;
+  gap: 0.75rem;
   margin-block: clamp(3rem, 7vh, 5rem);
-  background: var(--paper-edge);
-  border-block: 1px solid var(--paper-edge);
 }
 
 .specsheet > div {
   padding: 1.25rem 1.25rem 1.375rem;
-  background: var(--paper);
+  border-radius: 1rem;
+  background: var(--paper-deep);
+  /* Hundido, no elevado: sombra interior arriba y luz abajo. Al revés que una
+     tarjeta, que es lo que hace que se lea como un rebaje en el papel. */
+  box-shadow:
+    inset 0 1px 2px rgb(20 20 26 / 0.06),
+    inset 0 -1px 0 rgb(255 255 255 / 0.7);
 }
 
 .specsheet strong {
@@ -250,9 +279,10 @@
   color: var(--ink-soft);
 }
 
+/* Sin filete: separa el espacio. Ver la nota del specsheet. */
 .card-body .avoid {
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--paper-edge);
+  margin-top: 0.625rem;
+  padding-top: 0;
   color: var(--ink-faint);
   font-size: 0.8125rem;
 }
@@ -339,9 +369,11 @@
     0 0 0 4px var(--spark);
 }
 
+/* El pie se separa por AIRE, no por filete. Una línea de 1 px cruzando la
+   página es el recurso más manido que existe para decir «aquí acaba». */
 footer.studio-foot {
+  margin-top: clamp(3rem, 8vh, 6rem);
   padding-block: 2rem 3rem;
-  border-top: 1px solid var(--paper-edge);
   color: var(--ink-faint);
   font-size: 0.8125rem;
 }

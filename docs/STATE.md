@@ -233,6 +233,19 @@ display: none }` o el elemento oculto se ve.
 
 ## Problemas abiertos
 
+- **La cifra de peso de la landing hay que mantenerla a mano** y ya se quedó
+  obsoleta una vez (decía 140 KB con el bundle en 147,7). En una página cuyo
+  argumento ES ese número, mentir en él es peor que no ponerlo. Lo correcto sería
+  que `npm run perf:embed` la escribiera, o que el test del presupuesto fallara
+  al desviarse de lo que dice la landing.
+- **La landing no usa `tokens.css`.** `marketing.css` redefine su propia paleta,
+  radios y sombras a mano, y `page.tsx` lleva decenas de estilos en línea. Es lo
+  que la regla de colores de CLAUDE.md prohíbe: si cambian los tokens, la landing
+  no se entera. Es un refactor de tamaño medio, no urgente pero real.
+- **La sección de cierre es un bloque centrado de plantilla** —título, párrafo y
+  CTA en columna—, el mismo patrón que el hero evita a propósito. Romper la
+  simetría como en el hero.
+
 - **`/mis-graficas` con estilo, pero SIN VERIFICAR con sesión.** Tiene tarjetas
   con miniatura del póster, insignia de pública/privada y acciones, y el CSS
   está escrito, pero no se ha visto nunca con un usuario dentro: el login es por
