@@ -210,6 +210,14 @@ function socialTags(
   const titulo = escapeHtml(config.title ?? 'Gráfica');
   const alt = escapeHtml(describeChart(config).slice(0, 200));
 
+  /* Mismas proporciones que devuelve el endpoint oEmbed: si las dos fuentes
+     dijeran tamaños distintos, la gráfica saldría estirada en unos sitios y no
+     en otros según cuál mirase cada uno. */
+  const ratio =
+    { '16:9': 9 / 16, '4:3': 3 / 4, '1:1': 1, auto: 9 / 16 }[config.layout.aspect] ??
+    9 / 16;
+  const player = { width: 640, height: Math.round(640 * ratio) };
+
   return [
     `<meta property="og:type" content="website">`,
     `<meta property="og:title" content="${titulo}">`,
@@ -218,8 +226,36 @@ function socialTags(
     canonical ? `<meta property="og:url" content="${escapeHtml(canonical)}">` : '',
     /* `summary_large_image`: una gráfica en miniatura no se lee. Si va a salir
        una imagen, que salga a tamaño de leerla. */
-    `<meta name="twitter:card" content="summary_large_image">`,
+    /* `player` cuando se puede incrustar, `summary_large_image` si no. Con
+       `summary_large_image` Twitter enseña la foto aunque haya reproductor. */
+    `<meta name="twitter:card" content="${canonical ? 'player' : 'summary_large_image'}">`,
     `<meta name="twitter:image" content="${escapeHtml(poster)}">`,
+
+    /*
+      ETIQUETAS DE REPRODUCTOR.
+
+      oEmbed es el camino bueno, pero varios consumidores solo devuelven un
+      iframe si el dominio está en su lista blanca — Iframely entre ellos, que
+      es lo que bloquea Notion y Canva hasta que aprueban tu dominio.
+
+      Estas etiquetas son el otro camino: describen el embed en el propio HTML,
+      sin preguntar a nadie. Quien las entienda puede montar el iframe sin
+      aprobación previa. No sustituyen a oEmbed; se suman, y cuestan 300 bytes.
+
+      El tamaño sale de la proporción del config, así que una gráfica cuadrada se
+      incrusta cuadrada.
+    */
+    ...(canonical
+      ? [
+          `<meta name="twitter:player" content="${escapeHtml(canonical)}">`,
+          `<meta name="twitter:player:width" content="${player.width}">`,
+          `<meta name="twitter:player:height" content="${player.height}">`,
+          `<meta property="og:video:iframe" content="${escapeHtml(canonical)}">`,
+          `<meta property="og:video:type" content="text/html">`,
+          `<meta property="og:video:width" content="${player.width}">`,
+          `<meta property="og:video:height" content="${player.height}">`,
+        ]
+      : []),
   ]
     .filter(Boolean)
     .join('\n');
