@@ -16,12 +16,26 @@ const nextConfig: NextConfig = {
         headers: [
           { key: 'Content-Security-Policy', value: 'frame-ancestors *' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
-          // Cache agresiva: la config va en la URL, así que la URL identifica
-          // el contenido por completo.
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=0, s-maxage=31536000, stale-while-revalidate=86400',
-          },
+          /*
+            AQUÍ NO VA `Cache-Control`, Y ES IMPORTANTE.
+
+            Lo llevaba, con caché de un año y este razonamiento: «la config va en
+            la URL, así que la URL identifica el contenido por completo». Era
+            cierto cuando `/embed` solo existía con `?c=`. Dejó de serlo al
+            añadir `/embed/{slug}`, donde detrás hay una FILA que su dueño puede
+            editar o DESPUBLICAR.
+
+            Y esta regla PISA la cabecera que pone el route handler, así que la
+            ruta guardada creía servirse con un minuto de caché y en realidad
+            salía con un año. Despublicar no habría despublicado nada: la gráfica
+            habría seguido sirviéndose desde el borde durante meses. Fallo de
+            privacidad, no de frescura.
+
+            Ahora cada ruta pone la suya (ver src/embed/serve.ts): un año la de
+            config-en-URL, un minuto la guardada. Lo encontró la prueba de punta
+            a punta, no la lectura del código — el código de la ruta era correcto
+            y lo seguía siendo.
+          */
         ],
       },
       {

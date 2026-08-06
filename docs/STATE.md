@@ -266,10 +266,18 @@ display: none }` o el elemento oculto se ve.
   (`https://butxsqcragkopzxsrukz.supabase.co/auth/v1/callback`), no la nuestra.
 
 - ~~Las políticas RLS siguen sin probarse.~~ Probadas: 18 en verde.
-- **Nadie ha guardado una gráfica todavía.** El camino completo —entrar, pulsar
-  guardar, ver la fila en `/mis-graficas`, abrir `/embed/{slug}` desde otro
-  navegador— no se ha recorrido de principio a fin. Los triggers de cuota y de
-  marca de agua tampoco han llegado a dispararse nunca.
+- ~~Nadie ha guardado una gráfica todavía.~~ Recorrido de punta a punta el
+  2026-08-06 con una sesión real por API: 16 comprobaciones en verde —perfil
+  automático en plan free, guardado, nace privada, marca de agua forzada por el
+  trigger, slug con formato, privada da 404, publicada da 200 con su título,
+  tabla accesible, cabecera de iframe, caché corta, un anónimo ve la pública y
+  deja de verla al despublicar, y borrar el usuario se lleva sus gráficas—.
+  Encontró un fallo de caché grave (ver el commit de next.config).
+
+  **Lo único que sigue sin probarse es la subida del PÓSTER**: necesita un canvas
+  de navegador con sesión, y el login es por magic link/Google. Hay que hacerlo a
+  mano: guardar una gráfica, publicarla, y comprobar que sale `og:image` en el
+  HTML y miniatura en el listado.
 
 - **El dev server de Next devuelve 403 en todos los chunks** en esta máquina y
   su WebSocket de HMR falla; la página no hidrata con `npm run dev`. En
