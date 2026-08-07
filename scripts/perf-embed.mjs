@@ -14,9 +14,15 @@ import { gzipSync } from 'node:zlib';
 import path from 'node:path';
 import { minifyCss } from './minify-css.mjs';
 
-const BUDGET = { js: 180 * 1024, css: 8 * 1024 };
+/*
+  `font` es el tope de UNA tipografía, no de las tres: una gráfica descarga como
+  mucho la que ha elegido, y por defecto ninguna. Medir la suma diría que
+  gastamos 70 KB, y nadie gasta 70 KB.
+*/
+const BUDGET = { js: 180 * 1024, css: 8 * 1024, font: 32 * 1024 };
 const root = process.cwd();
 const bundleDir = path.join(root, 'public/embed-bundle');
+const fontDir = path.join(root, 'public/embed-fonts');
 
 const kb = (bytes) => `${(bytes / 1024).toFixed(1)} KB`;
 
@@ -49,9 +55,39 @@ const externalUrls = [...new Set(source.match(/https?:\/\/[a-z0-9.-]+/gi) ?? [])
   (url) => !url.includes('voluma.app') && !url.includes('www.w3.org'),
 );
 
+/*
+  Las tipografías OPCIONALES. Se mide la más gorda contra el tope de una sola,
+  porque eso es lo que llega a descargar una gráfica: la que haya elegido.
+
+  Ya vienen en woff2, que es Brotli por dentro: comprimirlas otra vez no diría
+  nada, así que se mide el fichero tal cual.
+*/
+let fontPeor = 0;
+let fontNombre = '—';
+try {
+  const manifest = JSON.parse(
+    await readFile(path.join(fontDir, 'manifest.json'), 'utf8'),
+  );
+  for (const voz of Object.values(manifest)) {
+    /* El corte `base` es el que descarga cualquiera que elija esa voz. El `ext`
+       solo cae con texto polaco, checo o turco, así que no es el caso a medir:
+       lo que se vigila es lo que paga la gráfica típica. */
+    const base = voz.slices[0];
+    const size = (await readFile(path.join(fontDir, base.file))).length;
+    if (size > fontPeor) {
+      fontPeor = size;
+      fontNombre = voz.family;
+    }
+  }
+} catch {
+  /* Sin build de fuentes no hay nada que medir: el embed cae a las del sistema
+     y sigue siendo una petición. */
+}
+
 const checks = [
   ['JS del bundle (gzip)', gzipSync(bundle).length, BUDGET.js, kb],
   ['CSS, va inline en el HTML', Buffer.byteLength(css), BUDGET.css, kb],
+  [`Tipografía, solo si se pide (${fontNombre})`, fontPeor, BUDGET.font, kb],
   ['URLs a terceros en el bundle', externalUrls.length, 0, String],
 ];
 

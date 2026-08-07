@@ -26,7 +26,7 @@ import { embedAssets, urlEmbedHeaders } from '@/embed/serve';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request): Promise<Response> {
-  const { css, scriptSrc } = await embedAssets();
+  const { css, scriptSrc, fonts } = await embedAssets();
   const params = new URL(request.url).searchParams;
   const encoded = params.get('c');
 
@@ -57,6 +57,7 @@ export async function GET(request: Request): Promise<Response> {
       config: result.config,
       css,
       scriptSrc,
+      fonts,
       origin: host ? `${proto}://${host}` : null,
       /*
         LA CONFIG-EN-URL TAMBIÉN SE PUEDE INCRUSTAR.

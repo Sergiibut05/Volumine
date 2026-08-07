@@ -186,6 +186,15 @@
   color: var(--text-primary);
 }
 
+/* Una nota al pie de un control: dice lo que cuesta una elección, no lo que
+   hace. Va apagada porque no es una advertencia, es información. */
+.nota {
+  margin: -0.25rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  line-height: 1.4;
+}
+
 .ink {
   display: flex;
   gap: 0.375rem;

@@ -49,6 +49,8 @@ yarn-error.log*
 
 # bundle del embed (generado por scripts/build-embed.mjs)
 public/embed-bundle/
+# tipografías del embed (generadas por scripts/build-embed-fonts.mjs)
+public/embed-fonts/
 probe.tmp.mjs
 
 # capturas y scratch de sesiones de trabajo

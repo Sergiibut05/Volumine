@@ -190,7 +190,7 @@ con la página anfitriona.
   "mode": "outside", // "none" | "outside" | "inside" | "legend"
   "showValues": true,
   "showPercent": false,
-  "font": "inter", // "inter" | "display" | "mono" — SIEMPRE del sistema
+  "font": "system", // "system" | "inter" | "display" | "mono"
   "size": 1,
   "color": "auto", // "auto" = blanco roto; o un hex propio
   "finish": "glass", // "glass" | "solid" | "plain"
@@ -200,30 +200,41 @@ con la página anfitriona.
 }
 ```
 
-#### `font` — por qué las tres son fuentes DEL SISTEMA
+#### `font` — una gratis y tres que se eligen
 
-Las etiquetas se dibujan en HTML sobre el canvas, no dentro de WebGL, así que
-la fuente la elige CSS. Y en `/embed` **no se puede descargar ninguna**: la
-regla 1 permite una sola petición y prohíbe fuentes remotas (ADR 0005). Una
-fuente propia costaría entre 15 y 40 KB por peso, en la página de otra persona,
-para escribir cuatro etiquetas.
+Las etiquetas se dibujan en HTML sobre el canvas, así que la fuente la elige
+CSS. Hay dos formas de resolverla y **no cuestan lo mismo**:
 
-Así que los tres valores son familias del sistema, y son tres VOCES, no tres
-ficheros:
+| valor | qué usa | qué cuesta |
+|-----------|-----------------------------------|-----------------------------|
+| `system` | lo que haya en ese ordenador | nada. **El de por defecto.** |
+| `inter` | Inter, servida por nosotros | 1 petición, 26,8 KB |
+| `display` | Source Serif 4, servida por nosotros | 1 petición, 25,6 KB |
+| `mono` | JetBrains Mono, servida por nosotros | 1 petición, 16,4 KB |
 
-| valor | qué sale | para qué |
-|-----------|-------------|--------------------------------------------------|
-| `inter` | palo seco | lo neutro. El de por defecto. |
-| `display` | serifa | voz editorial, para una gráfica dentro de un texto |
-| `mono` | monoespaciada | cifras que se comparan en columna |
+**Por qué existen las tres de pago.** `system` no descarga nada y a cambio la
+misma config se ve DISTINTA en cada ordenador: `ui-serif` resuelve a Georgia en
+Windows, a New York en macOS y a Times donde no haya Georgia. Medido, la cadena
+«Suscripciones 42 k€» ocupa 134,2 px en Georgia y 109,1 en Times — **un 23%**,
+de sobra para que una etiqueta quepa o no y para que `fitLabels()` la descarte.
+O sea que las familias del sistema rompen «mismo config, mismos píxeles».
+
+**Por qué no son de Google Fonts.** Se sirven desde NUESTRO dominio. Google
+Fonts significa que Google ve la IP de cada visitante de la página del cliente
+—hay sentencias en Alemania declarándolo incompatible con el RGPD—, y el «0
+terceros» es lo que la landing vende. Las tres son SIL Open Font License, que
+permite servirlas con su licencia al lado.
+
+**Por qué no se pueden subir las tuyas.** Pasaríamos a redistribuir desde
+nuestro dominio un fichero cuya licencia no controlamos, y eso es
+responsabilidad nuestra, no de quien lo sube.
+
+**Qué alfabetos cubren.** Latín completo con acentos, más un corte aparte para
+polaco, checo, turco, húngaro y rumano que **solo se descarga si el texto lo
+usa** (`unicode-range`). Griego, cirílico y CJK caen a la fuente del sistema.
 
 El id `inter` viene de la v1 y **no se puede renombrar**: viaja dentro de links
-ya publicados. Lo que nombra es el papel, no el fichero.
-
-Lo mismo se aplica en el editor y en el embed a propósito: si el editor usara
-la tipografía de la aplicación y el embed la del sistema, la misma config daría
-píxeles distintos en cada sitio, que es lo único que este proyecto promete que
-no pasa.
+ya publicados. Ver `scripts/build-embed-fonts.mjs`.
 
 #### `color`
 

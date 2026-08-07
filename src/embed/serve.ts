@@ -16,7 +16,24 @@ import { minifyCss } from '../../scripts/minify-css.mjs';
   dos caminos porque solo hay un sitio donde cumplirlas.
 */
 
-export type Assets = { css: string; scriptSrc: string };
+/**
+ * Una tipografía servida por nosotros.
+ *
+ * Va en CORTES con su `unicode-range`: el navegador solo descarga el que hace
+ * falta para el texto que hay. Una etiqueta en español no pide un byte del
+ * corte con las letras polacas aunque el fichero exista.
+ */
+export type EmbedFont = {
+  family: string;
+  slices: { file: string; unicodeRange: string }[];
+};
+
+export type Assets = {
+  css: string;
+  scriptSrc: string;
+  /** Por id del contrato (`inter`, `display`, `mono`). Vacío si no hay build. */
+  fonts: Record<string, EmbedFont>;
+};
 
 let cached: Assets | null = null;
 
@@ -52,7 +69,22 @@ export async function embedAssets(): Promise<Assets> {
     // por defecto para que en desarrollo siga funcionando.
   }
 
-  cached = { css, scriptSrc };
+  /*
+    Las tipografías que PUEDE pedir una gráfica. Que estén aquí no significa que
+    se descarguen: el `@font-face` solo se emite para la que se use, y por
+    defecto no se usa ninguna. Ver scripts/build-embed-fonts.mjs.
+  */
+  let fonts: Record<string, EmbedFont> = {};
+  try {
+    fonts = JSON.parse(
+      await readFile(path.join(root, 'public/embed-fonts/manifest.json'), 'utf8'),
+    ) as Record<string, EmbedFont>;
+  } catch {
+    /* Sin manifiesto —falta `npm run build:fonts`— se cae a las familias del
+       sistema. Se pierde la identidad de píxel, no la gráfica. */
+  }
+
+  cached = { css, scriptSrc, fonts };
   return cached;
 }
 

@@ -1,4 +1,5 @@
 import type { ResolvedChartConfig } from '@/lib/config/defaults';
+import type { EmbedFont } from './serve';
 import { gaugeReadout } from '@/lib/gauge';
 
 /*
@@ -390,10 +391,51 @@ function readoutHtml(config: ResolvedChartConfig): string {
   )}</b>${sub}</div>`;
 }
 
+/**
+ * La declaración de la tipografía, si la gráfica pide una nuestra.
+ *
+ * Devuelve cadena vacía con `system`, que es el valor por defecto: un embed que
+ * no toca la tipografía sigue siendo un archivo y una petición, como anuncia la
+ * landing. El coste solo lo paga quien elige.
+ *
+ * `font-display: swap` y no `block`: con `block` el navegador esconde el texto
+ * hasta que llega el fichero, y una etiqueta que aparece tarde sobre una gráfica
+ * ya dibujada se lee como un fallo. Con `swap` se ve desde el primer momento con
+ * la familia del sistema y cambia cuando llega — que es el mismo salto que da
+ * hoy cualquier página con tipografía propia.
+ *
+ * El rango de grosor SE DECLARA (`400 600`). Sin él, el navegador trata una
+ * fuente variable como estática y clava todo en 400: el nombre de la etiqueta
+ * dejaría de verse más fuerte que su cifra, sin que nada fallara. Se midió.
+ *
+ * Aquí solo se DECLARA la familia. Quién la usa es la capa de etiquetas, que
+ * pone la pila en línea — y un estilo en línea gana a cualquier hoja, así que
+ * intentar fijarla desde aquí no serviría de nada. Cada pila nombra primero la
+ * nuestra y detrás la del sistema: si el fichero no llega, o no se ha generado,
+ * la etiqueta se ve igual de bien con lo que haya.
+ */
+function fontFaceCss(config: ResolvedChartConfig, fonts: Record<string, EmbedFont>): string {
+  const voz = fonts[config.labels.font];
+  if (!voz) return '';
+
+  /* Un `@font-face` por corte, cada uno con su `unicode-range`. El navegador
+     elige y descarga solo el que necesite el texto de esta gráfica. */
+  return voz.slices
+    .map(
+      (corte) =>
+        `@font-face{font-family:"${voz.family}";` +
+        `src:url("/embed-fonts/${corte.file}") format("woff2");` +
+        `unicode-range:${corte.unicodeRange};` +
+        `font-weight:400 600;font-style:normal;font-display:swap}`,
+    )
+    .join('');
+}
+
 export function embedHtml({
   config,
   css,
   scriptSrc,
+  fonts,
   poster,
   canonical,
   /* OJO: si `origin` no se desestructura aquí, dentro de la función NO da error
@@ -404,6 +446,8 @@ export function embedHtml({
   config: ResolvedChartConfig;
   css: string;
   scriptSrc: string;
+  /** Las tipografías disponibles. Solo se emite la que use esta gráfica. */
+  fonts?: Record<string, EmbedFont>;
   /** URL pública del póster. `null` en los embeds de config-en-URL. */
   poster?: string | null;
   /** URL canónica de esta gráfica, para las tarjetas de enlace. */
@@ -451,7 +495,7 @@ ${robotsTag(canonical)}
 <title>${escapeHtml(config.title ?? 'Gráfica')}</title>
 ${socialTags(config, poster, canonical)}
 ${oembedLink(canonical)}
-<style>${css}</style>
+<style>${css}${fontFaceCss(config, fonts ?? {})}</style>
 </head>
 <body>
 <div class="stage" role="img" aria-label="${escapeHtml(describeChart(config))}">

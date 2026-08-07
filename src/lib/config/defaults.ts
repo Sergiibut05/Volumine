@@ -163,7 +163,10 @@ export const defaults = {
     mode: 'outside',
     showValues: true,
     showPercent: false,
-    font: 'inter',
+    /* `system` no descarga nada, y hasta hoy `inter` tampoco: resolvía a la
+       pila del sistema. O sea que el cambio de default no mueve un píxel de
+       nada de lo ya publicado — solo le pone su nombre verdadero. */
+    font: 'system',
     size: 1,
     color: 'auto',
     /* El de siempre. Cambiarlo cambiaría el aspecto de todo link publicado. */

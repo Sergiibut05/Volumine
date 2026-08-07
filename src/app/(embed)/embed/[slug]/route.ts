@@ -29,7 +29,7 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ slug: string }> },
 ): Promise<Response> {
-  const { css, scriptSrc } = await embedAssets();
+  const { css, scriptSrc, fonts } = await embedAssets();
   const { slug } = await params;
 
   const fail = (message: string, status: number) =>
@@ -81,6 +81,7 @@ export async function GET(
       config,
       css,
       scriptSrc,
+      fonts,
       poster: posterUrl(row.poster_path, row.updated_at),
       canonical: `${origen}/embed/${row.slug}`,
       origin: origen,

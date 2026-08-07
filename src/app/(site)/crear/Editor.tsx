@@ -883,42 +883,68 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
                   }
                 />
 
-                {/* Las tres son fuentes DEL SISTEMA: en el embed no se puede
-                    descargar ninguna (ADR 0005). Son tres voces, no tres
-                    ficheros — ver docs/chart-config-schema.md. */}
+                {/*
+                  Cuatro voces y solo una gratis.
+
+                  «Del sistema» no descarga nada y se ve un poco distinta en cada
+                  ordenador; las otras tres viajan con la gráfica y se ven igual
+                  en todas partes. El coste va escrito debajo del control, no
+                  escondido: es una decisión con precio y quien la toma tiene
+                  derecho a saberlo.
+                */}
                 <Choices
                   label={d.editor.labelFont}
-                  value={config.labels?.font ?? 'inter'}
+                  value={config.labels?.font ?? 'system'}
                   onChange={(id) =>
                     setConfig(
                       (c) => ({
                         ...c,
-                        labels: { ...c.labels, font: id as 'inter' | 'display' | 'mono' },
+                        labels: {
+                          ...c.labels,
+                          font: id as 'system' | 'inter' | 'display' | 'mono',
+                        },
                       }),
                       { coalesce: false },
                     )
                   }
                   options={[
                     {
+                      id: 'system',
+                      label: d.editor.fontSystem,
+                      hint: d.editor.fontSystemHint,
+                      preview: <FontPreview familia="ui-sans-serif, system-ui, sans-serif" />,
+                    },
+                    {
                       id: 'inter',
                       label: d.editor.fontSans,
                       hint: d.editor.fontSansHint,
-                      preview: <FontPreview familia="ui-sans-serif, system-ui, sans-serif" />,
+                      preview: (
+                        <FontPreview familia='"Volumine Sans", ui-sans-serif, sans-serif' />
+                      ),
                     },
                     {
                       id: 'display',
                       label: d.editor.fontSerif,
                       hint: d.editor.fontSerifHint,
-                      preview: <FontPreview familia="ui-serif, Georgia, serif" />,
+                      preview: (
+                        <FontPreview familia='"Volumine Serif", ui-serif, Georgia, serif' />
+                      ),
                     },
                     {
                       id: 'mono',
                       label: d.editor.fontMono,
                       hint: d.editor.fontMonoHint,
-                      preview: <FontPreview familia="ui-monospace, Menlo, monospace" />,
+                      preview: (
+                        <FontPreview familia='"Volumine Mono", ui-monospace, monospace' />
+                      ),
                     },
                   ]}
                 />
+
+                {/* El precio, a la vista. Una gráfica que elige tipografía pasa
+                    de una petición a dos, y eso es exactamente lo que la landing
+                    promete que no pasa por defecto. */}
+                <p className="nota">{d.editor.fontCost}</p>
 
                 {/* Los tres acabados se leen sobre blanco, sobre negro y sobre
                     una foto. NO hay un color libre para la caja a propósito: el

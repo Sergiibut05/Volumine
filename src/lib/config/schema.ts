@@ -186,11 +186,22 @@ export const labelsSchema = z.object({
   mode: z.enum(['none', 'outside', 'inside', 'legend']).optional(),
   showValues: z.boolean().optional(),
   showPercent: z.boolean().optional(),
-  /* Familias DEL SISTEMA, no ficheros: en /embed no se puede descargar
-     ninguna fuente (ADR 0005). Tres voces — palo seco, serifa, monoespaciada.
-     El id `inter` viene de la v1 y no se puede renombrar: viaja dentro de
-     links ya publicados. Ver docs/chart-config-schema.md. */
-  font: z.enum(['inter', 'display', 'mono']).optional(),
+  /*
+    Cuatro voces, y solo una es gratis.
+
+    `system` usa lo que haya en el ordenador de quien mira: no descarga nada, y
+    a cambio la misma config se ve DISTINTA en cada sistema operativo —medido:
+    un 23% de ancho entre Georgia y Times—. Es el valor por defecto porque
+    mantiene la promesa de la landing: un archivo, una petición.
+
+    Las otras tres son ficheros NUESTROS, servidos desde nuestro dominio. Cuestan
+    una petición y de 17 a 27 KB, y a cambio la gráfica se ve igual en todas
+    partes. Ver scripts/build-embed-fonts.mjs.
+
+    Los ids vienen de la v1 y no se renombran: viajan dentro de links ya
+    publicados. Ver docs/chart-config-schema.md.
+  */
+  font: z.enum(['system', 'inter', 'display', 'mono']).optional(),
   size: z.number().min(0.5).max(2).optional(),
   color: z.union([hexColor, z.literal('auto')]).optional(),
   /* El envoltorio. Añadido después de la v1: opcional y con default `glass`,

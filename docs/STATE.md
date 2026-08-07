@@ -447,6 +447,55 @@ cadenas. Lo que NO hace está en los tests — no toca los espacios de
 `rgb(a b c / d)` ni los operadores de `calc()`, que son los que al quitarlos
 rompen la regla entera y en silencio.
 
+## Tipografías propias en el embed
+
+**Yo defendía que tres familias del sistema eran lo correcto, y estaba
+equivocado.** El argumento era que solo `sans`, `serif` y `mono` están
+garantizadas en todas partes. Es cierto y es irrelevante: garantizan que la
+fuente EXISTA, no que se vea igual. Medido en Chromium:
+
+| familia | ancho de «Suscripciones 42 k€» |
+|--------------------------|-------------------|
+| `ui-serif` → Georgia (Windows) | 134,2 px |
+| sin Georgia → Times New Roman | 109,1 px |
+
+**Un 23% con la misma config**, y en macOS `ui-serif` es New York, ni una ni
+otra. Eso decide si una etiqueta cabe, dónde acaba su línea guía y si
+`fitLabels()` la descarta. Las fuentes del sistema son lo que ROMPE «mismo
+config, mismos píxeles»; una fuente nuestra es la única forma de cumplirlo.
+
+### Cómo está montado
+
+`scripts/build-embed-fonts.mjs` recorta tres fuentes con licencia abierta y las
+deja en `public/embed-fonts/` (generado, fuera del repo, como el bundle). Se
+sirven desde nuestro dominio: sin Google, sin cookies, sin que nadie vea la IP
+de los visitantes de un cliente.
+
+**El coste solo lo paga quien elige.** El valor por defecto es `system`, que no
+descarga nada — un embed que no toca la tipografía sigue siendo un archivo y una
+petición, como anuncia la landing. Comprobado en el navegador mirando lo que se
+PIDE, no lo que dice el HTML.
+
+Dos decisiones que salieron de medir:
+
+- **El eje de grosor se recorta a 400-600**, los dos que usan las etiquetas. El
+  eje entero de Inter son 30,1 KB; de 400 a 600, 20,6. Fijar uno solo bajaría a
+  12,3 pero obligaría a falsear la negrita.
+- **Podar los glifos alcanzables solo por sustitución** ahorra de 6 a 10 KB...
+  **y `tabular-nums` ES una sustitución.** Podado en Inter, «111» medía 48,8 px
+  y «999» 74,4: los números de una carrera de barras bailando en cada
+  fotograma, sin que nada fallara. Por eso es una decisión POR FUENTE, y por eso
+  `tests/fonts.spec.ts` carga las tres en un navegador de verdad y comprueba que
+  las cifras cuadran, que los dos grosores difieren y que los acentos están.
+
+**Cobertura:** latín completo con acentos. Polaco, checo y turco van en un corte
+aparte con `unicode-range`, así que una gráfica en español no descarga un byte
+de él. Griego, cirílico y CJK caen a la fuente del sistema, como hasta ahora.
+
+**Lo que sigue fuera, y no por peso:** Google Fonts (un tercero mirando a los
+visitantes de nuestros clientes) y subir tipografías propias (redistribuiríamos
+ficheros cuya licencia no controlamos).
+
 ## Problemas abiertos
 
 - ~~Las sombras tienen dientes de sierra.~~ **Arreglado**, y era la sospecha

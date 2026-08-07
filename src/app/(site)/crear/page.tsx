@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Editor } from './Editor';
+import { EmbedFontFaces } from './EmbedFontFaces';
 import { initialConfig } from '@/lib/config/initial';
 import { chartById, currentUser } from '@/lib/charts/queries';
 import { chartConfigSchema, type ChartConfig } from '@/lib/config/schema';
@@ -55,12 +56,17 @@ export default async function CrearPage({
   }
 
   return (
-    <Editor
+    <>
+      {/* Declara las tipografías del embed. Declarar no descarga: el navegador
+          pide el fichero solo cuando algo usa esa familia. */}
+      <EmbedFontFaces />
+      <Editor
       initial={initial}
       chartId={chartId}
       visibility={visibility}
       signedIn={Boolean(user)}
-      userId={user?.id ?? null}
-    />
+        userId={user?.id ?? null}
+      />
+    </>
   );
 }

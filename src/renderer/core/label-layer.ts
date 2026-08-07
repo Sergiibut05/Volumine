@@ -246,13 +246,18 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
     y sobre todo deja el aspecto en la hoja de estilos, que es su sitio: aquí
     solo se decide QUÉ, nunca CÓMO se dibuja.
 
-    ── LA FUENTE SIEMPRE ES DEL SISTEMA ────────────────────────────────────
+    ── LA FUENTE: UNA GRATIS Y TRES QUE SE ELIGEN ──────────────────────────
 
-    Las tres opciones son familias del sistema y no ficheros nuestros. En
-    `/embed` no se puede descargar ninguna —la regla 1 permite una sola petición
-    y prohíbe fuentes remotas (ADR 0005)—, y una fuente propia cuesta entre 15 y
-    40 KB por peso, en la página de otra persona, para escribir cuatro
-    etiquetas.
+    `system` usa lo que haya en el ordenador de quien mira. No descarga nada, y
+    a cambio la misma config se ve DISTINTA en cada sistema: medido, la cadena
+    «Suscripciones 42 k€» ocupa 134,2 px en Georgia y 109,1 en Times — un 23%,
+    suficiente para que una etiqueta quepa o no y para que `fitLabels()` la
+    descarte. Es el valor por defecto porque es el que mantiene la promesa de la
+    landing: un archivo, una petición.
+
+    Las otras tres nombran una fuente NUESTRA, servida desde nuestro dominio
+    (scripts/build-embed-fonts.mjs). Cuestan una petición y de 17 a 27 KB, y a
+    cambio la gráfica se ve igual en todas partes.
 
     Se aplican las mismas en el editor y en el embed A PROPÓSITO. Antes no era
     así: el editor heredaba la tipografía de la aplicación y el embed la del
@@ -266,12 +271,28 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
     del texto: claro si el texto es oscuro y al revés. Calculado, no fijo — con
     un halo negro fijo, un usuario que ponga texto negro se queda sin nada.
   */
-  const FUENTES = {
-    /* El id viene de la v1 y no se puede renombrar: viaja dentro de links ya
-       publicados. Lo que nombra es el papel, no el fichero. */
-    inter: "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif",
-    display: "ui-serif, Georgia, 'Times New Roman', serif",
+  const SISTEMA = {
+    sans: "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif",
+    serif: "ui-serif, Georgia, 'Times New Roman', serif",
     mono: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+  } as const;
+
+  /*
+    Cada voz nombra PRIMERO la fuente nuestra y detrás la del sistema.
+
+    Así el respaldo es automático: si el `@font-face` no se ha emitido —porque
+    la gráfica pidió `system`, o porque falta el build de fuentes— el navegador
+    baja a la siguiente de la pila y la etiqueta se ve igual de bien. No hay
+    ninguna rama que mantener.
+
+    Los ids vienen de la v1 y no se renombran: viajan dentro de links ya
+    publicados. Lo que nombran es el papel, no el fichero.
+  */
+  const FUENTES = {
+    system: SISTEMA.sans,
+    inter: `"Volumine Sans", ${SISTEMA.sans}`,
+    display: `"Volumine Serif", ${SISTEMA.serif}`,
+    mono: `"Volumine Mono", ${SISTEMA.mono}`,
   } as const;
 
   /** Blanco roto: es lo que se lee sobre la píldora oscura de por defecto. */
@@ -280,7 +301,7 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
   function aplicarAspecto(config: ResolvedChartConfig) {
     const { font, color, finish, boxPadding, boxRadius } = config.labels;
 
-    root.style.setProperty('--volumine-label-font', FUENTES[font] ?? FUENTES.inter);
+    root.style.setProperty('--volumine-label-font', FUENTES[font] ?? FUENTES.system);
     root.style.setProperty('--volumine-label-ink', color === 'auto' ? TINTA_AUTO : color);
     /* El halo es EL CONTRARIO del texto, y se calcula: con uno negro fijo, un
        usuario que ponga texto negro se queda sin nada que lo despegue del
