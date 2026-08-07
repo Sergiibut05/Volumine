@@ -151,10 +151,8 @@ mano desde el aviso.
 5. ~~El editor solo ofrece anillo, tarta y barras.~~ Hecho: los seis tipos.
 6. ~~Traducir la aplicación.~~ Hecha y comprobada en el navegador: landing,
    editor, entrar y «Mis gráficas», en los dos idiomas. Ver la sección de i18n.
-7. **El CSS del embed está fuera de presupuesto: 13,8 KB contra 8.** Viene de
-   antes de esta tanda —`npm run perf:embed` falla por eso y solo por eso; el JS
-   sigue en 147,7 KB de 180— pero es un incumplimiento real de la regla 1 y no
-   tiene dueño todavía.
+7. ~~El CSS del embed está fuera de presupuesto.~~ Arreglado: 5,2 KB de 8. La
+   causa era que se enviaba con comentarios. Ver la sección de más abajo.
 8. Botón «Copiar iframe» en el editor. El texto ya está en el diccionario
    (`editor.copyEmbed`); falta el botón.
 
@@ -389,6 +387,65 @@ Ahora lo dice también su código.
 uso —el respaldo sin WebGL dentro de la página anfitriona— y ese respaldo hoy no
 existe (es la tabla de datos). El día que se construya harán falta dos imágenes,
 no una.
+
+## Las etiquetas ya se pueden vestir
+
+`labels.font` y `labels.color` **estaban en el contrato desde la v1 y no hacían
+nada**. Solo `size` funcionaba. Por las reglas del propio proyecto eso es un bug
+de contrato —un campo declarado que no se implementa—, y ahora los tres
+funcionan, más un `finish` nuevo.
+
+### `font`: tres voces, ninguna descargada
+
+Las tres opciones son familias DEL SISTEMA. En `/embed` no se puede descargar
+ninguna (regla 1, ADR 0005) y una fuente propia son 15-40 KB por peso, en la
+página de otra persona, para escribir cuatro etiquetas. `inter` → palo seco,
+`display` → serifa, `mono` → monoespaciada. El id `inter` viene de la v1 y no se
+puede renombrar: viaja dentro de links publicados.
+
+**Y se aplican las mismas en el editor y en el embed**, que antes no era el
+caso: el editor heredaba la tipografía de la aplicación y el embed la del
+sistema, así que la misma config daba píxeles distintos en cada sitio. Era una
+grieta en lo único que este proyecto promete.
+
+### `finish`: tres envoltorios, y por qué solo tres
+
+Campo NUEVO, opcional y con default `glass`: una config publicada sin él se ve
+exactamente igual que antes.
+
+| valor | qué es |
+|---------|------------------------------------------------|
+| `glass` | la píldora translúcida de siempre |
+| `solid` | opaca y sin desenfoque; más ligera en móvil |
+| `plain` | sin caja, texto con halo del color contrario |
+
+Los tres se leen sobre blanco, sobre negro y sobre una foto — comprobado en el
+embed con los dos fondos. **No hay un color libre para la caja y no lo va a
+haber**: el embed corre dentro de la página de otra persona y no sabemos qué hay
+detrás. Un color libre sería la forma más rápida de que alguien publique una
+gráfica ilegible en la web de un cliente. Por eso `plain` tampoco es «texto
+suelto» sino texto con halo, y el halo se CALCULA —claro si la tinta es oscura y
+al revés—: con un halo negro fijo, quien ponga texto negro se queda sin nada.
+
+## Y el CSS del embed ya entra en presupuesto
+
+Llevaba tiempo al doble (13,8 KB contra 8) y la causa no era el CSS: era que
+`embed.css` se leía del disco y se insertaba **entero, comentarios incluidos**,
+en el HTML de cada embed. De 16,6 KB, **10,5 eran prosa**.
+
+`scripts/minify-css.mjs` los quita al servir. Los comentarios se quedan en el
+fuente —explican decisiones que no se ven en el código— y salen del cable:
+**16,6 KB → 5,2 KB**, con 3 KB de margen para lo que venga.
+
+Es `.mjs` y no TypeScript para que lo usen los dos: el servidor y
+`perf-embed.mjs`, que ahora mide lo que de verdad se envía en vez del fuente.
+Con dos copias, la medida y la realidad se separan al primer cambio.
+
+No es un minificador de verdad a propósito: son dos transformaciones legibles
+sobre un fichero que escribimos nosotros, sin `url()`, sin `@import` y sin
+cadenas. Lo que NO hace está en los tests — no toca los espacios de
+`rgb(a b c / d)` ni los operadores de `calc()`, que son los que al quitarlos
+rompen la regla entera y en silencio.
 
 ## Problemas abiertos
 

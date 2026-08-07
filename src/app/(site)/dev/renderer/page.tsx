@@ -101,6 +101,10 @@ export default function RendererDevPage() {
   /* El fondo, porque es lo que decide qué se ve en el PÓSTER y era justo lo
      que no se podía probar sin guardar una gráfica de verdad. */
   const [bgKind, setBgKind] = useState<'transparent' | 'solid' | 'gradient'>('solid');
+  /* Las etiquetas: es donde más fácil se cuela un acabado que no se lee sobre
+     algún fondo, y es justo lo que este banco existe para pillar. */
+  const [finish, setFinish] = useState<'glass' | 'solid' | 'plain'>('glass');
+  const [labelFont, setLabelFont] = useState<'inter' | 'display' | 'mono'>('inter');
   const capture = useRef<(() => string) | null>(null);
   const [poster, setPoster] = useState<{ url: string; peso: string; fmt: string } | null>(
     null,
@@ -116,8 +120,9 @@ export default function RendererDevPage() {
       data: override.data ?? BASE.data,
       style: { bevel, height, innerRadius, gap, cornerRadius, ...override.style },
       scene: { background: { kind: bgKind, from: '#0b0b12', to: '#3d1f7a', angle: 135 } },
+      labels: { show: true, mode: 'outside', finish, font: labelFont },
     });
-  }, [preset, type, bevel, height, innerRadius, gap, cornerRadius, bgKind]);
+  }, [preset, type, bevel, height, innerRadius, gap, cornerRadius, bgKind, finish, labelFont]);
 
   /*
     El PÓSTER tal y como se va a guardar.
@@ -247,6 +252,34 @@ export default function RendererDevPage() {
             <option value="transparent">transparente</option>
             <option value="solid">sólido</option>
             <option value="gradient">degradado</option>
+          </select>
+        </label>
+
+        <label style={{ display: 'grid', gap: 'var(--p-space-1)' }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 'var(--p-text-xs)' }}>
+            envoltorio de la etiqueta
+          </span>
+          <select
+            value={finish}
+            onChange={(e) => setFinish(e.target.value as typeof finish)}
+          >
+            <option value="glass">vidrio</option>
+            <option value="solid">sólido</option>
+            <option value="plain">sin caja</option>
+          </select>
+        </label>
+
+        <label style={{ display: 'grid', gap: 'var(--p-space-1)' }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 'var(--p-text-xs)' }}>
+            letra de la etiqueta
+          </span>
+          <select
+            value={labelFont}
+            onChange={(e) => setLabelFont(e.target.value as typeof labelFont)}
+          >
+            <option value="inter">palo seco</option>
+            <option value="display">serifa</option>
+            <option value="mono">monoespaciada</option>
           </select>
         </label>
 

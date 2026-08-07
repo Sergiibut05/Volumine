@@ -836,7 +836,8 @@
   /* Filo claro: despega la píldora de un fondo oscuro, donde el propio fondo
      translúcido casi no se distingue. */
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
-  color: rgb(255 255 255 / 0.95);
+  color: var(--volumine-label-ink, rgb(255 255 255 / 0.95));
+  font-family: var(--volumine-label-font, inherit);
   font-size: calc(0.8125rem * var(--volumine-label-scale, 1));
   line-height: 1.3;
   /* Sin esto el texto baila de ancho al animarse. */
@@ -951,6 +952,62 @@
   opacity: 0.62;
 }
 
+
+/*
+  ══════════════════════════════════════════════════════════════════════════
+  LOS TRES ACABADOS DEL ENVOLTORIO
+  ══════════════════════════════════════════════════════════════════════════
+
+  Los tres tienen que leerse sobre blanco, sobre negro y sobre una foto, y eso
+  no es un capricho: el embed corre dentro de la página de OTRA PERSONA y no
+  sabemos qué hay detrás. Por eso no existe un color libre para la caja — sería
+  la forma más rápida de que alguien publique una gráfica ilegible en la web de
+  un cliente.
+
+  · `glass`  la píldora translúcida de siempre. El de por defecto.
+  · `solid`  la misma píldora pero opaca y sin desenfoque. Se lee igual y no
+             cuesta una capa de composición por etiqueta, que en un móvil
+             flojo con doce etiquetas se nota.
+  · `plain`  sin caja. El texto lleva un HALO del color contrario, que es lo
+             que lo mantiene legible sin nada detrás. Sin ese halo esto sería
+             una trampa, no una opción.
+*/
+[data-finish='solid'] .volumine-label,
+[data-finish='solid'] .volumine-legend {
+  background: rgb(16 16 24 / 0.92);
+  backdrop-filter: none;
+}
+
+[data-finish='plain'] .volumine-label,
+[data-finish='plain'] .volumine-legend {
+  background: none;
+  backdrop-filter: none;
+  box-shadow: none;
+  padding: 0.1em 0;
+  /* Cuatro sombras y no una: una sola deja el lado contrario sin contorno y el
+     texto se pierde justo por ahí. Es más barato que `text-stroke`, que no
+     todos los navegadores dibujan por debajo del relleno. */
+  text-shadow:
+    0 1px 0 var(--volumine-label-halo, rgb(0 0 0 / 0.72)),
+    0 -1px 0 var(--volumine-label-halo, rgb(0 0 0 / 0.72)),
+    1px 0 0 var(--volumine-label-halo, rgb(0 0 0 / 0.72)),
+    -1px 0 0 var(--volumine-label-halo, rgb(0 0 0 / 0.72)),
+    0 2px 6px rgb(0 0 0 / 0.35);
+}
+
+/* Sin caja, el realce no puede ser un filo: no hay borde donde dibujarlo. */
+[data-finish='plain'] .volumine-label[data-state='on'] {
+  box-shadow: none;
+  font-weight: 700;
+}
+
+/* Sin caja, el valor necesita más cuerpo: la píldora le daba contraste y ahora
+   no hay ninguna. A 0.68 se perdía sobre una página clara. */
+[data-finish='plain'] .volumine-label span,
+[data-finish='plain'] .volumine-legend span {
+  opacity: 0.85;
+}
+
 /*
   Leyenda: la alternativa a las etiquetas colocadas.
 
@@ -972,7 +1029,8 @@
   background: rgb(16 16 24 / 0.58);
   backdrop-filter: blur(10px);
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
-  color: rgb(255 255 255 / 0.95);
+  color: var(--volumine-label-ink, rgb(255 255 255 / 0.95));
+  font-family: var(--volumine-label-font, inherit);
   font-size: calc(0.8125rem * var(--volumine-label-scale, 1));
   line-height: 1.3;
   font-variant-numeric: tabular-nums;

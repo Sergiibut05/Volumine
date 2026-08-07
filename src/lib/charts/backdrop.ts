@@ -1,4 +1,5 @@
 import { themeById } from '@/lib/themes';
+import { luminance } from '@/lib/color';
 
 /*
   Sobre qué color se aplana un póster de fondo transparente.
@@ -51,25 +52,6 @@ export const BACKDROPS = {
 } as const;
 
 export type Backdrop = (typeof BACKDROPS)[keyof typeof BACKDROPS];
-
-/** Luminancia relativa de WCAG. Solo para el respaldo sin tema. */
-export function luminance(hex: string): number {
-  const raw = hex.trim().replace(/^#/, '');
-  const full =
-    raw.length === 3
-      ? raw
-          .split('')
-          .map((c) => c + c)
-          .join('')
-      : raw;
-  if (!/^[0-9a-f]{6}$/i.test(full)) return 0;
-
-  const [r, g, b] = [0, 2, 4]
-    .map((i) => parseInt(full.slice(i, i + 2), 16) / 255)
-    .map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
-
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
 
 /**
  * Sobre qué aplanar el póster de una gráfica de fondo transparente.

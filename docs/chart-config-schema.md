@@ -186,16 +186,66 @@ con la página anfitriona.
 
 ```jsonc
 {
-  "show": true,
+  "show": false,
   "mode": "outside", // "none" | "outside" | "inside" | "legend"
   "showValues": true,
   "showPercent": false,
-  "font": "inter", // fuente del set local; NUNCA una URL remota
+  "font": "inter", // "inter" | "display" | "mono" — SIEMPRE del sistema
   "size": 1,
-  "color": "auto", // "auto" = contraste calculado contra el fondo
+  "color": "auto", // "auto" = blanco roto; o un hex propio
+  "finish": "glass", // "glass" | "solid" | "plain"
   "title": { "show": true, "position": "top" },
 }
 ```
+
+#### `font` — por qué las tres son fuentes DEL SISTEMA
+
+Las etiquetas se dibujan en HTML sobre el canvas, no dentro de WebGL, así que
+la fuente la elige CSS. Y en `/embed` **no se puede descargar ninguna**: la
+regla 1 permite una sola petición y prohíbe fuentes remotas (ADR 0005). Una
+fuente propia costaría entre 15 y 40 KB por peso, en la página de otra persona,
+para escribir cuatro etiquetas.
+
+Así que los tres valores son familias del sistema, y son tres VOCES, no tres
+ficheros:
+
+| valor | qué sale | para qué |
+|-----------|-------------|--------------------------------------------------|
+| `inter` | palo seco | lo neutro. El de por defecto. |
+| `display` | serifa | voz editorial, para una gráfica dentro de un texto |
+| `mono` | monoespaciada | cifras que se comparan en columna |
+
+El id `inter` viene de la v1 y **no se puede renombrar**: viaja dentro de links
+ya publicados. Lo que nombra es el papel, no el fichero.
+
+Lo mismo se aplica en el editor y en el embed a propósito: si el editor usara
+la tipografía de la aplicación y el embed la del sistema, la misma config daría
+píxeles distintos en cada sitio, que es lo único que este proyecto promete que
+no pasa.
+
+#### `color`
+
+`"auto"` es un blanco roto, que es lo que funciona sobre la píldora oscura. Un
+hex lo sustituye. Con `finish: "plain"` el color va acompañado de un halo
+calculado —claro si el texto es oscuro y al revés— para que siga leyéndose
+encima de cualquier página.
+
+#### `finish` — el envoltorio de la etiqueta
+
+Añadido después de la v1, **opcional y con default `glass`**: una config vieja
+sin este campo se ve exactamente igual que antes.
+
+| valor | qué es | cuándo |
+|---------|--------------------------------------|--------------------------------|
+| `glass` | píldora translúcida con desenfoque | por defecto. Se lee sobre cualquier fondo |
+| `solid` | píldora opaca, sin desenfoque | cuando el desenfoque distrae o el equipo es flojo |
+| `plain` | sin caja: texto con halo de contraste | cuando la caja compite con el dibujo |
+
+Los tres son legibles sobre blanco, sobre negro y sobre una foto, y eso no es
+casualidad: **el embed corre dentro de la página de otra persona y no sabemos
+qué hay detrás.** Por eso `plain` no es «texto suelto» sino texto con halo, y
+por eso no existe un color libre para la caja — sería la forma más rápida de
+que alguien publique una gráfica ilegible en la web de un cliente.
 
 ### `interaction`
 

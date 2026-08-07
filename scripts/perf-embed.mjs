@@ -12,6 +12,7 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { gzipSync } from 'node:zlib';
 import path from 'node:path';
+import { minifyCss } from './minify-css.mjs';
 
 const BUDGET = { js: 180 * 1024, css: 8 * 1024 };
 const root = process.cwd();
@@ -30,7 +31,13 @@ try {
   process.exit(1);
 }
 
-const css = await readFile(path.join(root, 'src/styles/embed.css'), 'utf8');
+/* Lo MISMO que envía el servidor, no el fuente: medir el fichero con sus
+   comentarios era medir algo que nadie descarga. Se importa la función en vez
+   de copiarla — con dos copias, la medida y la realidad se separan al primer
+   cambio. */
+const css = minifyCss(
+  await readFile(path.join(root, 'src/styles/embed.css'), 'utf8'),
+);
 const source = bundle.toString('utf8');
 
 /*

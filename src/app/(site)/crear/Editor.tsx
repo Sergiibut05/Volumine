@@ -882,6 +882,116 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
                     setConfig((c) => ({ ...c, labels: { ...c.labels, size } }))
                   }
                 />
+
+                {/* Las tres son fuentes DEL SISTEMA: en el embed no se puede
+                    descargar ninguna (ADR 0005). Son tres voces, no tres
+                    ficheros — ver docs/chart-config-schema.md. */}
+                <Choices
+                  label={d.editor.labelFont}
+                  value={config.labels?.font ?? 'inter'}
+                  onChange={(id) =>
+                    setConfig(
+                      (c) => ({
+                        ...c,
+                        labels: { ...c.labels, font: id as 'inter' | 'display' | 'mono' },
+                      }),
+                      { coalesce: false },
+                    )
+                  }
+                  options={[
+                    {
+                      id: 'inter',
+                      label: d.editor.fontSans,
+                      hint: d.editor.fontSansHint,
+                      preview: <FontPreview familia="ui-sans-serif, system-ui, sans-serif" />,
+                    },
+                    {
+                      id: 'display',
+                      label: d.editor.fontSerif,
+                      hint: d.editor.fontSerifHint,
+                      preview: <FontPreview familia="ui-serif, Georgia, serif" />,
+                    },
+                    {
+                      id: 'mono',
+                      label: d.editor.fontMono,
+                      hint: d.editor.fontMonoHint,
+                      preview: <FontPreview familia="ui-monospace, Menlo, monospace" />,
+                    },
+                  ]}
+                />
+
+                {/* Los tres acabados se leen sobre blanco, sobre negro y sobre
+                    una foto. NO hay un color libre para la caja a propósito: el
+                    embed vive dentro de la página de otra persona. */}
+                <Choices
+                  label={d.editor.labelFinish}
+                  value={config.labels?.finish ?? 'glass'}
+                  onChange={(id) =>
+                    setConfig(
+                      (c) => ({
+                        ...c,
+                        labels: {
+                          ...c.labels,
+                          finish: id as 'glass' | 'solid' | 'plain',
+                        },
+                      }),
+                      { coalesce: false },
+                    )
+                  }
+                  options={[
+                    {
+                      id: 'glass',
+                      label: d.editor.finishGlass,
+                      hint: d.editor.finishGlassHint,
+                      preview: <FinishPreview acabado="glass" />,
+                    },
+                    {
+                      id: 'solid',
+                      label: d.editor.finishSolid,
+                      hint: d.editor.finishSolidHint,
+                      preview: <FinishPreview acabado="solid" />,
+                    },
+                    {
+                      id: 'plain',
+                      label: d.editor.finishPlain,
+                      hint: d.editor.finishPlainHint,
+                      preview: <FinishPreview acabado="plain" />,
+                    },
+                  ]}
+                />
+
+                {/* El color del texto, con «Automático» como vuelta atrás: sin
+                    eso, tocar el selector es un camino de ida — no hay forma de
+                    decir «déjalo como estaba». */}
+                <div className="control">
+                  <header>
+                    <span>{d.editor.labelInk}</span>
+                    <button
+                      type="button"
+                      className="linky"
+                      onClick={() =>
+                        setConfig(
+                          (c) => ({ ...c, labels: { ...c.labels, color: 'auto' } }),
+                          { coalesce: false },
+                        )
+                      }
+                      disabled={(config.labels?.color ?? 'auto') === 'auto'}
+                    >
+                      {d.editor.labelInkAuto}
+                    </button>
+                  </header>
+                  <ColorRow
+                    label={d.editor.labelInk}
+                    value={
+                      config.labels?.color && config.labels.color !== 'auto'
+                        ? config.labels.color
+                        : '#ffffff'
+                    }
+                    onChange={(color) =>
+                      setConfig((c) => ({ ...c, labels: { ...c.labels, color } }))
+                    }
+                  />
+                </div>
               </>
             )}
           </Group>
@@ -1070,6 +1180,75 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
  * rectángulo vacío parece un fallo de carga. Los que sí existen van a color,
  * porque la miniatura es la promesa de lo que vas a obtener.
  */
+/** Miniatura de tipografía: la misma palabra en la familia que se ofrece. */
+function FontPreview({ familia }: { familia: string }) {
+  return (
+    <span
+      aria-hidden
+      style={{
+        display: 'grid',
+        placeItems: 'center',
+        aspectRatio: '1',
+        fontFamily: familia,
+        fontSize: '1.4em',
+        letterSpacing: '-0.02em',
+      }}
+    >
+      Ag
+    </span>
+  );
+}
+
+/**
+ * Miniatura de acabado.
+ *
+ * Va sobre una franja de dos mitades —clara y oscura— porque es exactamente lo
+ * que hay que juzgar: si el acabado aguanta con cualquier cosa detrás. Sobre un
+ * fondo plano, «sin caja» parecería igual de seguro que los otros dos.
+ */
+function FinishPreview({ acabado }: { acabado: 'glass' | 'solid' | 'plain' }) {
+  const caja =
+    acabado === 'plain'
+      ? {
+          background: 'none',
+          boxShadow: 'none',
+          textShadow:
+            '0 1px 0 rgb(0 0 0 / .72), 0 -1px 0 rgb(0 0 0 / .72),' +
+            '1px 0 0 rgb(0 0 0 / .72), -1px 0 0 rgb(0 0 0 / .72)',
+        }
+      : {
+          background: acabado === 'solid' ? 'rgb(16 16 24 / .92)' : 'rgb(16 16 24 / .58)',
+          backdropFilter: acabado === 'glass' ? 'blur(6px)' : 'none',
+          boxShadow: 'inset 0 0 0 1px rgb(255 255 255 / .12)',
+        };
+
+  return (
+    <span
+      aria-hidden
+      style={{
+        display: 'grid',
+        placeItems: 'center',
+        aspectRatio: '1',
+        borderRadius: '0.35em',
+        background: 'linear-gradient(90deg, #e9e9ef 50%, #17171f 50%)',
+      }}
+    >
+      <span
+        style={{
+          padding: '0.15em 0.4em',
+          borderRadius: '0.35em',
+          color: '#fff',
+          fontSize: '0.7em',
+          fontWeight: 600,
+          ...caja,
+        }}
+      >
+        42
+      </span>
+    </span>
+  );
+}
+
 /** Una fila de color con nombre. Misma pinta que la lista de segmentos. */
 function ColorRow({
   label,

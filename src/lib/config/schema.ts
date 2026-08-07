@@ -186,10 +186,20 @@ export const labelsSchema = z.object({
   mode: z.enum(['none', 'outside', 'inside', 'legend']).optional(),
   showValues: z.boolean().optional(),
   showPercent: z.boolean().optional(),
-  /** Del set local. NUNCA una URL remota (ADR 0005). */
+  /* Familias DEL SISTEMA, no ficheros: en /embed no se puede descargar
+     ninguna fuente (ADR 0005). Tres voces — palo seco, serifa, monoespaciada.
+     El id `inter` viene de la v1 y no se puede renombrar: viaja dentro de
+     links ya publicados. Ver docs/chart-config-schema.md. */
   font: z.enum(['inter', 'display', 'mono']).optional(),
   size: z.number().min(0.5).max(2).optional(),
   color: z.union([hexColor, z.literal('auto')]).optional(),
+  /* El envoltorio. Añadido después de la v1: opcional y con default `glass`,
+     así que una config publicada sin este campo se ve igual que siempre.
+
+     NO hay un color libre para la caja, y es a propósito: el embed corre dentro
+     de la página de otra persona y no sabemos qué hay detrás. Los tres valores
+     se leen sobre blanco, sobre negro y sobre una foto. */
+  finish: z.enum(['glass', 'solid', 'plain']).optional(),
   title: z
     .object({
       show: z.boolean().optional(),

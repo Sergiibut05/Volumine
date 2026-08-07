@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { BACKDROPS, luminance, posterBackdrop } from './backdrop';
+import { BACKDROPS, posterBackdrop } from './backdrop';
+import { luminance } from '@/lib/color';
 import { THEMES } from '@/lib/themes';
 
 describe('posterBackdrop', () => {
@@ -45,23 +46,5 @@ describe('posterBackdrop', () => {
     expect(posterBackdrop(undefined)).toBe(BACKDROPS.light);
     expect(posterBackdrop(undefined, [])).toBe(BACKDROPS.light);
     expect(posterBackdrop(undefined, ['no', 'es', 'color'])).toBe(BACKDROPS.light);
-  });
-});
-
-describe('luminance', () => {
-  it('los extremos son los que dice WCAG', () => {
-    expect(luminance('#000000')).toBeCloseTo(0, 5);
-    expect(luminance('#ffffff')).toBeCloseTo(1, 5);
-  });
-
-  it('el verde pesa más que el rojo y que el azul', () => {
-    expect(luminance('#00ff00')).toBeGreaterThan(luminance('#ff0000'));
-    expect(luminance('#00ff00')).toBeGreaterThan(luminance('#0000ff'));
-  });
-
-  it('entiende `#rgb` y no se cae con basura', () => {
-    expect(luminance('#fff')).toBeCloseTo(luminance('#ffffff'), 5);
-    expect(luminance('rojo')).toBe(0);
-    expect(luminance('')).toBe(0);
   });
 });

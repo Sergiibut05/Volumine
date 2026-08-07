@@ -166,6 +166,8 @@ export const defaults = {
     font: 'inter',
     size: 1,
     color: 'auto',
+    /* El de siempre. Cambiarlo cambiaría el aspecto de todo link publicado. */
+    finish: 'glass',
     title: { show: true, position: 'top' },
   },
   interaction: {

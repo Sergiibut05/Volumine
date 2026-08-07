@@ -1,5 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+/* Compartido con `scripts/perf-embed.mjs`: el medidor tiene que medir lo
+   MISMO que se envía, y con dos copias se separan al primer cambio. */
+import { minifyCss } from '../../scripts/minify-css.mjs';
 
 /*
   Lo que comparten las dos formas de servir un embed:
@@ -22,7 +25,21 @@ export async function embedAssets(): Promise<Assets> {
   if (cached && process.env.NODE_ENV === 'production') return cached;
 
   const root = process.cwd();
-  const css = await readFile(path.join(root, 'src/styles/embed.css'), 'utf8');
+  /*
+    El CSS se envía SIN COMENTARIOS.
+
+    Se insertaba entero en el HTML de cada embed, comentarios incluidos: 16,6 KB
+    de los que 10,5 eran prosa, dentro de la página de otra persona. El
+    presupuesto son 8 KB y llevaba tiempo roto por el doble sin que la causa
+    saltara a la vista — `npm run perf:embed` decía «fuera de presupuesto» y
+    nadie miraba de dónde salían los kilobytes.
+
+    Los comentarios se quedan en el fuente: explican decisiones que no se ven en
+    el código y son justo lo que hace falta dentro de seis meses.
+  */
+  const css = minifyCss(
+    await readFile(path.join(root, 'src/styles/embed.css'), 'utf8'),
+  );
 
   let scriptSrc = '/embed-bundle/volumine.js';
   try {

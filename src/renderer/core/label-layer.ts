@@ -2,6 +2,7 @@ import type { PerspectiveCamera, Object3D } from 'three';
 import { Vector3 } from 'three';
 import type { ResolvedChartConfig } from '@/lib/config/defaults';
 import { formatter } from '@/lib/format';
+import { isLight } from '@/lib/color';
 import { fitLabels, stackLabels } from './labels';
 
 /*
@@ -235,6 +236,67 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
     root.appendChild(legend);
   }
 
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    EL ASPECTO DE LAS ETIQUETAS: FUENTE, COLOR Y ENVOLTORIO
+    ══════════════════════════════════════════════════════════════════════════
+
+    Todo por VARIABLES DE CSS y un atributo, no escribiendo estilos en cada
+    etiqueta. Son tres escrituras por reconstrucción en vez de tres por etiqueta,
+    y sobre todo deja el aspecto en la hoja de estilos, que es su sitio: aquí
+    solo se decide QUÉ, nunca CÓMO se dibuja.
+
+    ── LA FUENTE SIEMPRE ES DEL SISTEMA ────────────────────────────────────
+
+    Las tres opciones son familias del sistema y no ficheros nuestros. En
+    `/embed` no se puede descargar ninguna —la regla 1 permite una sola petición
+    y prohíbe fuentes remotas (ADR 0005)—, y una fuente propia cuesta entre 15 y
+    40 KB por peso, en la página de otra persona, para escribir cuatro
+    etiquetas.
+
+    Se aplican las mismas en el editor y en el embed A PROPÓSITO. Antes no era
+    así: el editor heredaba la tipografía de la aplicación y el embed la del
+    sistema, así que la misma config daba píxeles distintos en cada sitio — que
+    es justo lo único que este proyecto promete que no pasa.
+
+    ── EL HALO DEL ACABADO SIN CAJA ────────────────────────────────────────
+
+    `plain` quita la píldora, y sin ella el texto queda a merced del fondo de
+    una página que no elegimos. El halo lo arregla y tiene que ser el CONTRARIO
+    del texto: claro si el texto es oscuro y al revés. Calculado, no fijo — con
+    un halo negro fijo, un usuario que ponga texto negro se queda sin nada.
+  */
+  const FUENTES = {
+    /* El id viene de la v1 y no se puede renombrar: viaja dentro de links ya
+       publicados. Lo que nombra es el papel, no el fichero. */
+    inter: "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif",
+    display: "ui-serif, Georgia, 'Times New Roman', serif",
+    mono: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+  } as const;
+
+  /** Blanco roto: es lo que se lee sobre la píldora oscura de por defecto. */
+  const TINTA_AUTO = 'rgb(255 255 255 / 0.95)';
+
+  function aplicarAspecto(config: ResolvedChartConfig) {
+    const { font, color, finish } = config.labels;
+
+    root.style.setProperty('--volumine-label-font', FUENTES[font] ?? FUENTES.inter);
+    root.style.setProperty('--volumine-label-ink', color === 'auto' ? TINTA_AUTO : color);
+    /* El halo es EL CONTRARIO del texto, y se calcula: con uno negro fijo, un
+       usuario que ponga texto negro se queda sin nada que lo despegue del
+       fondo. `auto` es blanco roto, así que le toca halo oscuro.
+
+       Se escribe siempre aunque solo lo use `plain`: cambiar de acabado no
+       tiene que acordarse de recalcular nada. */
+    const tintaClara = color === 'auto' || isLight(color);
+    root.style.setProperty(
+      '--volumine-label-halo',
+      tintaClara ? 'rgb(0 0 0 / 0.72)' : 'rgb(255 255 255 / 0.85)',
+    );
+
+    root.dataset.finish = finish;
+  }
+
   return {
     rebuild(anchors, config, next) {
       clear();
@@ -251,6 +313,7 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
          el slider de tamaño no hacía nada. No daba error: movías el control y no
          pasaba nada, que es de los fallos más difíciles de atribuir. */
       root.style.setProperty('--volumine-label-scale', String(config.labels.size));
+      aplicarAspecto(config);
 
       if (!config.labels.show || config.labels.mode === 'none') return;
 
