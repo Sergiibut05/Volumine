@@ -231,7 +231,33 @@ display: none }` o el elemento oculto se ve.
     `data` y todo `style` salvo lo que se aplica por frame: enumerar lo que NO
     entra es una lista corta y estable.
 
+## Facturación: preparada y apagada
+
+Todo el camino de cobro está escrito y **no se enciende hasta que existan tres
+variables de entorno** (`.env.example`). Sin ellas el webhook devuelve 404 y el
+producto es gratis, exactamente como hoy.
+
+Para activarlo, el día que se quiera:
+
+1. Aplicar `supabase/migrations/0005_facturacion.sql`.
+2. Crear los productos en Stripe y meter sus `price_...` en `plan_limits`.
+3. Poner las tres variables.
+4. Dar de alta el webhook en Stripe apuntando a `/api/stripe/webhook`.
+
+**Lo que NO hay que escribir ese día**: el checkout de cara al usuario y la
+sección de plan en la interfaz. Se dejó fuera a propósito — es lo que depende de
+cómo se decida cobrar (pago único, anual, por equipo) y escribirlo ahora sería
+adivinar.
+
 ## Problemas abiertos
+
+- **Las sombras tienen dientes de sierra.** El mapa de sombras se ve escalonado
+  en los bordes. Hay varias formas de suavizarlo y difieren mucho en coste:
+  subir la resolución del mapa (caro en memoria y relleno), `VSMShadowMap` (más
+  suave pero con sangrado de luz), o ajustar el volumen de la cámara de sombra
+  para que los téxeles que hay cubran menos superficie — que suele ser lo que de
+  verdad falla y no cuesta nada. Hay que MEDIR antes de elegir: el embed está al
+  82% del presupuesto y esto se paga en cada frame, no una vez.
 
 - **No hay tests de regresión visual, y se nota.** La barra del editor se quedó
   descolocada tres veces seguidas y las tres pasaron build, tipos y los 197
