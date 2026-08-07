@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import { useI18n } from '@/lib/i18n/client';
+import type { Dictionary } from '@/lib/i18n/dictionaries';
 
 /*
   Dos formas de entrar y ninguna contraseña.
@@ -23,19 +25,18 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
  * Un mensaje de error que acusa a la entrada equivocada es peor que uno
  * genérico: te hace perder el tiempo comprobando algo que estaba bien.
  */
-function explicar(error: { message: string; status?: number; code?: string }): string {
+function explicar(
+  error: { message: string; status?: number; code?: string },
+  d: Dictionary,
+): string {
   const limite =
     error.status === 429 ||
     error.code === 'over_email_send_rate_limit' ||
     /rate limit/i.test(error.message);
 
-  if (limite) {
-    return 'Se han enviado demasiados correos en poco rato. Espera unos minutos y vuelve a intentarlo — no es culpa de tu dirección.';
-  }
-  if (/invalid|email/i.test(error.message)) {
-    return 'Esa dirección no parece válida. Revísala.';
-  }
-  return 'No se ha podido enviar el correo. Inténtalo de nuevo en un momento.';
+  if (limite) return d.auth.errRate;
+  if (/invalid|email/i.test(error.message)) return d.auth.errInvalid;
+  return d.auth.errGeneric;
 }
 
 type Estado =
@@ -45,6 +46,7 @@ type Estado =
   | { fase: 'error'; mensaje: string };
 
 export function LoginForm({ next }: { next: string }) {
+  const { d } = useI18n();
   const [email, setEmail] = useState('');
   const [estado, setEstado] = useState<Estado>({ fase: 'reposo' });
 
@@ -60,7 +62,7 @@ export function LoginForm({ next }: { next: string }) {
       provider: 'google',
       options: { redirectTo: redirectTo() },
     });
-    if (error) setEstado({ fase: 'error', mensaje: 'No se ha podido abrir Google.' });
+    if (error) setEstado({ fase: 'error', mensaje: d.auth.errGoogle });
   };
 
   const conCorreo = async (event: React.FormEvent) => {
@@ -73,7 +75,7 @@ export function LoginForm({ next }: { next: string }) {
     });
 
     setEstado(
-      error ? { fase: 'error', mensaje: explicar(error) } : { fase: 'enviado', email },
+      error ? { fase: 'error', mensaje: explicar(error, d) } : { fase: 'enviado', email },
     );
   };
 
@@ -87,15 +89,20 @@ export function LoginForm({ next }: { next: string }) {
   if (estado.fase === 'enviado') {
     return (
       <div className="auth-card">
-        <h1 className="display">Mira tu correo</h1>
+        <h1 className="display">{d.auth.checkTitle}</h1>
+        {/* Se parte la frase POR EL PROPIO MARCADOR y se mete el correo en
+            negrita en el hueco. Así cada idioma coloca la dirección donde le
+            corresponda —al final en inglés, en medio en español— y sigue
+            pudiendo resaltarla. Concatenar trozos sueltos haría la frase
+            intraducible: el orden de las palabras no es el mismo en los dos. */}
         <p>
-          Te hemos mandado un link a <b>{estado.email}</b>. Ábrelo en este mismo navegador y
-          entrarás directamente.
+          {d.auth.checkBody
+            .split('{email}')
+            .flatMap((trozo, i) =>
+              i === 0 ? [trozo] : [<b key="email">{estado.email}</b>, trozo],
+            )}
         </p>
-        <p className="auth-note">
-          El link caduca y solo sirve una vez. Si no llega en un par de minutos, mira en
-          spam.
-        </p>
+        <p className="auth-note">{d.auth.checkNote}</p>
       </div>
     );
   }
@@ -104,8 +111,8 @@ export function LoginForm({ next }: { next: string }) {
 
   return (
     <div className="auth-card">
-      <h1 className="display">Entra en Volumine</h1>
-      <p>Para guardar tus gráficas y que el link siga funcionando mañana.</p>
+      <h1 className="display">{d.auth.title}</h1>
+      <p>{d.auth.subtitle}</p>
 
       <button type="button" className="auth-google" onClick={conGoogle} disabled={ocupado}>
         {/* El logo va en línea. Cargarlo del CDN de Google sería una petición a
@@ -128,28 +135,28 @@ export function LoginForm({ next }: { next: string }) {
             d="M24 48c6.48 0 11.93-2.13 15.9-5.8l-7.73-6c-2.15 1.45-4.92 2.3-8.17 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
           />
         </svg>
-        Continuar con Google
+        {d.auth.withGoogle}
       </button>
 
       <div className="auth-sep">
-        <span>o</span>
+        <span>{d.auth.or}</span>
       </div>
 
       <form onSubmit={conCorreo}>
         <label className="auth-field">
-          <span>Tu correo</span>
+          <span>{d.auth.emailLabel}</span>
           <input
             type="email"
             required
             autoComplete="email"
-            placeholder="tu@correo.com"
+            placeholder={d.auth.emailPlaceholder}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={ocupado}
           />
         </label>
         <button type="submit" className="cta auth-submit" disabled={ocupado || !email}>
-          {ocupado ? 'Enviando…' : 'Mandarme un link'}
+          {ocupado ? d.auth.sending : d.auth.sendLink}
         </button>
       </form>
 
@@ -159,10 +166,7 @@ export function LoginForm({ next }: { next: string }) {
         </p>
       )}
 
-      <p className="auth-note">
-        No hace falta cuenta para usar el editor ni para incrustar una gráfica: la config
-        viaja dentro del link. Esto es solo para guardarlas.
-      </p>
+      <p className="auth-note">{d.auth.note}</p>
     </div>
   );
 }

@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { Bricolage_Grotesque, Instrument_Sans, JetBrains_Mono } from 'next/font/google';
 import '@/styles/site.css';
 import { Analytics } from '@vercel/analytics/next';
+import { getDictionary } from '@/lib/i18n/server';
+import { I18nProvider } from '@/lib/i18n/client';
 
 /*
   Root layout de la app y el marketing.
@@ -42,11 +44,21 @@ export const metadata: Metadata = {
     'Crea una gráfica 3D preciosa e incrústala en tu web, Notion o Confluence con un link.',
 };
 
-export default function SiteLayout({ children }: { children: React.ReactNode }) {
+export default async function SiteLayout({ children }: { children: React.ReactNode }) {
+  /* El idioma se resuelve UNA vez, aquí arriba, y baja por contexto. Resolverlo
+     en cada pantalla sería leer la cookie y la cabecera media docena de veces
+     por navegación para obtener siempre lo mismo. */
+  const { locale, d } = await getDictionary();
+
   return (
-    <html lang="es" className={`${display.variable} ${body.variable} ${mono.variable}`}>
+    /* `lang` de verdad y no fijo en «es»: es lo que usan los lectores de
+       pantalla para elegir voz y los navegadores para ofrecer traducción. Estaba
+       mintiendo cuando la interfaz salía en inglés. */
+    <html lang={locale} className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <body>
-        {children}
+        <I18nProvider locale={locale} d={d}>
+          {children}
+        </I18nProvider>
         {/*
           ══════════════════════════════════════════════════════════════════
           ESTA ANALÍTICA VIVE SOLO AQUÍ. NUNCA EN /embed.

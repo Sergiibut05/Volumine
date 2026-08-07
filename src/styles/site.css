@@ -21,3 +21,45 @@ body {
   line-height: var(--p-leading-tight);
   letter-spacing: -0.02em;
 }
+
+/*
+  Selector de idioma.
+
+  Dos códigos de dos letras, no un desplegable con banderas. Una bandera dice
+  país y no idioma —el español no es de España, es de veinte países— y con dos
+  opciones un desplegable esconde la mitad de lo que hay.
+*/
+.locale-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  background: color-mix(in oklab, currentColor 8%, transparent);
+}
+
+.locale-switch button {
+  padding: 0.25rem 0.5rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  opacity: 0.55;
+  font: inherit;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.locale-switch button[aria-pressed='true'] {
+  background: color-mix(in oklab, currentColor 14%, transparent);
+  opacity: 1;
+}
+
+.locale-switch button:hover:not([aria-pressed='true']) {
+  opacity: 0.85;
+}
+
+.locale-switch button:disabled {
+  cursor: wait;
+}

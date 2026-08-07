@@ -249,6 +249,27 @@ sección de plan en la interfaz. Se dejó fuera a propósito — es lo que depen
 cómo se decida cobrar (pago único, anual, por equipo) y escribirlo ahora sería
 adivinar.
 
+## i18n: la base está, la traducción va a medias
+
+Inglés por defecto, español si el navegador lo prefiere, cookie para elegir a
+mano. **La infraestructura está terminada y probada** (`src/lib/i18n/`):
+detección por orden de preferencia, diccionarios con comprobación de tipos —una
+clave que falte no compila— y selector de idioma.
+
+**Traducido:** la pantalla de entrar.
+
+**Pendiente:** landing, editor y «Mis gráficas». El editor es con diferencia el
+grueso: docenas de etiquetas de control, sus pistas, y las descripciones de los
+seis tipos de gráfica en `lib/chart-types.ts`.
+
+Añadir un texto son dos líneas —una en `en`, otra en `es`— y si falta una, no
+compila. La parte difícil ya no se repite.
+
+**Lo que NO se traduce, y es decisión cerrada:** la gráfica. Sus etiquetas, su
+título y su formato de número son de quien la hizo. Una gráfica en español se ve
+en español la mire quien la mire, igual que un gráfico en un periódico. Eso
+además deja el bundle del embed sin una línea de i18n.
+
 ## Problemas abiertos
 
 - **Las sombras tienen dientes de sierra.** El mapa de sombras se ve escalonado
