@@ -348,7 +348,7 @@ Medido en `/dev/renderer` con un anillo a 2000×1600:
 
 | fondo        | formato | peso    |
 |--------------|---------|---------|
-| transparente | PNG     | 450 KB  |
+| transparente | JPEG    | 91 KB   |
 | sólido       | JPEG    | 92 KB   |
 | degradado    | JPEG    | 96 KB   |
 
@@ -360,11 +360,35 @@ Como la extensión cambia, al reguardar se borra la del otro formato: cambiar de
 transparente a sólido dejaba `slug.png` sin que lo apuntara nadie, ocupando
 sitio en el bucket para siempre.
 
-**Lo que NO se ha tocado, y es una decisión pendiente de verdad:** con fondo
-transparente el póster sigue saliendo con alfa. En una tarjeta de enlace eso lo
-compone cada cliente con SU color —Slack en oscuro lo pone oscuro— así que una
-gráfica pensada para papel blanco puede salir ilegible. Arreglarlo es elegir un
-color de respaldo, y eso es una decisión de producto, no un bug.
+### Y el transparente también se aplana
+
+Con fondo transparente el póster salía con alfa, y en una tarjeta de enlace eso
+lo rellena cada cliente con SU color: Slack en oscuro lo pone negro, Notion
+blanco. Una gráfica oscura desaparecía en Notion. Ahora se aplana sobre un
+neutro (`#f4f4f7` o `#101018`) y el link se ve igual en todas partes.
+
+**Qué decide cuál: un campo `surface` en el tema**, no un cálculo. El primer
+intento fue elegir por contraste —mirar la paleta y quedarse con el fondo que
+dejara mejor al color que peor se viera— y los números sobre los temas de verdad
+lo tumbaron: a «estudio», descrito literalmente *«para incrustar en páginas
+claras»*, le ponía fondo negro. Dos motivos de fondo:
+
+1. El contraste de WCAG mide elementos PLANOS. Una gráfica de Volumine se
+   distingue de su fondo por el brillo, el canto y la sombra proyectada, no por
+   diferencia de luminancia. Era medir con la regla equivocada.
+2. Las paletas están hechas para que los sectores se distingan ENTRE SÍ, no de
+   un fondo, así que casi todas cubren mucho rango. Con rango completo **no
+   existe ningún color plano** que las deje todas legibles — demostrado en
+   `backdrop.test.ts` con la paleta de «estudio», y queda como prueba para que
+   nadie endurezca la promesa sin ver por qué no puede.
+
+El tema, en cambio, ya sabía sobre qué superficie va: lo decía su descripción.
+Ahora lo dice también su código.
+
+**Lo que se pierde**, y está escrito en el código: el alfa. Servía para un solo
+uso —el respaldo sin WebGL dentro de la página anfitriona— y ese respaldo hoy no
+existe (es la tabla de datos). El día que se construya harán falta dos imágenes,
+no una.
 
 ## Problemas abiertos
 

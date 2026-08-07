@@ -131,7 +131,12 @@ export default function RendererDevPage() {
     const png = capture.current?.();
     if (!png || !result.ok) return;
 
-    const compuesto = await composePoster(png, result.config.scene.background);
+    const compuesto = await composePoster(png, result.config.scene.background, {
+      /* `ResolvedChartConfig` no lleva `theme`: el tema se resuelve al parsear
+         y lo que queda son sus efectos. El banco no usa ninguno, así que el
+         respaldo por paleta es justo lo que aquí interesa probar. */
+      palette: result.config.style.palette,
+    });
     /* El PESO se enseña porque es la mitad del asunto: un degradado en PNG se
        va a 2,6 MB y eso se paga en la tarjeta de enlace, no aquí. */
     const bytes = (await (await fetch(compuesto.dataUrl)).blob()).size;

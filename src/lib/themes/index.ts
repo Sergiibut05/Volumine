@@ -25,6 +25,19 @@ import type { ChartConfig } from '../schema-types';
 */
 export type Theme = {
   id: string;
+  /**
+   * Sobre qué superficie está pensado el tema.
+   *
+   * Lo dice ya su descripción en el diccionario —«para incrustar en páginas
+   * claras», «funciona sobre fondo oscuro»—, y aquí se escribe para que se
+   * pueda usar: decide sobre qué se aplana el póster de una gráfica de fondo
+   * transparente, que es lo que acaba en la tarjeta de enlace.
+   *
+   * Es un campo y no un cálculo a propósito. Ver `lib/charts/backdrop.ts`: el
+   * intento de deducirlo del contraste de la paleta le ponía fondo negro justo
+   * al tema descrito «para páginas claras».
+   */
+  surface: 'light' | 'dark';
   /** Muestra para la tarjeta, sin tener que renderizar en 3D. */
   swatch: string[];
   config: Partial<ChartConfig>;
@@ -33,6 +46,7 @@ export type Theme = {
 export const THEMES: Theme[] = [
   {
     id: 'aurora',
+    surface: 'dark',
     swatch: ['#7c5cff', '#00d4ff', '#41ffc9', '#ffd166', '#ff4d6d'],
     config: {
       style: {
@@ -45,6 +59,7 @@ export const THEMES: Theme[] = [
   },
   {
     id: 'estudio',
+    surface: 'light',
     swatch: ['#2f2f3a', '#6b6b7c', '#a8a8b8', '#d0d0da', '#ec6a5c'],
     config: {
       style: {
@@ -58,6 +73,7 @@ export const THEMES: Theme[] = [
   },
   {
     id: 'brasa',
+    surface: 'dark',
     swatch: ['#ff6b35', '#f9c22e', '#e63946', '#8a2846', '#3d1420'],
     config: {
       style: {
@@ -71,6 +87,7 @@ export const THEMES: Theme[] = [
   },
   {
     id: 'metal',
+    surface: 'dark',
     swatch: ['#c9d1d9', '#8b949e', '#f0b429', '#57606a', '#30363d'],
     config: {
       style: {
@@ -85,6 +102,7 @@ export const THEMES: Theme[] = [
   },
   {
     id: 'papel',
+    surface: 'light',
     swatch: ['#264653', '#2a9d8f', '#e9c46a', '#f4a261', '#e76f51'],
     config: {
       style: {
@@ -101,6 +119,7 @@ export const THEMES: Theme[] = [
   },
   {
     id: 'nocturno',
+    surface: 'dark',
     swatch: ['#5b3ce6', '#0466c8', '#00a6fb', '#48cae4', '#ade8f4'],
     config: {
       style: {

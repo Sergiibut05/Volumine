@@ -412,6 +412,7 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
             /* El fondo ya resuelto: el póster lo pinta debajo de la captura,
                porque el canvas no lo lleva dentro cuando es un degradado. */
             background={parsed.ok ? parsed.config.scene.background : null}
+            chart={{ theme: config.theme, palette: parsed.ok ? parsed.config.style.palette : [] }}
             onMissingTitle={() => {
               setFaltaNombre(true);
               /* Además de teñir el borde, se lleva el cursor al campo: señalar

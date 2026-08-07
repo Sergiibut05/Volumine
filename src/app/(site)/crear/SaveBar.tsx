@@ -43,6 +43,8 @@ type Props = {
    * mismo que la pantalla. Quien ya ha resuelto la config es el editor.
    */
   background: PosterBackground | null;
+  /** Tema y paleta, para elegir sobre qué se aplana un póster transparente. */
+  chart: { theme?: string; palette?: readonly string[] };
   /**
    * Se llama al intentar guardar sin nombre.
    *
@@ -61,6 +63,7 @@ export function SaveBar({
   userId,
   capture,
   background,
+  chart,
   onMissingTitle,
 }: Props) {
   const { d } = useI18n();
@@ -86,7 +89,7 @@ export function SaveBar({
       /* Con el fondo debajo, y en PNG o JPEG segun haga falta alfa. Ver la
          nota larga en `composePoster`. */
       const poster = background
-        ? await composePoster(png, background)
+        ? await composePoster(png, background, chart)
         : { dataUrl: png, format: 'png' as const, contentType: 'image/png' };
 
       const ruta = posterPath(userId, slug, poster.format);

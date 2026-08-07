@@ -1,5 +1,6 @@
 import { supabaseEnv } from '@/lib/supabase/env';
 import { cssGradientLine } from './gradient';
+import { posterBackdrop } from './backdrop';
 import type { ResolvedChartConfig } from '@/lib/config/defaults';
 
 /*
@@ -142,12 +143,25 @@ const JPEG_QUALITY = 0.92;
 export async function composePoster(
   dataUrl: string,
   background: PosterBackground,
+  chart: { theme?: string; palette?: readonly string[] } = {},
 ): Promise<ComposedPoster> {
   const png: ComposedPoster = { dataUrl, format: 'png', contentType: 'image/png' };
 
-  /* Transparente se queda como está: quien incrusta la gráfica quiere que se
-     funda con su página, y ahí el alfa ES el contenido. */
-  if (background.kind === 'transparent') return png;
+  /*
+    Con fondo transparente TAMBIÉN se aplana, sobre un neutro elegido por el
+    tema. Ver `backdrop.ts`: el póster acaba siendo el `og:image`, y ahí la
+    transparencia no la respeta nadie — la rellena cada cliente con su color, y
+    una gráfica oscura desaparece en una tarjeta blanca.
+
+    Se pierde el alfa, y con él el único uso donde servía: el respaldo sin WebGL
+    dentro de la propia página. Ese respaldo hoy NO existe (es la tabla de
+    datos), así que se elige lo que sí está en uso. El día que se construya, lo
+    que hará falta son dos imágenes, no una.
+  */
+  const relleno =
+    background.kind === 'transparent'
+      ? posterBackdrop(chart.theme, chart.palette)
+      : null;
 
   const image = await loadImage(dataUrl);
   const width = image.naturalWidth;
@@ -163,7 +177,9 @@ export async function composePoster(
      póster sin fondo es infinitamente mejor que un guardado que falla. */
   if (!ctx) return png;
 
-  if (background.kind === 'gradient') {
+  if (relleno) {
+    ctx.fillStyle = relleno;
+  } else if (background.kind === 'gradient') {
     const line = cssGradientLine(background.angle, width, height);
     const fill = ctx.createLinearGradient(line.x0, line.y0, line.x1, line.y1);
     fill.addColorStop(0, background.from);
