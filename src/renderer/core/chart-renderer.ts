@@ -1,5 +1,6 @@
 import {
   ACESFilmicToneMapping,
+  Box3,
   Color,
   CylinderGeometry,
   RingGeometry,
@@ -32,6 +33,7 @@ import {
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import type { ResolvedChartConfig } from '@/lib/config/defaults';
+import { fitShadowVolume } from './shadow-volume';
 import {
   computeSectors,
   curveSegmentsFor,
@@ -441,6 +443,8 @@ export function createChartRenderer(
   const key = new DirectionalLight(0xffffff, 1.1);
   key.position.set(2.6, 4.2, 2.2);
   key.shadow.mapSize.set(1024, 1024);
+  /* El volumen se recalcula en `fitShadowCamera()` cada vez que cambia lo que
+     hay. Estos valores solo tienen que ser válidos para el primer fotograma. */
   key.shadow.camera.near = 0.5;
   key.shadow.camera.far = 14;
   key.shadow.camera.left = -2.6;
@@ -1263,7 +1267,47 @@ export function createChartRenderer(
     controls.enabled = config.interaction.orbit;
     controls.enableZoom = config.interaction.zoom;
 
+    fitShadowCamera();
     placeCamera();
+  }
+
+  /*
+    La cámara de sombra, ceñida a lo que hay. El porqué y la aritmética están en
+    `shadow-volume.ts`, que es donde se pueden comprobar con tests.
+  */
+  const shadowBox = new Box3();
+
+  function fitShadowCamera() {
+    if (!config.style.shadow) return;
+
+    const shadow = key.shadow;
+    const cam = shadow.camera;
+
+    /* El alto sale de la caja de verdad: cada tipo coloca su contenido a su
+       manera —el anillo flota, las barras se apoyan, el globo se centra en su
+       radio— y replicar esa aritmética aquí sería copiarla para que se
+       desincronice a la primera. Al girar solo sobre Y, el alto no cambia. */
+    group.updateMatrixWorld(true);
+    shadowBox.setFromObject(group);
+    if (shadowBox.isEmpty()) return;
+
+    /* Donde three va a poner la cámara al renderizar. Sin esto, la matriz de
+       vista con la que se calcula sería la del fotograma anterior. */
+    key.updateMatrixWorld();
+    key.target.updateMatrixWorld();
+    shadow.updateMatrices(key);
+
+    const volumen = fitShadowVolume(cam.matrixWorldInverse, {
+      radius: Math.hypot(plotBox.width, plotBox.depth) / 2,
+      casterLow: shadowBox.min.y,
+      casterHigh: shadowBox.max.y,
+      floorY: floor.position.y,
+      mapSize: shadow.mapSize.x,
+    });
+    if (!volumen) return;
+
+    Object.assign(cam, volumen);
+    cam.updateProjectionMatrix();
   }
 
   /*

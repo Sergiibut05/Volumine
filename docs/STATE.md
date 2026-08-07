@@ -327,13 +327,35 @@ culpaba al código. Se configura con `test.use({ locale })`.
 
 ## Problemas abiertos
 
-- **Las sombras tienen dientes de sierra.** El mapa de sombras se ve escalonado
-  en los bordes. Hay varias formas de suavizarlo y difieren mucho en coste:
-  subir la resolución del mapa (caro en memoria y relleno), `VSMShadowMap` (más
-  suave pero con sangrado de luz), o ajustar el volumen de la cámara de sombra
-  para que los téxeles que hay cubran menos superficie — que suele ser lo que de
-  verdad falla y no cuesta nada. Hay que MEDIR antes de elegir: el embed está al
-  82% del presupuesto y esto se paga en cada frame, no una vez.
+- ~~Las sombras tienen dientes de sierra.~~ **Arreglado**, y era la sospecha
+  barata: el volumen de la cámara de sombra estaba FIJO en 5,2 × 5,2 unidades,
+  puestas a ojo para el peor caso. Un anillo normal ocupa unas 2,8, así que de
+  los 1024 téxeles del mapa la sombra usaba poco más de la mitad por eje. El
+  escalón eran téxeles grandes.
+
+  Ahora se ciñe a la escena en `renderer/core/shadow-volume.ts`. **No se ha
+  tocado `mapSize` ni el tipo de filtro**: subir la resolución es cuadruplicar
+  memoria y relleno en cada fotograma, y no ha hecho falta. El bundle sube 0,4
+  KB gz (147,7 → 148,1).
+
+  Dos cosas que aprendí y están en los comentarios porque no se ven en el
+  código:
+
+  · La huella horizontal tiene que salir del **radio barrido por el giro**, no
+    de la caja envolvente del instante. Una caja que cambia al girar recoloca
+    los téxeles cada fotograma y la sombra «nada» por el suelo — más feo que el
+    escalón.
+  · El plano lejano tiene que llegar **hasta el suelo**, no hasta la pieza más
+    baja. Quien recibe la sombra es el plano, y un fragmento que cae más allá
+    del plano lejano se da por iluminado: ceñir solo a las piezas deja la
+    gráfica SIN SOMBRA, sin error ni aviso.
+
+  De paso arregló un recorte que llevaba ahí sin que nadie lo hubiera visto: con
+  `style.height` al máximo la sombra de las barras llega a x ≈ 2,98 y el volumen
+  fijo la cortaba en 2,6.
+
+  Hay 8 tests unitarios sobre la función pura, y comprobados con un control
+  negativo: al romper a mano el invariante del suelo, falla el que debe.
 
 - **No hay tests de regresión visual, y se nota.** La barra del editor se quedó
   descolocada tres veces seguidas y las tres pasaron build, tipos y los 197
