@@ -960,38 +960,15 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
                   ]}
                 />
 
-                {/* El color del texto, con «Automático» como vuelta atrás: sin
-                    eso, tocar el selector es un camino de ida — no hay forma de
-                    decir «déjalo como estaba». */}
-                <div className="control">
-                  <header>
-                    <span>{d.editor.labelInk}</span>
-                    <button
-                      type="button"
-                      className="linky"
-                      onClick={() =>
-                        setConfig(
-                          (c) => ({ ...c, labels: { ...c.labels, color: 'auto' } }),
-                          { coalesce: false },
-                        )
-                      }
-                      disabled={(config.labels?.color ?? 'auto') === 'auto'}
-                    >
-                      {d.editor.labelInkAuto}
-                    </button>
-                  </header>
-                  <ColorRow
-                    label={d.editor.labelInk}
-                    value={
-                      config.labels?.color && config.labels.color !== 'auto'
-                        ? config.labels.color
-                        : '#ffffff'
-                    }
-                    onChange={(color) =>
-                      setConfig((c) => ({ ...c, labels: { ...c.labels, color } }))
-                    }
-                  />
-                </div>
+                <InkControl
+                  d={d}
+                  value={config.labels?.color ?? 'auto'}
+                  onChange={(color) =>
+                    setConfig((c) => ({ ...c, labels: { ...c.labels, color } }), {
+                      coalesce: color !== 'auto',
+                    })
+                  }
+                />
               </>
             )}
           </Group>
@@ -1180,19 +1157,88 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
  * rectángulo vacío parece un fallo de carga. Los que sí existen van a color,
  * porque la miniatura es la promesa de lo que vas a obtener.
  */
+/**
+ * El color del texto de las etiquetas: automático o el que tú elijas.
+ *
+ * ── QUÉ TENÍA MAL LO DE ANTES ────────────────────────────────────────────
+ *
+ * Era un selector de color enseñando `#FFFFFF` con un enlace «Automático» al
+ * lado, y no había forma de saber cuál de los dos mandaba: el blanco parecía
+ * una elección tuya cuando era el valor por defecto, y el enlace parecía el
+ * estado actual cuando era el botón de volver. Encima el rótulo «Color del
+ * texto» salía dos veces seguidas.
+ *
+ * Ahora son dos botones que se excluyen —el activo se ve hundido— y el estado
+ * se dice también con palabras arriba a la derecha, donde el resto de controles
+ * ponen su valor. Elegir un color enciende «Personalizado» solo; volver a
+ * «Automático» es un clic y no pierde el color elegido hasta que se cambia.
+ */
+function InkControl({
+  d,
+  value,
+  onChange,
+}: {
+  d: Dictionary;
+  value: string;
+  onChange: (color: string) => void;
+}) {
+  const esAuto = value === 'auto';
+
+  /*
+    El último color escogido se recuerda mientras el control está montado, para
+    que volver de «Automático» no obligue a buscarlo otra vez.
+
+    En ESTADO y no en un `ref`: escribir un ref durante el render está prohibido
+    —lo dice el linter y con razón— porque el render tiene que poder repetirse
+    sin efectos. Con el compilador de React delante, además, un ref escrito en
+    render tira la memoización y vuelve a renderizar el editor entero: se midió,
+    y el barrido de idiomas pasó de 8 a más de 30 segundos.
+
+    Se actualiza en el manejador, que es donde ocurre el cambio de verdad.
+  */
+  const [ultimo, setUltimo] = useState(esAuto ? '#ffffff' : value);
+  const elegido = esAuto ? ultimo : value;
+
+  return (
+    <div className="control">
+      <header>
+        <span>{d.editor.labelInk}</span>
+        <output>{esAuto ? d.editor.labelInkAuto : elegido.toUpperCase()}</output>
+      </header>
+
+      <div className="ink">
+        <button type="button" aria-pressed={esAuto} onClick={() => onChange('auto')}>
+          {d.editor.labelInkAuto}
+        </button>
+
+        {/* Es un `label` y no un botón porque quien abre el selector de color
+            es el `input`: envolverlo hace que toda la píldora sea su disparador,
+            sin duplicar el control ni inventarse un clic sintético. */}
+        <label className="ink-pick" aria-pressed={!esAuto} data-on={!esAuto}>
+          <i style={{ background: elegido }} aria-hidden />
+          {d.editor.labelInkCustom}
+          <input
+            type="color"
+            value={elegido}
+            aria-label={d.editor.labelInkCustom}
+            onChange={(e) => {
+              setUltimo(e.target.value);
+              onChange(e.target.value);
+            }}
+          />
+        </label>
+      </div>
+    </div>
+  );
+}
+
 /** Miniatura de tipografía: la misma palabra en la familia que se ofrece. */
 function FontPreview({ familia }: { familia: string }) {
   return (
     <span
       aria-hidden
-      style={{
-        display: 'grid',
-        placeItems: 'center',
-        aspectRatio: '1',
-        fontFamily: familia,
-        fontSize: '1.4em',
-        letterSpacing: '-0.02em',
-      }}
+      className="thumb"
+      style={{ fontFamily: familia, fontSize: '1.5em', letterSpacing: '-0.02em' }}
     >
       Ag
     </span>
@@ -1225,13 +1271,8 @@ function FinishPreview({ acabado }: { acabado: 'glass' | 'solid' | 'plain' }) {
   return (
     <span
       aria-hidden
-      style={{
-        display: 'grid',
-        placeItems: 'center',
-        aspectRatio: '1',
-        borderRadius: '0.35em',
-        background: 'linear-gradient(90deg, #e9e9ef 50%, #17171f 50%)',
-      }}
+      className="thumb"
+      style={{ background: 'linear-gradient(90deg, #e9e9ef 50%, #17171f 50%)' }}
     >
       <span
         style={{
