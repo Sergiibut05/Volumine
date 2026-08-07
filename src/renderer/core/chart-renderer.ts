@@ -16,7 +16,7 @@ import {
   SphereGeometry,
   AdditiveBlending,
   BackSide,
-  PCFSoftShadowMap,
+  PCFShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
   PMREMGenerator,
@@ -427,7 +427,19 @@ export function createChartRenderer(
   renderer.toneMapping = ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.95;
   renderer.shadowMap.enabled = config.style.shadow;
-  renderer.shadowMap.type = PCFSoftShadowMap;
+  /*
+    `PCFShadowMap` y no `PCFSoftShadowMap`, que era lo que había.
+
+    Los dos difuminan; la diferencia es que el «soft» usa un núcleo FIJO de un
+    téxel e IGNORA `shadow.radius`. Mientras el volumen de sombra era fijo eso
+    daba igual, porque el téxel medía siempre lo mismo. Al ceñir el volumen el
+    téxel se hizo pequeño, y el desenfoque encogió con él: la sombra salió más
+    definida y con el borde duro.
+
+    Este respeta `radius`, así que el desenfoque se puede pedir en unidades DEL
+    MUNDO y sale igual de suave con cualquier gráfica. Ver `suavizarSombra()`.
+  */
+  renderer.shadowMap.type = PCFShadowMap;
 
   const scene = new Scene();
   const camera = new PerspectiveCamera(config.camera.fov, 1, 0.1, 100);
@@ -1276,6 +1288,7 @@ export function createChartRenderer(
     `shadow-volume.ts`, que es donde se pueden comprobar con tests.
   */
   const shadowBox = new Box3();
+  const luzHacia = new Vector3();
 
   function fitShadowCamera() {
     if (!config.style.shadow) return;
@@ -1297,17 +1310,52 @@ export function createChartRenderer(
     key.target.updateMatrixWorld();
     shadow.updateMatrices(key);
 
+    /* Cuánto baja la luz por unidad de rayo. Es lo que convierte una altura en
+       recorrido, y sin ello no se sabe hasta dónde llega la sombra por el
+       suelo — que fue exactamente el fallo del corte recto. */
+    const caidaY = Math.abs(luzHacia.copy(key.position).normalize().y);
+
     const volumen = fitShadowVolume(cam.matrixWorldInverse, {
       radius: Math.hypot(plotBox.width, plotBox.depth) / 2,
       casterLow: shadowBox.min.y,
       casterHigh: shadowBox.max.y,
       floorY: floor.position.y,
+      lightDropY: caidaY,
       mapSize: shadow.mapSize.x,
     });
     if (!volumen) return;
 
     Object.assign(cam, volumen);
     cam.updateProjectionMatrix();
+    suavizarSombra(volumen);
+  }
+
+  /**
+   * Cuánto se difumina el borde de la sombra, MEDIDO EN EL MUNDO.
+   *
+   * `shadow.radius` se cuenta en téxeles, y el téxel ya no mide siempre lo
+   * mismo: depende de lo ceñido que salga el volumen, o sea del tipo de gráfica
+   * y de su tamaño. Dejarlo en un número fijo daría un anillo con el borde
+   * blando y unas barras altas con el borde duro, sin que nadie hubiera pedido
+   * la diferencia.
+   *
+   * Pidiéndolo en unidades del mundo y convirtiéndolo aquí, la sombra se ve
+   * igual en todas. Es la misma idea que el tamaño de las etiquetas: se declara
+   * lo que se quiere ver, no la cantidad de píxeles que hacen falta hoy.
+   */
+  function suavizarSombra(volumen: { left: number; right: number }) {
+    const shadow = key.shadow;
+    const texel = (volumen.right - volumen.left) / shadow.mapSize.x;
+    if (!(texel > 0)) return;
+
+    /* Medido a ojo sobre el anillo por defecto: por debajo el borde se ve
+       recortado y por encima la sombra pierde la forma del sólido. */
+    const DESENFOQUE = 0.05;
+
+    /* El tope no es decorativo: son NUEVE muestras repartidas por el radio, así
+       que estirarlo mucho deja de verse como desenfoque y empieza a verse como
+       nueve copias de la sombra. */
+    shadow.radius = Math.min(8, Math.max(1, DESENFOQUE / texel));
   }
 
   /*

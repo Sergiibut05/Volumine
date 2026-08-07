@@ -460,24 +460,50 @@ rompen la regla entera y en silencio.
   memoria y relleno en cada fotograma, y no ha hecho falta. El bundle sube 0,4
   KB gz (147,7 → 148,1).
 
-  Dos cosas que aprendí y están en los comentarios porque no se ven en el
-  código:
+  Tres cosas que están en los comentarios porque no se ven en el código, y las
+  dos últimas costaron una segunda pasada:
 
   · La huella horizontal tiene que salir del **radio barrido por el giro**, no
     de la caja envolvente del instante. Una caja que cambia al girar recoloca
     los téxeles cada fotograma y la sombra «nada» por el suelo — más feo que el
     escalón.
-  · El plano lejano tiene que llegar **hasta el suelo**, no hasta la pieza más
-    baja. Quien recibe la sombra es el plano, y un fragmento que cae más allá
-    del plano lejano se da por iluminado: ceñir solo a las piezas deja la
-    gráfica SIN SOMBRA, sin error ni aviso.
+  · El plano lejano tiene que llegar hasta el suelo **DONDE CAE LA SOMBRA**, no
+    hasta el suelo que hay debajo de la pieza. La primera versión hacía lo
+    segundo, y la sombra no cae debajo: cae desplazada hacia donde apunta la
+    luz. Todo lo que quedaba más allá se pintaba iluminado, así que la sombra
+    salía **cortada por una recta** — el plano lejano visto de canto. Ahora se
+    sigue el rayo: bajar de `y` al suelo cuesta `(y − suelo) / |dirección.y|` de
+    profundidad, exacto y sin holguras a ojo.
+  · El polígono de muestreo va **circunscrito** al círculo, no inscrito.
+    Muestrear el círculo en su propio radio da un polígono por dentro y una cota
+    que se queda corta —hasta un 2% con dieciséis lados—, y una cota de
+    contención corta recorta la sombra justo donde no hay muestra. Se empuja el
+    radio a `r / cos(π/n)` y la cota es conservadora por construcción.
 
   De paso arregló un recorte que llevaba ahí sin que nadie lo hubiera visto: con
   `style.height` al máximo la sombra de las barras llega a x ≈ 2,98 y el volumen
   fijo la cortaba en 2,6.
 
-  Hay 8 tests unitarios sobre la función pura, y comprobados con un control
-  negativo: al romper a mano el invariante del suelo, falla el que debe.
+  Hay 8 tests unitarios sobre la función pura. **El del corte no existía**: la
+  prueba de entonces medía el suelo de debajo de la pieza, que es justo el sitio
+  equivocado, y pasaba con el fallo dentro. Ahora se proyecta la sombra de
+  verdad —siguiendo el rayo hasta el plano— y se comprueba dónde aterriza, que
+  es lo mismo que mira el ojo. Con una luz rasante incluida, que es donde
+  cualquier holgura fija se queda corta.
+
+### Y el difuminado del borde
+
+Ceñir el volumen tuvo un efecto secundario que también se vio a ojo: la sombra
+quedó **demasiado definida**. `PCFSoftShadowMap` difumina con un núcleo fijo de
+UN TÉXEL e ignora `shadow.radius`; mientras el volumen era fijo el téxel medía
+siempre lo mismo y daba igual, pero al ceñirlo el téxel encogió y el desenfoque
+con él.
+
+Ahora se usa `PCFShadowMap`, que sí respeta `radius`, y el desenfoque **se pide
+en unidades del mundo** y se convierte a téxeles al vuelo. Así se ve igual en un
+anillo y en unas barras altas, cuyos volúmenes no tienen nada que ver. Un
+`radius` fijo habría dado un tipo con el borde blando y otro con el borde duro
+sin que nadie pidiera la diferencia.
 
 - **No hay tests de regresión visual, y se nota.** La barra del editor se quedó
   descolocada tres veces seguidas y las tres pasaron build, tipos y los 197
