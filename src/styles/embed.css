@@ -298,8 +298,9 @@ canvas {
   display: flex;
   flex-direction: column;
   gap: 0.05em;
-  padding: 0.3em 0.6em;
-  border-radius: 0.5em;
+  padding: calc(0.3em * var(--volumine-label-pad, 1))
+    calc(0.6em * var(--volumine-label-pad, 1));
+  border-radius: calc(0.5em * var(--volumine-label-radius, 1));
   background: rgb(16 16 24 / 0.58);
   backdrop-filter: blur(10px);
   /* Filo claro: despega la píldora de un fondo oscuro, donde el propio fondo
@@ -452,8 +453,9 @@ canvas {
   left: 12px;
   display: grid;
   gap: 0.3em;
-  padding: 0.55em 0.75em;
-  border-radius: 0.6em;
+  padding: calc(0.55em * var(--volumine-label-pad, 1))
+    calc(0.75em * var(--volumine-label-pad, 1));
+  border-radius: calc(0.6em * var(--volumine-label-radius, 1));
   background: rgb(16 16 24 / 0.58);
   backdrop-filter: blur(10px);
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);

@@ -200,6 +200,12 @@ export const labelsSchema = z.object({
      de la página de otra persona y no sabemos qué hay detrás. Los tres valores
      se leen sobre blanco, sobre negro y sobre una foto. */
   finish: z.enum(['glass', 'solid', 'plain']).optional(),
+  /* Ajuste fino de la caja: MULTIPLICADORES sobre lo que ya hay, no medidas.
+     La caja se dimensiona en `em`, así que crece con `size` y con la escala de
+     la página anfitriona; un padding en píxeles se vería enorme en una etiqueta
+     pequeña y ridículo en una grande. Solo hacen algo con `glass` y `solid`. */
+  boxPadding: z.number().min(0).max(2).optional(),
+  boxRadius: z.number().min(0).max(2).optional(),
   title: z
     .object({
       show: z.boolean().optional(),

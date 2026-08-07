@@ -194,6 +194,8 @@ con la página anfitriona.
   "size": 1,
   "color": "auto", // "auto" = blanco roto; o un hex propio
   "finish": "glass", // "glass" | "solid" | "plain"
+  "boxPadding": 1, // 0..2, multiplica el hueco interior de la caja
+  "boxRadius": 1, // 0..2, multiplica el redondeo de la esquina
   "title": { "show": true, "position": "top" },
 }
 ```
@@ -246,6 +248,19 @@ casualidad: **el embed corre dentro de la página de otra persona y no sabemos
 qué hay detrás.** Por eso `plain` no es «texto suelto» sino texto con halo, y
 por eso no existe un color libre para la caja — sería la forma más rápida de
 que alguien publique una gráfica ilegible en la web de un cliente.
+
+#### `boxPadding` y `boxRadius` — el ajuste fino de la caja
+
+Los dos son MULTIPLICADORES sobre lo que ya hay, de 0 a 2, con 1 por defecto.
+No son medidas absolutas a propósito: la caja se dimensiona en `em`, así que
+crece con `size` y con la escala de la página anfitriona. Un padding en píxeles
+se vería enorme en una etiqueta pequeña y ridículo en una grande.
+
+`boxRadius` a 0 da esquina viva; a 2, píldora. `boxPadding` a 0 deja el texto
+pegado al borde de la caja, que es feo pero no ilegible — por eso se permite.
+
+Solo hacen algo con `glass` y `solid`. Con `plain` no hay caja que ajustar, y el
+editor ni siquiera enseña los controles.
 
 ### `interaction`
 

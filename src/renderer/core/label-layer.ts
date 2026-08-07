@@ -278,7 +278,7 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
   const TINTA_AUTO = 'rgb(255 255 255 / 0.95)';
 
   function aplicarAspecto(config: ResolvedChartConfig) {
-    const { font, color, finish } = config.labels;
+    const { font, color, finish, boxPadding, boxRadius } = config.labels;
 
     root.style.setProperty('--volumine-label-font', FUENTES[font] ?? FUENTES.inter);
     root.style.setProperty('--volumine-label-ink', color === 'auto' ? TINTA_AUTO : color);
@@ -293,6 +293,12 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
       '--volumine-label-halo',
       tintaClara ? 'rgb(0 0 0 / 0.72)' : 'rgb(255 255 255 / 0.85)',
     );
+
+    /* Multiplicadores, no medidas: el CSS pone el `em` base y esto lo escala.
+       Así el ajuste sobrevive a cambiar `size` o a una página anfitriona con
+       otra escala de texto, que es lo que pasaría con píxeles. */
+    root.style.setProperty('--volumine-label-pad', String(boxPadding));
+    root.style.setProperty('--volumine-label-radius', String(boxRadius));
 
     root.dataset.finish = finish;
   }

@@ -960,6 +960,65 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
                   ]}
                 />
 
+                {/*
+                  EL AJUSTE FINO, PLEGADO.
+
+                  No lo va a tocar casi nadie: quien viene a hacer una gráfica
+                  quiere elegir un envoltorio con nombre y seguir. Pero quien
+                  está encajándola en la identidad de su marca sí lo necesita, y
+                  para ese la alternativa es no poder.
+
+                  Plegado es la única forma de servir a los dos: no alarga el
+                  panel para quien no lo abre, y existe para quien lo busca. Es
+                  el mismo trato que el bloque «Avanzado» de más abajo.
+
+                  Solo aparece con caja. En «sin caja» no hay nada que ajustar, y
+                  enseñar dos controles que no hacen nada es peor que no tenerlos.
+                */}
+                {(config.labels?.finish ?? 'glass') !== 'plain' && (
+                  <details className="fold">
+                    <summary>{d.editor.moreOptions}</summary>
+
+                    <Slider
+                      label={d.editor.boxPadding}
+                      value={config.labels?.boxPadding ?? 1}
+                      min={0}
+                      max={2}
+                      step={0.05}
+                      format={(v) => `${Math.round(v * 100)}%`}
+                      onChange={(boxPadding) =>
+                        setConfig((c) => ({
+                          ...c,
+                          labels: { ...c.labels, boxPadding },
+                        }))
+                      }
+                    />
+
+                    <Slider
+                      label={d.editor.boxRadius}
+                      value={config.labels?.boxRadius ?? 1}
+                      min={0}
+                      max={2}
+                      step={0.05}
+                      /* En los extremos se dice la FORMA, no el número: «0%» no
+                         significa nada y «en pico» sí. */
+                      format={(v) =>
+                        v === 0
+                          ? d.editor.boxSquare
+                          : v >= 2
+                            ? d.editor.boxPill
+                            : `${Math.round(v * 100)}%`
+                      }
+                      onChange={(boxRadius) =>
+                        setConfig((c) => ({
+                          ...c,
+                          labels: { ...c.labels, boxRadius },
+                        }))
+                      }
+                    />
+                  </details>
+                )}
+
                 <InkControl
                   d={d}
                   value={config.labels?.color ?? 'auto'}

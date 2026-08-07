@@ -168,6 +168,9 @@ export const defaults = {
     color: 'auto',
     /* El de siempre. Cambiarlo cambiaría el aspecto de todo link publicado. */
     finish: 'glass',
+    /* 1 = exactamente lo que había antes de que estos campos existieran. */
+    boxPadding: 1,
+    boxRadius: 1,
     title: { show: true, position: 'top' },
   },
   interaction: {
