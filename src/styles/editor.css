@@ -1100,13 +1100,21 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   pointer-events: none;
+  /* Nunca más ancho que su marco: con una categoría de nombre largo la píldora
+     crecía hasta salirse por los dos lados. Mismo arreglo que en el embed. */
+  max-width: calc(100% - 24px);
 }
 
+/* El NOMBRE cede y se recorta; la CIFRA no, porque es el dato. */
 .preview-tip b {
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .preview-tip span {
+  flex: none;
   opacity: 0.62;
 }
 

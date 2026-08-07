@@ -72,7 +72,20 @@ canvas {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   pointer-events: none;
+  /*
+    NUNCA MÁS ANCHO QUE SU MARCO.
+
+    Con `white-space: nowrap` y una categoría de nombre largo, la píldora crecía
+    hasta salirse por los dos lados y quedaba cortada contra el borde del
+    embed. Se ve enseguida en un lienzo tipo Canva, donde el hueco es estrecho.
+
+    Los 24 px son el aire de los dos lados: pegada al canto se lee como
+    recortada aunque no lo esté.
+  */
+  max-width: calc(100% - 24px);
 }
+
+
 
 /* `display: flex` gana al `[hidden] { display: none }` del navegador, así que
    el tooltip vacío se quedaba visible como una píldora negra. Hay que decirlo
@@ -193,11 +206,17 @@ canvas {
   container-type: size;
 }
 
+/* El NOMBRE cede: se recorta con puntos suspensivos. La CIFRA no, porque es el
+   dato — una etiqueta sin el nombre entero sigue sirviendo, sin número no. */
 .tooltip b {
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .tooltip span {
+  flex: none;
   opacity: 0.62;
 }
 

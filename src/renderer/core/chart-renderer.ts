@@ -407,6 +407,53 @@ function buildKey(config: ResolvedChartConfig): string {
   return JSON.stringify([config.type, config.data, style, sceneTint]);
 }
 
+/*
+  ══════════════════════════════════════════════════════════════════════════
+  CUÁNTOS PÍXELES DE VERDAD SE DIBUJAN
+  ══════════════════════════════════════════════════════════════════════════
+
+  Antes era `min(devicePixelRatio, 2)`, que es lo razonable en una página
+  normal y falla en un editor de lienzo. En Canva la gráfica se veía borrosa,
+  y la causa está medida: el embed se maqueta a 400×225 y el lienzo entero se
+  amplía con `transform: scale()`. El canvas se dibuja a 400×225 y se ESTIRA a
+  800×450.
+
+  Y no se puede detectar. Se probó: dentro del iframe, `getBoundingClientRect`
+  devuelve el tamaño SIN escalar, porque la transformación vive en el
+  documento padre y el iframe tiene su propio sistema de coordenadas.
+  `devicePixelRatio` tampoco se entera. No hay señal que leer.
+
+  Así que en vez de adivinar la escala, se dibuja con densidad suficiente para
+  aguantar un zoom razonable — y con un tope, porque el coste de rellenar es
+  proporcional a los píxeles y esto corre en el móvil de otra persona:
+
+    · un mínimo de píxeles TOTALES, que solo sube la densidad cuando el hueco
+      es pequeño (que es justo el caso del lienzo, y donde ampliar es barato);
+    · un tope de densidad, para no pasarse en una pantalla ya densa;
+    · un tope de píxeles totales, que es el que impide que un embed a pantalla
+      completa en un portátil flojo se ponga a rellenar cuatro veces más.
+
+  Un hueco de 400×225 pasa de 90.000 píxeles a 810.000 — nada para una GPU— y
+  aguanta que lo amplíen al triple sin verse blando. Uno de 1200×675 apenas se
+  mueve, porque ya tenía densidad de sobra.
+*/
+const MIN_PIXELES = 1_200_000;
+const MAX_PIXELES = 4_000_000;
+const MAX_DENSIDAD = 3;
+
+function pixelRatioPara(width: number, height: number): number {
+  const area = Math.max(1, width * height);
+  const dpr = window.devicePixelRatio || 1;
+
+  /* Nunca por debajo de lo que pide la pantalla, ni por debajo de lo que hace
+     falta para aguantar una ampliación. */
+  const querido = Math.max(dpr, Math.sqrt(MIN_PIXELES / area));
+  const porArea = Math.sqrt(MAX_PIXELES / area);
+
+  return Math.max(1, Math.min(querido, MAX_DENSIDAD, porArea));
+}
+
+
 export function createChartRenderer(
   canvas: HTMLCanvasElement,
   initialConfig: ResolvedChartConfig,
@@ -423,7 +470,7 @@ export function createChartRenderer(
     // El embed puede compartir página con otros widgets: no acaparamos la GPU.
     powerPreference: 'low-power',
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(pixelRatioPara(1, 1));
   renderer.toneMapping = ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.95;
   renderer.shadowMap.enabled = config.style.shadow;
@@ -1392,6 +1439,7 @@ export function createChartRenderer(
   function resize() {
     const width = container.clientWidth || canvas.clientWidth || 1;
     const height = container.clientHeight || canvas.clientHeight || 1;
+    renderer.setPixelRatio(pixelRatioPara(width, height));
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();

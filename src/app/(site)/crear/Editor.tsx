@@ -1059,6 +1059,59 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
           </Group>
         )}
 
+        {/*
+          LA PROPORCIÓN DEL EMBED.
+
+          Estaba en el contrato desde la v1 y no se podía tocar sin escribir la
+          config a mano. Y resulta ser justo lo que decide cómo se comporta el
+          link donde se pega: `/api/oembed` publica esta proporción, y hay
+          editores —Canva -- que bloquean el redimensionado a ella. Sin este
+          control, la única forma de tener una gráfica cuadrada en Canva era no
+          tenerla.
+        */}
+        <Group title={d.editor.groupShape2} hint={d.editor.groupShape2Hint}>
+          <Choices
+            label={d.editor.groupShape2}
+            value={config.layout?.aspect ?? '16:9'}
+            onChange={(id) =>
+              setConfig(
+                (c) => ({
+                  ...c,
+                  layout: { ...c.layout, aspect: id as '16:9' | '4:3' | '1:1' | 'auto' },
+                }),
+                { coalesce: false },
+              )
+            }
+            options={[
+              {
+                id: '16:9',
+                label: d.editor.aspectWide,
+                hint: d.editor.aspectWideHint,
+                preview: <AspectPreview ratio="16 / 9" />,
+              },
+              {
+                id: '4:3',
+                label: d.editor.aspectClassic,
+                hint: d.editor.aspectClassicHint,
+                preview: <AspectPreview ratio="4 / 3" />,
+              },
+              {
+                id: '1:1',
+                label: d.editor.aspectSquare,
+                hint: d.editor.aspectSquareHint,
+                preview: <AspectPreview ratio="1 / 1" />,
+              },
+              {
+                id: 'auto',
+                label: d.editor.aspectAuto,
+                hint: d.editor.aspectAutoHint,
+                preview: <AspectPreview ratio={null} />,
+              },
+            ]}
+          />
+          <p className="nota">{d.editor.aspectNote}</p>
+        </Group>
+
         <Group title={d.editor.groupBackground}>
           <Choices
             label={d.editor.groupBackground}
@@ -1314,6 +1367,32 @@ function InkControl({
         </label>
       </div>
     </div>
+  );
+}
+
+/**
+ * Miniatura de proporción: un rectángulo con esa forma dentro de un marco.
+ *
+ * El marco se dibuja siempre igual para que las cuatro se comparen entre sí; lo
+ * que cambia es lo que ocupa dentro. `null` es «libre», y ahí el rectángulo
+ * llena el marco entero — que es exactamente lo que significa.
+ */
+function AspectPreview({ ratio }: { ratio: string | null }) {
+  return (
+    <span className="thumb" aria-hidden>
+      <span
+        style={{
+          display: 'block',
+          width: ratio === null ? '86%' : 'auto',
+          height: ratio === null ? '76%' : '76%',
+          aspectRatio: ratio ?? undefined,
+          borderRadius: '0.2em',
+          background: 'currentColor',
+          opacity: 0.45,
+          border: ratio === null ? '1px dashed currentColor' : undefined,
+        }}
+      />
+    </span>
   );
 }
 
