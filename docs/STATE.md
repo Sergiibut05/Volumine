@@ -325,6 +325,47 @@ Trampa que costó un rato: **Playwright manda su propia cabecera
 gana sobre `extraHTTPHeaders`. La prueba pedía español, recibía inglés y
 culpaba al código. Se configura con `test.use({ locale })`.
 
+## El póster lleva el fondo que la persona eligió
+
+Antes no: el póster se captura del CANVAS, y con «degradado» el fondo no está
+ahí — se pinta con CSS en el contenedor, por detrás (decisión de
+`chart-renderer.ts`: un degradado de CSS se compone a resolución de pantalla y
+no tiene banding). Alguien elegía un degradado azul, guardaba, y en Slack salía
+su gráfica recortada sobre blanco.
+
+Se compone en 2D al capturar, en `lib/charts/poster.ts`, y **no en el
+renderer**: el renderer entra entero en el bundle de `/embed` y el embed no
+captura pósters jamás.
+
+**El formato cambia con el fondo, y esa es la mitad del arreglo.** Un degradado
+suave es lo peor que se le puede dar a un PNG —no hay dos filas iguales, así que
+no comprime— y el mismo póster medía **2602 KB en PNG contra 92 en JPEG**. Eso
+acaba en `og:image`: un scraper que tiene que descargar 2,6 MB es un enlace sin
+vista previa. Así que PNG solo cuando hace falta alfa (fondo transparente, donde
+la transparencia ES lo que se quiere) y JPEG cuando el fondo es opaco.
+
+Medido en `/dev/renderer` con un anillo a 2000×1600:
+
+| fondo        | formato | peso    |
+|--------------|---------|---------|
+| transparente | PNG     | 450 KB  |
+| sólido       | JPEG    | 92 KB   |
+| degradado    | JPEG    | 96 KB   |
+
+WebP pesaría la mitad que el JPEG y **no se usa a propósito**: el soporte entre
+scrapers de vista previa es irregular, y esta es justo la superficie donde no se
+puede apostar.
+
+Como la extensión cambia, al reguardar se borra la del otro formato: cambiar de
+transparente a sólido dejaba `slug.png` sin que lo apuntara nadie, ocupando
+sitio en el bucket para siempre.
+
+**Lo que NO se ha tocado, y es una decisión pendiente de verdad:** con fondo
+transparente el póster sigue saliendo con alfa. En una tarjeta de enlace eso lo
+compone cada cliente con SU color —Slack en oscuro lo pone oscuro— así que una
+gráfica pensada para papel blanco puede salir ilegible. Arreglarlo es elegir un
+color de respaldo, y eso es una decisión de producto, no un bug.
+
 ## Problemas abiertos
 
 - ~~Las sombras tienen dientes de sierra.~~ **Arreglado**, y era la sospecha
@@ -408,10 +449,12 @@ culpaba al código. Se configura con `test.use({ locale })`.
   deja de verla al despublicar, y borrar el usuario se lleva sus gráficas—.
   Encontró un fallo de caché grave (ver el commit de next.config).
 
-  **Lo único que sigue sin probarse es la subida del PÓSTER**: necesita un canvas
-  de navegador con sesión, y el login es por magic link/Google. Hay que hacerlo a
-  mano: guardar una gráfica, publicarla, y comprobar que sale `og:image` en el
-  HTML y miniatura en el listado.
+  **Lo único que sigue sin probarse de punta a punta es la SUBIDA del póster a
+  Storage**: necesita sesión, y el login es por magic link. Lo que SÍ está
+  probado ahora es todo lo anterior —capturar el canvas y componer la imagen—
+  desde `/dev/renderer`, que tiene un botón «ver el póster» y enseña el PNG o
+  JPEG exacto que se va a subir, con su peso. Queda a mano: guardar, publicar, y
+  comprobar que sale `og:image` en el HTML y miniatura en el listado.
 
 - **El dev server de Next devuelve 403 en todos los chunks** en esta máquina y
   su WebSocket de HMR falla; la página no hidrata con `npm run dev`. En

@@ -5,7 +5,13 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { createChart, setPoster, updateChart } from '@/lib/charts/actions';
 import { supabaseBrowser } from '@/lib/supabase/browser';
-import { dataUrlToBlob, posterPath } from '@/lib/charts/poster';
+import {
+  composePoster,
+  dataUrlToBlob,
+  posterPath,
+  POSTER_FORMATS,
+  type PosterBackground,
+} from '@/lib/charts/poster';
 import type { ChartConfig } from '@/lib/config/schema';
 import type { Visibility } from '@/lib/supabase/types';
 import { useI18n } from '@/lib/i18n/client';
@@ -30,6 +36,14 @@ type Props = {
   /** Devuelve la escena actual en PNG. Lo rellena `ChartCanvas`. */
   capture: React.MutableRefObject<(() => string) | null>;
   /**
+   * El fondo YA RESUELTO, para pintarlo debajo del póster.
+   *
+   * Va como prop y no se saca de `config` aquí porque `config` es la versión
+   * cruda —sin defaults aplicados— y el póster tiene que enseñar exactamente lo
+   * mismo que la pantalla. Quien ya ha resuelto la config es el editor.
+   */
+  background: PosterBackground | null;
+  /**
    * Se llama al intentar guardar sin nombre.
    *
    * El botón NO se apaga: uno apagado no dice qué falta, solo que no puedes, y
@@ -46,6 +60,7 @@ export function SaveBar({
   signedIn,
   userId,
   capture,
+  background,
   onMissingTitle,
 }: Props) {
   const { d } = useI18n();
@@ -68,11 +83,17 @@ export function SaveBar({
     if (!png || !userId) return;
 
     try {
-      const ruta = posterPath(userId, slug);
+      /* Con el fondo debajo, y en PNG o JPEG segun haga falta alfa. Ver la
+         nota larga en `composePoster`. */
+      const poster = background
+        ? await composePoster(png, background)
+        : { dataUrl: png, format: 'png' as const, contentType: 'image/png' };
+
+      const ruta = posterPath(userId, slug, poster.format);
       const { error } = await supabaseBrowser()
         .storage.from('posters')
-        .upload(ruta, await dataUrlToBlob(png), {
-          contentType: 'image/png',
+        .upload(ruta, await dataUrlToBlob(poster.dataUrl), {
+          contentType: poster.contentType,
           /* Al reguardar hay que PISAR el póster viejo: si no, el link seguiría
              enseñando en Slack una versión de la gráfica que ya no existe. */
           upsert: true,
@@ -81,6 +102,22 @@ export function SaveBar({
       /* El id sale del RESULTADO y no de `chartId`: en una gráfica nueva
          `chartId` todavía es null cuando esto corre. */
       if (!error) await setPoster(id, ruta);
+
+      /*
+        Y fuera el póster de la OTRA extensión, si lo hubiera.
+
+        Cambiar el fondo de transparente a sólido cambia el formato, y con él el
+        nombre del fichero: `slug.png` deja de estar apuntado por nadie pero
+        sigue ocupando sitio en el bucket para siempre. Se borra a la vuelta y
+        sin mirar el resultado — si falla, lo peor que pasa es que sobre un
+        fichero, y eso no puede tumbar un guardado.
+      */
+      const sobra = POSTER_FORMATS.filter((f) => f !== poster.format).map((f) =>
+        posterPath(userId, slug, f),
+      );
+      if (sobra.length > 0) {
+        await supabaseBrowser().storage.from('posters').remove(sobra);
+      }
     } catch {
       // Ver la nota de arriba: el póster nunca puede tumbar un guardado.
     }

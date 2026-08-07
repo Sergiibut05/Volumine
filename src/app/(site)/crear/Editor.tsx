@@ -409,6 +409,9 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
             signedIn={signedIn}
             userId={userId}
             capture={capture}
+            /* El fondo ya resuelto: el póster lo pinta debajo de la captura,
+               porque el canvas no lo lleva dentro cuando es un degradado. */
+            background={parsed.ok ? parsed.config.scene.background : null}
             onMissingTitle={() => {
               setFaltaNombre(true);
               /* Además de teñir el borde, se lleva el cursor al campo: señalar
@@ -457,9 +460,7 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
 
         {url && (
           <div className="sharebar">
-            <code>
-              {url.ok ? url.url : fill(d.editor.tooLongChars, { n: url.length })}
-            </code>
+            <code>{url.ok ? url.url : fill(d.editor.tooLongChars, { n: url.length })}</code>
             <button type="button" onClick={copy} disabled={!url.ok}>
               {copied ? d.common.copied : d.common.copyLink}
             </button>

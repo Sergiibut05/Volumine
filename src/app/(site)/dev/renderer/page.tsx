@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ChartCanvas } from '@/renderer/ChartCanvas';
 import { parseConfig } from '@/lib/config/parse';
+import { composePoster } from '@/lib/charts/poster';
 import type { ChartConfig } from '@/lib/config/schema';
 
 /*
@@ -97,6 +98,13 @@ export default function RendererDevPage() {
   const [innerRadius, setInnerRadius] = useState(0.55);
   const [gap, setGap] = useState(0.012);
   const [cornerRadius, setCornerRadius] = useState(0.2);
+  /* El fondo, porque es lo que decide qué se ve en el PÓSTER y era justo lo
+     que no se podía probar sin guardar una gráfica de verdad. */
+  const [bgKind, setBgKind] = useState<'transparent' | 'solid' | 'gradient'>('solid');
+  const capture = useRef<(() => string) | null>(null);
+  const [poster, setPoster] = useState<{ url: string; peso: string; fmt: string } | null>(
+    null,
+  );
 
   const result = useMemo(() => {
     const override = PRESETS[preset] ?? {};
@@ -107,9 +115,32 @@ export default function RendererDevPage() {
       type: override.type ?? type,
       data: override.data ?? BASE.data,
       style: { bevel, height, innerRadius, gap, cornerRadius, ...override.style },
-      scene: { background: { kind: 'solid', from: '#0b0b12' } },
+      scene: { background: { kind: bgKind, from: '#0b0b12', to: '#3d1f7a', angle: 135 } },
     });
-  }, [preset, type, bevel, height, innerRadius, gap, cornerRadius]);
+  }, [preset, type, bevel, height, innerRadius, gap, cornerRadius, bgKind]);
+
+  /*
+    El PÓSTER tal y como se va a guardar.
+
+    Existe aquí porque el camino de verdad —guardar una gráfica— pide sesión, y
+    la sesión es por link mágico: no hay forma de recorrerlo en una prueba
+    automática. Sin esto, la única manera de ver si el fondo sale en la imagen
+    era guardar, publicar y mirar la tarjeta en Slack.
+  */
+  const verPoster = async () => {
+    const png = capture.current?.();
+    if (!png || !result.ok) return;
+
+    const compuesto = await composePoster(png, result.config.scene.background);
+    /* El PESO se enseña porque es la mitad del asunto: un degradado en PNG se
+       va a 2,6 MB y eso se paga en la tarjeta de enlace, no aquí. */
+    const bytes = (await (await fetch(compuesto.dataUrl)).blob()).size;
+    setPoster({
+      url: compuesto.dataUrl,
+      peso: `${Math.round(bytes / 1024)} KB`,
+      fmt: compuesto.format,
+    });
+  };
 
   const isBar = (PRESETS[preset]?.type ?? type) === 'bar';
 
@@ -200,6 +231,24 @@ export default function RendererDevPage() {
           onChange={setGap}
         />
 
+        <label style={{ display: 'grid', gap: 'var(--p-space-1)' }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 'var(--p-text-xs)' }}>
+            fondo
+          </span>
+          <select
+            value={bgKind}
+            onChange={(e) => setBgKind(e.target.value as typeof bgKind)}
+          >
+            <option value="transparent">transparente</option>
+            <option value="solid">sólido</option>
+            <option value="gradient">degradado</option>
+          </select>
+        </label>
+
+        <button type="button" onClick={verPoster} disabled={!result.ok}>
+          ver el póster
+        </button>
+
         <div style={{ color: 'var(--text-muted)', fontSize: 'var(--p-text-xs)' }}>
           {result.ok ? (
             <>
@@ -215,7 +264,46 @@ export default function RendererDevPage() {
       </aside>
 
       <div style={{ position: 'relative', minHeight: 0, height: '100%' }}>
-        {result.ok && <ChartCanvas config={result.config} />}
+        {result.ok && <ChartCanvas config={result.config} captureRef={capture} />}
+
+        {/* El póster se enseña ENCIMA y a tamaño reducido, sobre un tablero de
+            cuadros: es la única forma de ver de un vistazo si lo que hay detrás
+            del dibujo es el fondo elegido o transparencia. */}
+        {poster && (
+          <div
+            onClick={() => setPoster(null)}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'grid',
+              placeItems: 'center',
+              background: 'rgb(0 0 0 / .6)',
+              cursor: 'zoom-out',
+            }}
+          >
+            <div style={{ display: 'grid', gap: 'var(--p-space-2)', justifyItems: 'center' }}>
+              <img
+                src={poster.url}
+                alt="Póster"
+                style={{
+                  maxWidth: '70%',
+                  maxHeight: '70dvh',
+                  /* Cuadros: donde se vean, el PNG es transparente ahí. */
+                  backgroundImage:
+                    'linear-gradient(45deg,#888 25%,transparent 25%,transparent 75%,#888 75%),' +
+                    'linear-gradient(45deg,#888 25%,transparent 25%,transparent 75%,#888 75%)',
+                  backgroundSize: '16px 16px',
+                  backgroundPosition: '0 0, 8px 8px',
+                  backgroundColor: '#ccc',
+                }}
+              />
+              <span style={{ color: '#fff', fontSize: 'var(--p-text-xs)' }}>
+                {poster.fmt.toUpperCase()} · {poster.peso} · tal cual se sube · pulsa
+                para cerrar
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
