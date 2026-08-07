@@ -20,6 +20,22 @@ import { useI18n } from '@/lib/i18n/client';
 const NOMBRE: Record<Locale, string> = { en: 'EN', es: 'ES' };
 const COMPLETO: Record<Locale, string> = { en: 'English', es: 'Español' };
 
+/**
+ * Deja la preferencia escrita.
+ *
+ * Fuera del componente a propósito: escribir en `document` desde dentro es
+ * exactamente lo que el compilador de React no deja hacer —y con razón, porque
+ * un render tiene que poder repetirse sin efectos—, y aquí lo que hay es un
+ * manejador de evento que toca el mundo. Sacarlo lo dice en el código.
+ *
+ * Un año y para todo el sitio. `SameSite=Lax` basta: no es una credencial, y
+ * `Strict` haría que al volver desde un enlace externo se viera el idioma
+ * equivocado durante una navegación.
+ */
+function recordarIdioma(locale: Locale) {
+  document.cookie = `volumine-locale=${locale}; path=/; max-age=31536000; SameSite=Lax`;
+}
+
 export function LocaleSwitch() {
   const { locale, d } = useI18n();
   const router = useRouter();
@@ -27,10 +43,7 @@ export function LocaleSwitch() {
 
   const cambiar = (siguiente: Locale) => {
     if (siguiente === locale) return;
-    /* Un año y para todo el sitio. `SameSite=Lax` es suficiente: no es una
-       credencial, y `Strict` haría que al volver desde un enlace externo se
-       viera el idioma equivocado durante una navegación. */
-    document.cookie = `volumine-locale=${siguiente}; path=/; max-age=31536000; SameSite=Lax`;
+    recordarIdioma(siguiente);
     startTransition(() => router.refresh());
   };
 

@@ -35,14 +35,17 @@ const mono = JetBrains_Mono({
   display: 'swap',
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: 'Volumine — gráficas 3D que se incrustan con un link',
-    template: '%s · Volumine',
-  },
-  description:
-    'Crea una gráfica 3D preciosa e incrústala en tu web, Notion o Confluence con un link.',
-};
+/* El título y la descripción también van en el idioma de quien mira: son lo que
+   sale en la pestaña, en el buscador y en la tarjeta cuando alguien comparte la
+   página. Por eso es `generateMetadata` y no una constante. */
+export async function generateMetadata(): Promise<Metadata> {
+  const { d } = await getDictionary();
+
+  return {
+    title: { default: d.meta.siteTitle, template: '%s · Volumine' },
+    description: d.meta.siteDescription,
+  };
+}
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   /* El idioma se resuelve UNA vez, aquí arriba, y baja por contexto. Resolverlo

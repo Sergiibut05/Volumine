@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import { useI18n } from '@/lib/i18n/client';
 
 /**
  * Cerrar sesión.
@@ -16,6 +17,7 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
  * renderizar ya sin usuario en vez de quedarse con lo de antes.
  */
 export function SignOut() {
+  const { d } = useI18n();
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
 
@@ -47,7 +49,7 @@ export function SignOut() {
       {/* «Salir» no decía qué se salía de dónde: leído en una barra, suena a
           «volver». Cerrar sesión es una acción con consecuencias —pierdes
           acceso a tus gráficas hasta volver a entrar— y tiene que nombrarse. */}
-      {pendiente ? 'Cerrando…' : 'Cerrar sesión'}
+      {pendiente ? d.nav.signingOut : d.nav.signOut}
     </button>
   );
 }

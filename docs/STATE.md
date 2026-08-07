@@ -6,7 +6,7 @@
 >
 > Sé concreto. "Avanzando en el renderer" no vale.
 
-**Última actualización:** 2026-08-04
+**Última actualización:** 2026-08-07
 **Fase actual:** 6 — Todos los tipos de v1 disponibles
 
 ## Qué funciona hoy
@@ -141,12 +141,22 @@ mano desde el aviso.
      barras, etiquetas viajeras en la carrera, etiquetas con oclusión en el
      globo, leyenda, tooltip en las dos superficies, y marcadores `dot`/`pin`/
      `pulse`. Todo opcional y apagado por defecto.
-3. Tests de regresión visual con Playwright. El andamiaje está.
+3. **Tests de regresión visual con Playwright.** Playwright ya está montado y
+   corriendo (`playwright.config.ts`, `tests/`), así que lo que falta es solo la
+   comparación de capturas contra una referencia — `toHaveScreenshot`.
 3. ~~Póster estático.~~ Hecho, pero **sin probar de punta a punta**: nadie ha
    guardado una gráfica todavía, así que la subida a Storage no se ha ejecutado
    nunca. Es lo primero que hay que comprobar al recorrer el camino completo.
 4. ~~Deshacer/rehacer.~~ Hecho.
 5. ~~El editor solo ofrece anillo, tarta y barras.~~ Hecho: los seis tipos.
+6. ~~Traducir la aplicación.~~ Hecha y comprobada en el navegador: landing,
+   editor, entrar y «Mis gráficas», en los dos idiomas. Ver la sección de i18n.
+7. **El CSS del embed está fuera de presupuesto: 13,8 KB contra 8.** Viene de
+   antes de esta tanda —`npm run perf:embed` falla por eso y solo por eso; el JS
+   sigue en 147,7 KB de 180— pero es un incumplimiento real de la regla 1 y no
+   tiene dueño todavía.
+8. Botón «Copiar iframe» en el editor. El texto ya está en el diccionario
+   (`editor.copyEmbed`); falta el botón.
 
 ## Decisiones pendientes de Manuel
 
@@ -249,26 +259,71 @@ sección de plan en la interfaz. Se dejó fuera a propósito — es lo que depen
 cómo se decida cobrar (pago único, anual, por equipo) y escribirlo ahora sería
 adivinar.
 
-## i18n: la base está, la traducción va a medias
+## i18n: terminada
 
 Inglés por defecto, español si el navegador lo prefiere, cookie para elegir a
-mano. **La infraestructura está terminada y probada** (`src/lib/i18n/`):
-detección por orden de preferencia, diccionarios con comprobación de tipos —una
-clave que falte no compila— y selector de idioma.
+mano. **Toda la aplicación está traducida y comprobada en el navegador**:
+landing, editor, entrar y «Mis gráficas».
 
-**Traducido:** la pantalla de entrar.
+Cómo está montado (`src/lib/i18n/`):
 
-**Pendiente:** landing, editor y «Mis gráficas». El editor es con diferencia el
-grueso: docenas de etiquetas de control, sus pistas, y las descripciones de los
-seis tipos de gráfica en `lib/chart-types.ts`.
+- **Detección** en `server.ts`: cookie → `Accept-Language` respetando SU orden
+  de preferencia (`en-GB,es;q=0.8` da inglés) → inglés.
+- **Diccionarios anidados y tipados** en `dictionaries.ts`. Se accede
+  `d.editor.save`, no `t('editor.save')`: así una clave que falte en español es
+  un ERROR DE COMPILACIÓN. `fill(texto, {marcadores})` para meter datos en medio
+  de una frase sin partirla en trozos intraducibles.
+- **Se resuelve UNA vez** en el layout y baja por contexto (`client.tsx`).
 
-Añadir un texto son dos líneas —una en `en`, otra en `es`— y si falta una, no
-compila. La parte difícil ya no se repite.
+Tres cosas que hubo que mover de sitio para que esto funcionara, y el porqué:
 
-**Lo que NO se traduce, y es decisión cerrada:** la gráfica. Sus etiquetas, su
-título y su formato de número son de quien la hizo. Una gráfica en español se ve
-en español la mire quien la mire, igual que un gráfico en un periódico. Eso
-además deja el bundle del embed sin una línea de i18n.
+- **`chart-types.ts` y `themes/index.ts` ya no tienen texto.** Su nombre y su
+  descripción están en el diccionario, con el `id` como clave. Los ids se
+  quedan porque **viajan dentro de las configs publicadas**: el tema `estudio`
+  se sigue llamando `estudio` aunque en inglés se lea «Studio». De paso, el
+  módulo de temas entra en el bundle del embed y ahora entra sin copia.
+- **`data-paste.ts` devuelve códigos, no frases** (`{code:'empty-cells',count}`).
+  Un módulo que lee un portapapeles no sabe quién está mirando; le pone las
+  palabras quien las enseña. Los nombres de relleno («Fila 3») llegan por
+  `options.names`.
+- **`initialConfig()` vive en `lib/config/initial.ts`**, no en `Editor.tsx`.
+  Desde un módulo `'use client'` se puede importar una CONSTANTE en el
+  servidor, pero no llamar a una FUNCIÓN: da «Attempted to call initialConfig()
+  from the server». Pasó de constante a función porque las etiquetas de muestra
+  dependen del idioma.
+
+**Los datos de EJEMPLO sí se traducen** (`lib/i18n/samples.ts`). No contradice
+la regla de abajo: son copia nuestra disfrazada de datos, y llegar al editor y
+ver «Suscripciones / Servicios / Licencias» habiendo pedido inglés se lee como
+un producto a medio hacer. En cuanto alguien escribe lo suyo, desaparecen.
+
+**Lo que NO se traduce, y es decisión cerrada:** la gráfica ya publicada. Sus
+etiquetas, su título y su formato de número son de quien la hizo. Una gráfica en
+español se ve en español la mire quien la mire, igual que un gráfico en un
+periódico. Eso además deja el bundle del embed sin una línea de i18n, y hay una
+prueba que lo vigila.
+
+### Y ahora sí hay Playwright
+
+`playwright.config.ts` + `tests/i18n.spec.ts`, 8 pruebas en verde. Corre contra
+`next start` (no contra `dev`, que en esta máquina no hidrata), así que hace
+falta `npm run build` antes de `npm run test:e2e`.
+
+Lo que comprueba: que ninguna de las tres pantallas tenga restos del otro
+idioma —con el editor DESPLEGADO y recorriendo los seis tipos, porque media
+interfaz está detrás de un `<details>`—, que el selector cambie la pantalla y
+deje la cookie, y que `/embed` no lleve i18n encima.
+
+**Existe porque `tsc` no sirve para esto.** Garantiza que los dos diccionarios
+tengan las mismas claves y no dice nada de una frase escrita a pelo dentro de un
+componente. Tres restos —el botón «Copiar link» de la barra de compartir, los
+nombres de los temas y las etiquetas del héroe— pasaron tipos, lint, 198 pruebas
+y un build limpio, y solo cayeron al leer la página de verdad.
+
+Trampa que costó un rato: **Playwright manda su propia cabecera
+`Accept-Language` a partir de la opción `locale`** (`en-US` por defecto) y esa
+gana sobre `extraHTTPHeaders`. La prueba pedía español, recibía inglés y
+culpaba al código. Se configura con `test.use({ locale })`.
 
 ## Problemas abiertos
 
@@ -286,9 +341,9 @@ además deja el bundle del embed sin una línea de i18n.
   4 px— no da error en ninguna parte. Lo que acabó encontrando el fallo fue
   MEDIR la tinta con `TextMetrics` en la página real, no leer el diff.
 
-  Está en el roadmap como «tests visuales con Playwright, el andamiaje está».
-  Subirlo de prioridad: una captura de la barra contra una de referencia habría
-  cazado las tres.
+  Ya hay Playwright montado y corriendo (ver la sección de i18n), así que el
+  andamiaje deja de ser excusa: falta la comparación de capturas contra una
+  referencia. Una de la barra habría cazado las tres.
 
 - **La cifra de peso de la landing hay que mantenerla a mano** y ya se quedó
   obsoleta una vez (decía 140 KB con el bundle en 147,7). En una página cuyo

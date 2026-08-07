@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
-import { Editor, INITIAL } from './Editor';
+import { Editor } from './Editor';
+import { initialConfig } from '@/lib/config/initial';
 import { chartById, currentUser } from '@/lib/charts/queries';
 import { chartConfigSchema, type ChartConfig } from '@/lib/config/schema';
+import { getDictionary } from '@/lib/i18n/server';
 import type { Visibility } from '@/lib/supabase/types';
 
 /*
@@ -17,9 +19,10 @@ import type { Visibility } from '@/lib/supabase/types';
   usable sin cuenta, que es la premisa del producto.
 */
 
-export const metadata: Metadata = {
-  title: 'Editor · Volumine',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { d } = await getDictionary();
+  return { title: d.meta.editor };
+}
 
 export default async function CrearPage({
   searchParams,
@@ -27,9 +30,9 @@ export default async function CrearPage({
   searchParams: Promise<{ id?: string }>;
 }) {
   const { id } = await searchParams;
-  const user = await currentUser();
+  const [user, { locale }] = await Promise.all([currentUser(), getDictionary()]);
 
-  let initial: ChartConfig = INITIAL;
+  let initial: ChartConfig = initialConfig(locale);
   let chartId: string | null = null;
   let visibility: Visibility | null = null;
 

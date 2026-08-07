@@ -62,11 +62,15 @@ describe('parsePastedTable', () => {
   });
 
   it('sin cabecera, numera las columnas y lo dice', () => {
-    const table = parsePastedTable('España\t10\nFrancia\t8');
+    const table = parsePastedTable('España\t10\nFrancia\t8', {
+      names: { column: 'Serie', row: 'Fila' },
+    });
 
     expect(table!.labels).toEqual(['España', 'Francia']);
     expect(table!.columns).toEqual(['Serie 1']);
-    expect(table!.issues.join(' ')).toContain('cabecera');
+    /* El aviso viaja como CÓDIGO y no como frase: quien lo enseña le pone las
+       palabras, en el idioma de quien mira. */
+    expect(table!.issues).toContainEqual({ code: 'no-header' });
   });
 
   it('lee CSV con punto y coma, que es lo que exporta el Excel español', () => {
@@ -85,7 +89,7 @@ describe('parsePastedTable', () => {
     const table = parsePastedTable('X\tA\nuno\t5\ndos\t');
 
     expect(table!.values[0]).toEqual([5, 0]);
-    expect(table!.issues.join(' ')).toContain('0');
+    expect(table!.issues).toContainEqual({ code: 'empty-cells', count: 1 });
   });
 
   it('rellena las filas cortas en vez de descuadrar las columnas', () => {
@@ -94,8 +98,16 @@ describe('parsePastedTable', () => {
   });
 
   it('las filas sin nombre reciben uno, para que no queden en blanco', () => {
-    const table = parsePastedTable('X\tA\n\t5\n\t6');
+    const table = parsePastedTable('X\tA\n\t5\n\t6', {
+      names: { column: 'Serie', row: 'Fila' },
+    });
     expect(table!.labels).toEqual(['Fila 1', 'Fila 2']);
+  });
+
+  it('sin `names`, los nombres de relleno salen en inglés', () => {
+    const table = parsePastedTable('X\tA\n\t5');
+    expect(table!.labels).toEqual(['Row 1']);
+    expect(table!.columns).toEqual(['A']);
   });
 
   it('se salta las líneas en blanco del final, que siempre las hay', () => {

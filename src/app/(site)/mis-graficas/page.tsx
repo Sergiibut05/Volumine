@@ -7,11 +7,13 @@ import { allowance, currentUser, myCharts } from '@/lib/charts/queries';
 import { ChartCard } from './ChartCard';
 import { Wordmark } from '../Wordmark';
 import { SignOut } from './SignOut';
+import { getDictionary } from '@/lib/i18n/server';
+import { fill } from '@/lib/i18n/dictionaries';
 
-export const metadata: Metadata = {
-  title: 'Mis gráficas · Volumine',
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { d } = await getDictionary();
+  return { title: d.charts.title, robots: { index: false, follow: false } };
+}
 
 /* Datos de una sesión concreta: no se cachea nada entre peticiones. */
 export const dynamic = 'force-dynamic';
@@ -29,28 +31,33 @@ export default async function MisGraficasPage() {
   const user = await currentUser();
   if (!user) redirect('/entrar?next=/mis-graficas');
 
-  const [charts, cupo, base] = await Promise.all([myCharts(), allowance(), origin()]);
+  const [charts, cupo, base, { d }] = await Promise.all([
+    myCharts(),
+    allowance(),
+    origin(),
+    getDictionary(),
+  ]);
 
   return (
     <div className="charts-page" data-theme="light">
       <div className="charts-shell">
         <header className="charts-head">
-          <Link href="/" className="charts-brand" aria-label="Volumine — inicio">
+          <Link href="/" className="charts-brand" aria-label={d.nav.home}>
             <Wordmark size={1.0625} />
           </Link>
 
           <div className="charts-title">
-            <h1 className="display">Mis gráficas</h1>
+            <h1 className="display">{d.charts.title}</h1>
             {cupo && (
               <p className="charts-quota">
-                {cupo.used} de {cupo.max} · plan {cupo.plan}
+                {fill(d.charts.quota, { used: cupo.used, max: cupo.max, plan: cupo.plan })}
               </p>
             )}
           </div>
 
           <div className="charts-head-actions">
             <Link className="cta" href="/crear">
-              Nueva gráfica
+              {d.nav.newChart}
             </Link>
             <SignOut />
           </div>
@@ -59,10 +66,7 @@ export default async function MisGraficasPage() {
         {/* El cupo se avisa ANTES de que falle. Quien decide es el trigger de la
             base de datos, pero enterarse al pulsar guardar es peor que verlo. */}
         {cupo?.full && (
-          <p className="auth-error">
-            Has llegado al límite de {cupo.max} gráficas de tu plan. Borra alguna para poder
-            guardar otra.
-          </p>
+          <p className="auth-error">{fill(d.charts.quotaFull, { max: cupo.max })}</p>
         )}
 
         {charts.length === 0 ? (
@@ -78,13 +82,10 @@ export default async function MisGraficasPage() {
             <span className="charts-empty-mark" aria-hidden>
               <Wordmark size={1.5} />
             </span>
-            <h2>Aún no has guardado ninguna</h2>
-            <p>
-              Guardar te da un link corto que puedes pegar en Notion, en tu web o
-              donde quieras, y volver a editar cuando te apetezca.
-            </p>
+            <h2>{d.charts.emptyTitle}</h2>
+            <p>{d.charts.emptyBody}</p>
             <Link className="cta" href="/crear">
-              Hacer la primera
+              {d.charts.emptyCta}
             </Link>
           </div>
         ) : (

@@ -4,7 +4,9 @@ import { currentUser } from '@/lib/charts/queries';
 import '@/styles/marketing.css';
 import { HeroChart } from './HeroChart';
 import { TypeCard } from './TypeCard';
-import { CHART_TYPES } from '@/lib/chart-types';
+import { chartTypes } from '@/lib/chart-types';
+import { getDictionary } from '@/lib/i18n/server';
+import type { Dictionary } from '@/lib/i18n/dictionaries';
 
 /*
   Landing.
@@ -16,17 +18,23 @@ import { CHART_TYPES } from '@/lib/chart-types';
   El elemento firma es la tira de URL del héroe: el producto es el link.
 */
 
-const SPECS = [
-  { label: 'Peso', value: '148 KB', note: 'Todo el visor 3D, comprimido.' },
-  { label: 'Peticiones', value: '1', note: 'Un archivo. Nada más.' },
-  { label: 'Terceros', value: '0', note: 'Sin cookies ni analítica ajena.' },
-  { label: 'Registro', value: 'No', note: 'La config viaja en el link.' },
+/* La cifra de peso se mantiene A MANO y `npm run perf:embed` es quien dice la
+   verdad. Es el argumento de venta de la página: si sube, esto se actualiza. */
+const specs = (d: Dictionary) => [
+  { label: d.landing.specWeight, value: '148 KB', note: d.landing.specWeightNote },
+  { label: d.landing.specRequests, value: '1', note: d.landing.specRequestsNote },
+  { label: d.landing.specThirdParty, value: '0', note: d.landing.specThirdPartyNote },
+  {
+    label: d.landing.specSignup,
+    value: d.landing.specSignupValue,
+    note: d.landing.specSignupNote,
+  },
 ];
 
 export default async function HomePage() {
   /* Solo para decidir si se enseña «Mis gráficas». Sin sesión no consulta nada
      y la landing sigue siendo estática para quien llega de fuera. */
-  const user = await currentUser();
+  const [user, { locale, d }] = await Promise.all([currentUser(), getDictionary()]);
 
   return (
     <div className="studio" data-theme="light">
@@ -43,7 +51,7 @@ export default async function HomePage() {
                 fontSize: '0.875rem',
               }}
             >
-              Mis gráficas
+              {d.nav.myCharts}
             </Link>
           )}
           <Link
@@ -54,7 +62,7 @@ export default async function HomePage() {
               fontSize: '0.875rem',
             }}
           >
-            Abrir el editor
+            {d.nav.openEditor}
           </Link>
         </nav>
       </header>
@@ -62,19 +70,16 @@ export default async function HomePage() {
       <main>
         <section className="shell hero">
           <div>
-            <p className="spec-label">Gráficas 3D incrustables</p>
+            <p className="spec-label">{d.landing.tagline}</p>
             <h1 className="display" style={{ marginTop: '1rem' }}>
-              Tus datos,
+              {d.landing.heroTitle1}
               <br />
-              con volumen.
+              {d.landing.heroTitle2}
             </h1>
-            <p>
-              Haz una gráfica 3D, copia el link y pégalo donde quieras. Va dentro de tu web,
-              de Notion o de una presentación, y sigue girando.
-            </p>
+            <p>{d.landing.heroBody}</p>
             <div style={{ display: 'flex', gap: '0.75rem', marginTop: '2rem' }}>
               <Link className="cta" href="/crear">
-                Hacer una gráfica
+                {d.landing.heroCta}
               </Link>
             </div>
           </div>
@@ -88,7 +93,7 @@ export default async function HomePage() {
             que se presentan como specs y no como "beneficios". */}
         <section className="shell">
           <div className="specsheet">
-            {SPECS.map((spec) => (
+            {specs(d).map((spec) => (
               <div key={spec.label}>
                 <p className="spec-label" style={{ margin: 0 }}>
                   {spec.label}
@@ -101,7 +106,7 @@ export default async function HomePage() {
         </section>
 
         <section className="shell" style={{ paddingBottom: '2rem' }}>
-          <p className="spec-label">Tipos de gráfica</p>
+          <p className="spec-label">{d.landing.typesLabel}</p>
           <h2
             className="display"
             style={{
@@ -109,7 +114,7 @@ export default async function HomePage() {
               fontSize: 'clamp(1.75rem, 1.1rem + 2.4vw, 2.75rem)',
             }}
           >
-            Cada forma responde a una pregunta distinta.
+            {d.landing.typesTitle}
           </h2>
           <p
             style={{
@@ -119,19 +124,25 @@ export default async function HomePage() {
               lineHeight: 1.55,
             }}
           >
-            Por eso cada tarjeta dice también cuándo <em>no</em> usar ese tipo. Una gráfica
-            bonita que responde a la pregunta equivocada sigue estando mal.
+            {/* La palabra en cursiva va por MARCADOR y no partiendo la frase en
+                trozos: en inglés cae antes del verbo y en español después, y
+                concatenar cachos haría la frase intraducible. */}
+            {d.landing.typesBody
+              .split('{not}')
+              .flatMap((trozo, i) =>
+                i === 0 ? [trozo] : [<em key="not">{d.landing.typesBodyNot}</em>, trozo],
+              )}
           </p>
 
           <div className="gallery">
-            {CHART_TYPES.map((type) => (
+            {chartTypes(locale).map((type) => (
               <TypeCard key={type.id} type={type} />
             ))}
           </div>
         </section>
 
         <section className="shell closer">
-          <h2 className="display">El link es el producto.</h2>
+          <h2 className="display">{d.landing.closerTitle}</h2>
           <p
             style={{
               margin: 0,
@@ -140,12 +151,10 @@ export default async function HomePage() {
               lineHeight: 1.55,
             }}
           >
-            Sin cuenta para empezar. La configuración entera de una gráfica cabe en una URL
-            de 290 caracteres, así que no hay nada que guardar hasta que quieras volver a
-            editarla.
+            {d.landing.closerBody}
           </p>
           <Link className="cta" href="/crear">
-            Empezar
+            {d.landing.closerCta}
           </Link>
         </section>
       </main>
@@ -155,7 +164,7 @@ export default async function HomePage() {
           <span>Volumine</span>
           <span style={{ flex: 1 }} />
           <Link href="/dev/embed" style={{ color: 'inherit' }}>
-            Ver un embed real
+            {d.landing.seeRealEmbed}
           </Link>
         </div>
       </footer>

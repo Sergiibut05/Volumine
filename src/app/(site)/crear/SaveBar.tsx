@@ -8,6 +8,7 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
 import { dataUrlToBlob, posterPath } from '@/lib/charts/poster';
 import type { ChartConfig } from '@/lib/config/schema';
 import type { Visibility } from '@/lib/supabase/types';
+import { useI18n } from '@/lib/i18n/client';
 
 /*
   Guardar, y decir en qué estado está lo que estás mirando.
@@ -47,6 +48,7 @@ export function SaveBar({
   capture,
   onMissingTitle,
 }: Props) {
+  const { d } = useI18n();
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +57,7 @@ export function SaveBar({
   if (!signedIn) {
     return (
       <Link className="savebar-link" href="/entrar?next=/crear">
-        Guardar
+        {d.common.save}
       </Link>
     );
   }
@@ -151,7 +153,7 @@ export function SaveBar({
       {chartId && visibility === 'public' && !error && (
         <span className="savebar-live">
           <i aria-hidden />
-          Publicada
+          {d.editor.published}
         </span>
       )}
 
@@ -160,7 +162,7 @@ export function SaveBar({
         onClick={guardar}
         disabled={pendiente}
       >
-        {pendiente ? 'Guardando…' : guardado ? 'Guardado' : chartId ? 'Guardar' : 'Guardar'}
+        {pendiente ? d.common.saving : guardado ? d.common.saved : d.common.save}
       </button>
     </div>
   );

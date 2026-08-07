@@ -5,26 +5,27 @@ import { useState, useTransition } from 'react';
 import { deleteChart, duplicateChart, setVisibility } from '@/lib/charts/actions';
 import type { ChartSummary } from '@/lib/supabase/types';
 import { posterUrl } from '@/lib/charts/poster';
+import { useI18n } from '@/lib/i18n/client';
+import { fill, type Dictionary, type Locale } from '@/lib/i18n/dictionaries';
 
-const NOMBRE_TIPO: Record<string, string> = {
-  donut: 'Anillo',
-  pie: 'Tarta',
-  bar: 'Barras',
-  'bar-race': 'Barras animadas',
-  globe: 'Globo',
-  gauge: 'Medidor',
-};
-
-/** «hace 3 días». Relativo porque en un listado propio importa más que la fecha. */
-function cuando(iso: string): string {
+/**
+ * «hace 3 días». Relativo porque en un listado propio importa más que la fecha.
+ *
+ * Pasado el mes se cae a la fecha corta con `Intl`, que ya sabe que en inglés
+ * va «Mar 4» y en español «4 mar». Ese orden no es algo que traducir a mano.
+ */
+function cuando(iso: string, d: Dictionary, locale: Locale): string {
   const dias = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-  if (dias <= 0) return 'hoy';
-  if (dias === 1) return 'ayer';
-  if (dias < 30) return `hace ${dias} días`;
-  return new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  if (dias <= 0) return d.charts.today;
+  if (dias === 1) return d.charts.yesterday;
+  if (dias < 30) return fill(d.charts.daysAgo, { days: dias });
+  return new Date(iso).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 }
 
 export function ChartCard({ chart, origin }: { chart: ChartSummary; origin: string }) {
+  const { d, locale } = useI18n();
+  const nombreTipo = (tipo: string) =>
+    d.types[tipo as keyof Dictionary['types']]?.name ?? tipo;
   const [pendiente, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
@@ -36,7 +37,7 @@ export function ChartCard({ chart, origin }: { chart: ChartSummary; origin: stri
     startTransition(async () => {
       setError(null);
       const resultado = await accion();
-      if (!resultado.ok) setError(resultado.error ?? 'Algo ha fallado.');
+      if (!resultado.ok) setError(resultado.error ?? d.common.somethingFailed);
     });
 
   const copiar = async () => {
@@ -54,10 +55,11 @@ export function ChartCard({ chart, origin }: { chart: ChartSummary; origin: stri
     lo que ha pedido.
   */
   const borrar = () => {
-    const nombre = chart.title || 'esta gráfica';
-    const aviso = publica
-      ? `Vas a borrar «${nombre}». Su link dejará de funcionar donde esté incrustado.`
-      : `Vas a borrar «${nombre}». No se puede deshacer.`;
+    const nombre = chart.title || d.charts.untitled;
+    const aviso = fill(
+      publica ? d.charts.confirmDeletePublic : d.charts.confirmDelete,
+      { name: nombre },
+    );
     if (confirm(aviso)) correr(() => deleteChart(chart.id));
   };
 
@@ -81,29 +83,29 @@ export function ChartCard({ chart, origin }: { chart: ChartSummary; origin: stri
         {poster ? (
           <img src={poster} alt="" loading="lazy" decoding="async" />
         ) : (
-          <span>{NOMBRE_TIPO[chart.type] ?? chart.type}</span>
+          <span>{nombreTipo(chart.type)}</span>
         )}
       </Link>
 
-      <h2 title={chart.title ?? 'Sin título'}>{chart.title || 'Sin título'}</h2>
+      <h2 title={chart.title ?? d.charts.untitled}>{chart.title || d.charts.untitled}</h2>
 
       <div className="chart-meta">
         <span className="chart-badge" data-visibility={chart.visibility}>
-          {publica ? 'Pública' : 'Privada'}
+          {publica ? d.charts.public : d.charts.private}
         </span>
-        <span>{NOMBRE_TIPO[chart.type] ?? chart.type}</span>
+        <span>{nombreTipo(chart.type)}</span>
         <span>·</span>
-        <span>{cuando(chart.updated_at)}</span>
+        <span>{cuando(chart.updated_at, d, locale)}</span>
       </div>
 
       <div className="chart-actions">
-        <Link href={`/crear?id=${chart.id}`}>Editar</Link>
+        <Link href={`/crear?id=${chart.id}`}>{d.common.edit}</Link>
 
         {/* Copiar el link solo si el link SIRVE. Ofrecerlo en una privada sería
             regalar una URL que da 404 a quien la reciba. */}
         {publica && (
           <button type="button" onClick={copiar}>
-            {copiado ? 'Copiado' : 'Copiar link'}
+            {copiado ? d.common.copied : d.common.copyLink}
           </button>
         )}
 
@@ -114,7 +116,7 @@ export function ChartCard({ chart, origin }: { chart: ChartSummary; origin: stri
             correr(() => setVisibility(chart.id, publica ? 'private' : 'public'))
           }
         >
-          {publica ? 'Despublicar' : 'Publicar'}
+          {publica ? d.charts.unpublish : d.charts.publish}
         </button>
 
         <button
@@ -122,11 +124,11 @@ export function ChartCard({ chart, origin }: { chart: ChartSummary; origin: stri
           disabled={pendiente}
           onClick={() => correr(() => duplicateChart(chart.id))}
         >
-          Duplicar
+          {d.common.duplicate}
         </button>
 
         <button type="button" className="danger" disabled={pendiente} onClick={borrar}>
-          Borrar
+          {d.common.delete}
         </button>
       </div>
 

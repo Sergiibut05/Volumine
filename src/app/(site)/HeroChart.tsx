@@ -6,6 +6,9 @@ import { ChartCanvas } from '@/renderer/ChartCanvas';
 import { parseConfig } from '@/lib/config/parse';
 import { buildEmbedUrl } from '@/lib/config/url';
 import { THEMES } from '@/lib/themes';
+import { useI18n } from '@/lib/i18n/client';
+import type { Dictionary, Locale } from '@/lib/i18n/dictionaries';
+import { samplesFor } from '@/lib/i18n/samples';
 import type { ChartConfig } from '@/lib/config/schema';
 
 /*
@@ -16,19 +19,26 @@ import type { ChartConfig } from '@/lib/config/schema';
   de gráficas puede enseñar eso, porque para ellos el link no es el producto.
 */
 
-const BASE: ChartConfig = {
-  v: 1,
-  type: 'donut',
-  data: {
-    labels: ['Suscripciones', 'Servicios', 'Licencias', 'Formación'],
-    series: [{ values: [46, 27, 18, 9] }],
-    format: { unit: ' k€', locale: 'es-ES' },
-  },
-  scene: { background: { kind: 'transparent' } },
-  layout: { watermark: false },
+/* Las etiquetas del héroe son copia de la landing, no datos de nadie: van en
+   el idioma de quien mira, como el resto de la página (ver lib/i18n/samples). */
+const base = (locale: Locale): ChartConfig => {
+  const { labels, unit, numberLocale } = samplesFor(locale).initial;
+
+  return {
+    v: 1,
+    type: 'donut',
+    data: {
+      labels: labels.slice(0, 4),
+      series: [{ values: [46, 27, 18, 9] }],
+      format: { unit, locale: numberLocale },
+    },
+    scene: { background: { kind: 'transparent' } },
+    layout: { watermark: false },
+  };
 };
 
 export function HeroChart() {
+  const { d, locale } = useI18n();
   const [themeId, setThemeId] = useState('aurora');
   const [copied, setCopied] = useState(false);
   const origin = useOrigin();
@@ -37,12 +47,12 @@ export function HeroChart() {
 
   const config = useMemo<ChartConfig>(
     () => ({
-      ...BASE,
+      ...base(locale),
       theme: theme.id,
       style: { ...theme.config.style },
       scene: { ...theme.config.scene, background: { kind: 'transparent' } },
     }),
-    [theme],
+    [theme, locale],
   );
 
   const parsed = useMemo(() => parseConfig(config), [config]);
@@ -65,7 +75,7 @@ export function HeroChart() {
       <div style={{ display: 'grid', gap: '0.875rem', marginTop: '1.25rem' }}>
         <div
           role="group"
-          aria-label="Tema de la gráfica"
+          aria-label={d.common.chartTheme}
           style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}
         >
           {THEMES.slice(0, 5).map((t) => (
@@ -74,7 +84,7 @@ export function HeroChart() {
               type="button"
               onClick={() => setThemeId(t.id)}
               aria-pressed={t.id === themeId}
-              title={t.use}
+              title={d.themes[t.id as keyof Dictionary['themes']].use}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -110,19 +120,19 @@ export function HeroChart() {
                   />
                 ))}
               </span>
-              {t.name}
+              {d.themes[t.id as keyof Dictionary['themes']].name}
             </button>
           ))}
         </div>
 
         {url?.ok && (
           <div className="urlstrip">
-            <span className="spec-label">Tu link</span>
+            <span className="spec-label">{d.landing.yourLink}</span>
             <code className="mono">
               {origin.replace(/^https?:\/\//, '')}/embed?c=<b>{urlTail(url.url)}</b>
             </code>
             <button className="copy" type="button" onClick={copy}>
-              {copied ? 'Copiado' : 'Copiar'}
+              {copied ? d.common.copied : d.common.copy}
             </button>
           </div>
         )}

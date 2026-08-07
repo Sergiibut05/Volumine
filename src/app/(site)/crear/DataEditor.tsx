@@ -1,9 +1,23 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { parsePastedTable, looksLikeTable, type ParsedTable } from '@/lib/data-paste';
+import {
+  parsePastedTable,
+  looksLikeTable,
+  type ParsedTable,
+  type ParseIssue,
+} from '@/lib/data-paste';
 import { findPlace, countKnown } from '@/lib/places';
 import type { ChartConfig } from '@/lib/config/schema';
+import { useI18n } from '@/lib/i18n/client';
+import { fill, type Dictionary } from '@/lib/i18n/dictionaries';
+
+/** Un aviso del lector de tablas, en palabras. Ver `ParseIssue`. */
+function decir(issue: ParseIssue, d: Dictionary): string {
+  return issue.code === 'empty-cells'
+    ? fill(d.data.emptyCells, { n: issue.count })
+    : d.data.noHeader;
+}
 
 /*
   La tabla de datos del editor.
@@ -40,6 +54,7 @@ type Props = {
 const MAX_ROWS = 200;
 
 export function DataEditor({ config, onChange }: Props) {
+  const { d } = useI18n();
   const [notice, setNotice] = useState<string | null>(null);
   const [lastPaste, setLastPaste] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -51,7 +66,7 @@ export function DataEditor({ config, onChange }: Props) {
   /* El anillo y la tarta reparten UN total: una segunda serie no se dibujaría,
      así que ofrecerla sería mentir. */
   const multiColumn = config.type === 'bar' || isRace;
-  const columnWord = isRace ? 'Periodo' : 'Serie';
+  const columnWord = isRace ? d.data.period : d.data.series;
   const known = isGlobe ? countKnown(labels) : 0;
 
   const apply = (next: Partial<ChartConfig['data']>, discrete = false) =>
@@ -95,7 +110,7 @@ export function DataEditor({ config, onChange }: Props) {
       return place && empty ? [place.lat, place.lon] : current;
     });
     apply({ coords: nextCoords }, true);
-    setNotice(`Rellenadas ${known} coordenada(s) por el nombre de la fila.`);
+    setNotice(fill(d.data.filledCoords, { n: known }));
   };
 
   const setValue = (row: number, column: number, raw: string) => {
@@ -125,7 +140,7 @@ export function DataEditor({ config, onChange }: Props) {
     if (labels.length >= MAX_ROWS) return;
     apply(
       {
-        labels: [...labels, `Categoría ${labels.length + 1}`],
+        labels: [...labels, fill(d.data.newRow, { n: labels.length + 1 })],
         series: series.map((s) => ({ ...s, values: [...s.values, 0] })),
         coords: coords ? [...coords, [0, 0]] : undefined,
       },
@@ -180,15 +195,21 @@ export function DataEditor({ config, onChange }: Props) {
       true,
     );
 
-    const parts = [`${rows} fila(s) y ${table.values.length} columna(s).`, ...table.issues];
-    if (table.usedHeader) parts.push('Se ha usado la primera fila como cabecera.');
+    const parts = [
+      fill(d.data.pasted, { rows, columns: table.values.length }),
+      ...table.issues.map((issue) => decir(issue, d)),
+    ];
+    if (table.usedHeader) parts.push(d.data.usedHeader);
     setNotice(parts.join(' '));
   };
 
   const ingest = (text: string, header?: boolean) => {
-    const table = parsePastedTable(text, header === undefined ? {} : { header });
+    const table = parsePastedTable(text, {
+      ...(header === undefined ? {} : { header }),
+      names: { column: columnWord, row: d.data.category },
+    });
     if (!table) {
-      setNotice('No he sabido leer eso. Hacen falta al menos dos columnas.');
+      setNotice(d.data.unreadable);
       return;
     }
     setLastPaste(text);
@@ -221,7 +242,7 @@ export function DataEditor({ config, onChange }: Props) {
         <table>
           <thead>
             <tr>
-              <th className="corner">Categoría</th>
+              <th className="corner">{d.data.category}</th>
               {series.map((serie, c) => (
                 <th key={c}>
                   <div>
@@ -230,17 +251,23 @@ export function DataEditor({ config, onChange }: Props) {
                         value={serie.name ?? ''}
                         placeholder={`${columnWord} ${c + 1}`}
                         onChange={(e) => setColumnName(c, e.target.value)}
-                        aria-label={`Nombre de ${columnWord.toLowerCase()} ${c + 1}`}
+                        aria-label={fill(d.data.columnName, {
+                          word: columnWord.toLowerCase(),
+                          n: c + 1,
+                        })}
                       />
                     ) : (
-                      <span>Valor</span>
+                      <span>{d.data.value}</span>
                     )}
                     {multiColumn && series.length > 1 && (
                       <button
                         type="button"
                         className="kill"
                         onClick={() => removeColumn(c)}
-                        aria-label={`Quitar ${columnWord.toLowerCase()} ${c + 1}`}
+                        aria-label={fill(d.data.removeColumn, {
+                          word: columnWord.toLowerCase(),
+                          n: c + 1,
+                        })}
                       >
                         ×
                       </button>
@@ -250,8 +277,8 @@ export function DataEditor({ config, onChange }: Props) {
               ))}
               {isGlobe && (
                 <>
-                  <th>Latitud</th>
-                  <th>Longitud</th>
+                  <th>{d.data.latitude}</th>
+                  <th>{d.data.longitude}</th>
                 </>
               )}
               <th className="gutter" />
@@ -265,7 +292,7 @@ export function DataEditor({ config, onChange }: Props) {
                   <input
                     value={label}
                     onChange={(e) => setLabel(row, e.target.value)}
-                    aria-label={`Nombre de la fila ${row + 1}`}
+                    aria-label={fill(d.data.rowName, { n: row + 1 })}
                   />
                 </th>
 
@@ -275,7 +302,10 @@ export function DataEditor({ config, onChange }: Props) {
                       inputMode="decimal"
                       value={serie.values[row] ?? 0}
                       onChange={(e) => setValue(row, c, e.target.value)}
-                      aria-label={`${label}, ${serie.name ?? `${columnWord} ${c + 1}`}`}
+                      aria-label={fill(d.data.cellLabel, {
+                        row: label,
+                        column: serie.name ?? `${columnWord} ${c + 1}`,
+                      })}
                     />
                   </td>
                 ))}
@@ -288,7 +318,7 @@ export function DataEditor({ config, onChange }: Props) {
                         placeholder="—"
                         value={coords?.[row]?.[0] ?? ''}
                         onChange={(e) => setCoord(row, 0, e.target.value)}
-                        aria-label={`Latitud de ${label}`}
+                        aria-label={fill(d.data.latitudeOf, { name: label })}
                       />
                     </td>
                     <td>
@@ -297,7 +327,7 @@ export function DataEditor({ config, onChange }: Props) {
                         placeholder="—"
                         value={coords?.[row]?.[1] ?? ''}
                         onChange={(e) => setCoord(row, 1, e.target.value)}
-                        aria-label={`Longitud de ${label}`}
+                        aria-label={fill(d.data.longitudeOf, { name: label })}
                       />
                     </td>
                   </>
@@ -309,7 +339,7 @@ export function DataEditor({ config, onChange }: Props) {
                       type="button"
                       className="kill"
                       onClick={() => removeRow(row)}
-                      aria-label={`Quitar ${label}`}
+                      aria-label={fill(d.data.removeRow, { name: label })}
                     >
                       ×
                     </button>
@@ -323,21 +353,21 @@ export function DataEditor({ config, onChange }: Props) {
 
       <div className="data-actions">
         <button type="button" onClick={addRow}>
-          + Fila
+          {d.data.addRow}
         </button>
         {multiColumn && (
           <button type="button" onClick={addColumn}>
-            + {columnWord}
+            {fill(d.data.addColumn, { word: columnWord })}
           </button>
         )}
         <span style={{ flex: 1 }} />
         {isGlobe && known > 0 && (
           <button type="button" onClick={fillKnownCoords}>
-            Rellenar {known} coordenada(s)
+            {fill(d.data.fillCoords, { n: known })}
           </button>
         )}
         <button type="button" onClick={() => fileRef.current?.click()}>
-          Abrir CSV
+          {d.data.openCsv}
         </button>
         <input
           ref={fileRef}
@@ -349,9 +379,8 @@ export function DataEditor({ config, onChange }: Props) {
       </div>
 
       <p className="data-hint">
-        Copia las celdas de tu hoja de cálculo y pégalas aquí.
-        {isRace &&
-          ' Cada columna es un periodo: países en las filas, años en las columnas.'}
+        {d.data.hint}
+        {isRace && ` ${d.data.hintRace}`}
       </p>
 
       {/*
@@ -364,10 +393,20 @@ export function DataEditor({ config, onChange }: Props) {
       */}
       {isGlobe && (
         <p className="data-hint">
-          Cada fila es un punto en el mapa. Necesita <b>coordenadas</b> y un{' '}
-          <b>valor mayor que cero</b>: sin las dos cosas no se dibuja. Escribe una ciudad o
-          un país conocido y las coordenadas se rellenan solas; el valor decide el tamaño
-          del punto.
+          {/* Las DOS cosas que hacen falta van en negrita, y por eso la frase se
+              parte por sus propios marcadores en vez de concatenar trozos: así
+              cada idioma las coloca donde le toca sin perder el énfasis. */}
+          {d.data.globeHint
+            .split(/(\{coords\}|\{value\})/)
+            .map((trozo, i) =>
+              trozo === '{coords}' ? (
+                <b key={i}>{d.data.globeHintCoords}</b>
+              ) : trozo === '{value}' ? (
+                <b key={i}>{d.data.globeHintValue}</b>
+              ) : (
+                trozo
+              ),
+            )}
         </p>
       )}
 
@@ -376,7 +415,7 @@ export function DataEditor({ config, onChange }: Props) {
           {notice}{' '}
           {lastPaste && (
             <button type="button" className="linky" onClick={flipHeader}>
-              Cambiar cabecera
+              {d.data.flipHeader}
             </button>
           )}
         </p>

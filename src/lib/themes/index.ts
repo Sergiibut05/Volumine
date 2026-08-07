@@ -12,11 +12,19 @@ import type { ChartConfig } from '../schema-types';
   fundirse bajo luz IBL sobre una superficie curva. Ya pasó.
 */
 
+/*
+  El NOMBRE y el para-qué-sirve NO viven aquí: son texto de interfaz y están en
+  `src/lib/i18n/dictionaries.ts`, en `themes`, con el id como clave.
+
+  El `id`, en cambio, se queda: viaja DENTRO de las configs publicadas, así que
+  cambiarlo rompería links que ya existen. Por eso `estudio` sigue llamándose
+  `estudio` aunque en inglés se lea «Studio».
+
+  De paso, este módulo entra en el bundle del embed —`applyTheme` resuelve la
+  config— y ahora entra sin una sola frase de copia.
+*/
 export type Theme = {
   id: string;
-  name: string;
-  /** Para qué sirve, en términos de uso, no de estética abstracta. */
-  use: string;
   /** Muestra para la tarjeta, sin tener que renderizar en 3D. */
   swatch: string[];
   config: Partial<ChartConfig>;
@@ -25,8 +33,6 @@ export type Theme = {
 export const THEMES: Theme[] = [
   {
     id: 'aurora',
-    name: 'Aurora',
-    use: 'El de por defecto. Saturado y frío, funciona sobre fondo oscuro.',
     swatch: ['#7c5cff', '#00d4ff', '#41ffc9', '#ffd166', '#ff4d6d'],
     config: {
       style: {
@@ -39,8 +45,6 @@ export const THEMES: Theme[] = [
   },
   {
     id: 'estudio',
-    name: 'Estudio',
-    use: 'Para incrustar en páginas claras. Cuerpo mate, sombra marcada.',
     swatch: ['#2f2f3a', '#6b6b7c', '#a8a8b8', '#d0d0da', '#ec6a5c'],
     config: {
       style: {
@@ -54,8 +58,6 @@ export const THEMES: Theme[] = [
   },
   {
     id: 'brasa',
-    name: 'Brasa',
-    use: 'Cálido y con contraste alto. Para una sola cifra que tiene que doler.',
     swatch: ['#ff6b35', '#f9c22e', '#e63946', '#8a2846', '#3d1420'],
     config: {
       style: {
@@ -69,8 +71,6 @@ export const THEMES: Theme[] = [
   },
   {
     id: 'metal',
-    name: 'Metal',
-    use: 'Superficie metálica. Se ve caro y pierde detalle: pocas categorías.',
     swatch: ['#c9d1d9', '#8b949e', '#f0b429', '#57606a', '#30363d'],
     config: {
       style: {
@@ -85,8 +85,6 @@ export const THEMES: Theme[] = [
   },
   {
     id: 'papel',
-    name: 'Papel',
-    use: 'Plano y sin brillos. Cuando la gráfica acompaña a un texto largo.',
     swatch: ['#264653', '#2a9d8f', '#e9c46a', '#f4a261', '#e76f51'],
     config: {
       style: {
@@ -103,8 +101,6 @@ export const THEMES: Theme[] = [
   },
   {
     id: 'nocturno',
-    name: 'Nocturno',
-    use: 'Luz baja y colores profundos. Para fondos casi negros.',
     swatch: ['#5b3ce6', '#0466c8', '#00a6fb', '#48cae4', '#ade8f4'],
     config: {
       style: {

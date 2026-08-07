@@ -15,6 +15,16 @@
   · Celdas vacías en medio.
 */
 
+/**
+ * Qué se ha tenido que arreglar al leer la tabla.
+ *
+ * Va como CÓDIGO y no como frase hecha: esto se le enseña al usuario y el
+ * usuario tiene idioma. Una cadena en español escrita aquí dentro obligaría a
+ * traducir en el sitio equivocado — este módulo no sabe quién está mirando, y
+ * no tiene por qué saberlo.
+ */
+export type ParseIssue = { code: 'empty-cells'; count: number } | { code: 'no-header' };
+
 export type ParsedTable = {
   /** Nombres de fila: las categorías. */
   labels: string[];
@@ -23,7 +33,7 @@ export type ParsedTable = {
   /** `values[columna][fila]`, que es como lo consume `data.series`. */
   values: number[][];
   /** Qué se ha tenido que arreglar. Se le enseña al usuario. */
-  issues: string[];
+  issues: ParseIssue[];
   /** Si se ha tomado la primera fila como cabecera. El usuario puede cambiarlo. */
   usedHeader: boolean;
 };
@@ -133,8 +143,20 @@ function detectSeparator(lines: string[]): string {
  */
 export function parsePastedTable(
   text: string,
-  options: { header?: boolean } = {},
+  options: {
+    header?: boolean;
+    /*
+      Cómo llamar a lo que llega SIN NOMBRE: «Serie 2», «Fila 7».
+
+      Las pone quien llama porque son palabras, y este módulo no sabe en qué
+      idioma está mirando nadie. Los valores por defecto están en inglés para
+      que llamarlo desde un test o un script siga dando algo legible.
+    */
+    names?: { column: string; row: string };
+  } = {},
 ): ParsedTable | null {
+  const names = options.names ?? { column: 'Series', row: 'Row' };
+
   const lines = text
     .replace(/\r\n?/g, '\n')
     .split('\n')
@@ -147,7 +169,7 @@ export function parsePastedTable(
   const width = rows.reduce((most, row) => Math.max(most, row.length), 0);
   if (width < 2) return null;
 
-  const issues: string[] = [];
+  const issues: ParseIssue[] = [];
 
   const hasHeader =
     options.header ?? (rows.length > 1 && looksLikeHeader(rows[0].slice(1), rows.slice(1)));
@@ -159,7 +181,11 @@ export function parsePastedTable(
   const columnCount = width - 1;
   const columns = Array.from({ length: columnCount }, (_, i) => {
     const name = header?.[i + 1]?.trim();
-    return name && name !== '' ? name : `Serie ${i + 1}`;
+    /* Sin cabecera, la columna se numera con el nombre que venga en `names`.
+       Esto ACABA EN LA GRÁFICA como nombre de serie, así que a partir de aquí
+       es un dato del usuario: no vuelve a cambiar si toca el selector de
+       idioma. Puede reescribirlo en la tabla. */
+    return name && name !== '' ? name : `${names.column} ${i + 1}`;
   });
 
   const labels: string[] = [];
@@ -168,7 +194,7 @@ export function parsePastedTable(
 
   body.forEach((row, rowIndex) => {
     const label = row[0]?.trim();
-    labels.push(label && label !== '' ? label : `Fila ${rowIndex + 1}`);
+    labels.push(label && label !== '' ? label : `${names.row} ${rowIndex + 1}`);
 
     for (let c = 0; c < columnCount; c += 1) {
       const parsed = parseNumber(row[c + 1] ?? '');
@@ -177,12 +203,8 @@ export function parsePastedTable(
     }
   });
 
-  if (emptyCells > 0) {
-    issues.push(`${emptyCells} celda(s) sin número: cuentan como 0.`);
-  }
-  if (!hasHeader) {
-    issues.push('Sin fila de cabecera: las columnas se han numerado.');
-  }
+  if (emptyCells > 0) issues.push({ code: 'empty-cells', count: emptyCells });
+  if (!hasHeader) issues.push({ code: 'no-header' });
 
   return { labels, columns, values, issues, usedHeader: hasHeader };
 }

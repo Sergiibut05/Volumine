@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChartCanvas } from '@/renderer/ChartCanvas';
 import { parseConfig } from '@/lib/config/parse';
+import { useI18n } from '@/lib/i18n/client';
 import type { ChartTypeEntry } from '@/lib/chart-types';
 
 /*
@@ -15,6 +16,8 @@ import type { ChartTypeEntry } from '@/lib/chart-types';
 */
 
 export function TypeCard({ type }: { type: ChartTypeEntry }) {
+  const { d } = useI18n();
+  const texto = d.types[type.id];
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
@@ -67,14 +70,15 @@ export function TypeCard({ type }: { type: ChartTypeEntry }) {
             gap: '0.5rem 0.625rem',
           }}
         >
-          <h3>{type.name}</h3>
+          <h3>{texto.name}</h3>
           <span className="tag" data-status={type.status}>
-            {type.status === 'listo' ? 'Listo' : 'En camino'}
+            {type.status === 'listo' ? d.landing.ready : d.landing.comingSoon}
           </span>
         </div>
-        <p>{type.answers}</p>
+        <p>{texto.answers}</p>
         <p className="avoid">
-          <strong style={{ fontWeight: 600 }}>Evítalo:</strong> {type.avoid}
+          <strong style={{ fontWeight: 600 }}>{d.landing.avoidPrefix}:</strong>{' '}
+          {texto.avoid}
         </p>
       </div>
     </article>

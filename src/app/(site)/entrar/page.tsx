@@ -5,17 +5,23 @@ import '@/styles/auth.css';
 import { LoginForm } from './LoginForm';
 import { currentUser } from '@/lib/charts/queries';
 import { supabaseConfigured } from '@/lib/supabase/env';
+import { getDictionary } from '@/lib/i18n/server';
+import type { Dictionary } from '@/lib/i18n/dictionaries';
 
-export const metadata: Metadata = {
-  title: 'Entrar · Volumine',
-  // Una pantalla de acceso no pinta nada en un buscador.
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { d } = await getDictionary();
+  return {
+    title: d.meta.signIn,
+    // Una pantalla de acceso no pinta nada en un buscador.
+    robots: { index: false, follow: false },
+  };
+}
 
-const MOTIVOS: Record<string, string> = {
-  'sin-codigo': 'Ese link no traía nada. Pide uno nuevo.',
-  'link-caducado': 'Ese link ya no vale: o ha caducado o ya se había usado.',
-};
+/* Por qué te han devuelto aquí. Lo escribe el callback de auth en `?error=`,
+   así que las CLAVES son parte de una URL y no se traducen; lo que se traduce
+   es lo que se lee. */
+const motivo = (clave: string, d: Dictionary): string | undefined =>
+  ({ 'sin-codigo': d.auth.errNoCode, 'link-caducado': d.auth.errExpired })[clave];
 
 export default async function EntrarPage({
   searchParams,
@@ -23,6 +29,7 @@ export default async function EntrarPage({
   searchParams: Promise<{ next?: string; error?: string }>;
 }) {
   const { next, error } = await searchParams;
+  const { d } = await getDictionary();
 
   /*
     Si Supabase no está configurado, esta pantalla no puede hacer nada. Se dice,
@@ -33,13 +40,10 @@ export default async function EntrarPage({
     return (
       <div className="auth-page" data-theme="light">
         <div className="auth-card">
-          <h1 className="display">Sin cuentas por ahora</h1>
-          <p>
-            Esta instalación no tiene base de datos configurada, así que no se puede guardar
-            nada. El editor funciona igual: la config viaja dentro del link.
-          </p>
+          <h1 className="display">{d.auth.noAccounts}</h1>
+          <p>{d.auth.noAccountsBody}</p>
           <Link className="cta" href="/crear">
-            Ir al editor
+            {d.auth.goToEditor}
           </Link>
         </div>
       </div>
@@ -51,16 +55,16 @@ export default async function EntrarPage({
 
   return (
     <div className="auth-page" data-theme="light">
-      {error && MOTIVOS[error] && (
+      {error && motivo(error, d) && (
         <p className="auth-error" role="alert">
-          {MOTIVOS[error]}
+          {motivo(error, d)}
         </p>
       )}
       {/* `next` se sanea otra vez en el callback: aquí solo se transporta, y lo
           que llega en una query lo escribe quien quiera. */}
       <LoginForm next={next ?? '/mis-graficas'} />
       <Link className="auth-back" href="/">
-        ← Volver
+        {d.common.back}
       </Link>
     </div>
   );

@@ -11,7 +11,7 @@ import { formatter } from '@/lib/format';
 import { parseConfig } from '@/lib/config/parse';
 import { buildEmbedUrl, MAX_URL_LENGTH } from '@/lib/config/url';
 import { THEMES } from '@/lib/themes';
-import { CHART_TYPES } from '@/lib/chart-types';
+import { chartTypes } from '@/lib/chart-types';
 import { computeSectors, globalBevel, OUTER_RADIUS } from '@/renderer/geometry/donut';
 import { computeGauge } from '@/renderer/geometry/gauge';
 import { gaugeReadout } from '@/lib/gauge';
@@ -22,6 +22,10 @@ import type { ResolvedChartConfig } from '@/lib/config/defaults';
 import { Group, Slider, Choices, type Choice } from './controls';
 import { DataEditor } from './DataEditor';
 import { Wordmark } from '../Wordmark';
+import { LocaleSwitch } from '../LocaleSwitch';
+import { fill, useI18n } from '@/lib/i18n/client';
+import { LOCALES, type Dictionary, type Locale } from '@/lib/i18n/dictionaries';
+import { initialConfig } from '@/lib/config/initial';
 import { SaveBar } from './SaveBar';
 import type { Visibility } from '@/lib/supabase/types';
 
@@ -37,44 +41,25 @@ import type { Visibility } from '@/lib/supabase/types';
 */
 
 /*
-  El ejemplo con el que arranca una gráfica nueva.
-
-  Sigue siendo una constante de módulo aunque el estado inicial venga por props:
-  `switchType` la usa para saber si los datos que hay son los de EJEMPLO o los
-  del usuario, y solo pisa los primeros. Una gráfica cargada nunca coincide con
-  esto, así que sus datos están a salvo por construcción.
+  Los materiales y los fondos se construyen CON EL DICCIONARIO, no como
+  constantes de módulo: sus nombres dependen del idioma y una constante se
+  evalúa una vez, al importar, cuando todavía no se sabe quién va a mirar.
 */
-export const INITIAL: ChartConfig = {
-  v: 1,
-  type: 'donut',
-  /* SIN título. Lo tenía, y al guardar se quedaba en el listado un nombre que
-     el usuario no había escrito nunca — parecía que la aplicación se lo
-     inventaba. El campo arranca vacío con su marcador de posición y no se puede
-     guardar hasta ponerle uno: es lo que vas a ver en tu listado y en la tarjeta
-     de enlace, así que merece un segundo de tu atención. */
-  data: {
-    labels: ['Suscripciones', 'Servicios', 'Licencias', 'Formación', 'Otros'],
-    series: [{ values: [42, 26, 17, 9, 6] }],
-    format: { unit: ' k€', locale: 'es-ES' },
-  },
-  // El tema se nombra y se resuelve al parsear. Aquí solo va lo propio.
-  theme: 'aurora',
-  scene: { background: { kind: 'transparent' } },
-};
+const materiales = (d: Dictionary) =>
+  [
+    { id: 'physical', label: d.editor.matPhysical, hint: d.editor.matPhysicalHint },
+    { id: 'matte', label: d.editor.matMatte, hint: d.editor.matMatteHint },
+    { id: 'metal', label: d.editor.matMetal, hint: d.editor.matMetalHint },
+    { id: 'glass', label: d.editor.matGlass, hint: d.editor.matGlassHint },
+    { id: 'toon', label: d.editor.matToon, hint: d.editor.matToonHint },
+  ] as const;
 
-const MATERIALS = [
-  { id: 'physical', label: 'Plástico', hint: 'Brillo suave. El de por defecto.' },
-  { id: 'matte', label: 'Mate', hint: 'Sin reflejos. Se lee bien impreso.' },
-  { id: 'metal', label: 'Metal', hint: 'Caro pero pierde detalle.' },
-  { id: 'glass', label: 'Vidrio', hint: 'Translúcido. Pocas categorías.' },
-  { id: 'toon', label: 'Plano', hint: 'Sin sombreado. Junto a texto largo.' },
-] as const;
-
-const BACKGROUNDS = [
-  { id: 'transparent', label: 'Transparente', hint: 'Se funde con tu página.' },
-  { id: 'solid', label: 'Sólido', hint: 'Un color.' },
-  { id: 'gradient', label: 'Degradado', hint: 'De un color a otro.' },
-] as const;
+const fondos = (d: Dictionary) =>
+  [
+    { id: 'transparent', label: d.editor.bgTransparent, hint: d.editor.bgTransparentHint },
+    { id: 'solid', label: d.editor.bgSolid, hint: d.editor.bgSolidHint },
+    { id: 'gradient', label: d.editor.bgGradient, hint: d.editor.bgGradientHint },
+  ] as const;
 
 /** Tipos que solo leen `series[0]`: un total repartido, no varias magnitudes. */
 const SINGLE_SERIES: ReadonlySet<ChartConfig['type']> = new Set([
@@ -98,7 +83,11 @@ const SINGLE_SERIES: ReadonlySet<ChartConfig['type']> = new Set([
  * - Al ir al globo se crean coordenadas vacías, para que se vea qué falta en
  *   vez de dejar un planeta pelado sin explicación.
  */
-function switchType(config: ChartConfig, type: ChartConfig['type']): Partial<ChartConfig> {
+function switchType(
+  config: ChartConfig,
+  type: ChartConfig['type'],
+  locale: Locale,
+): Partial<ChartConfig> {
   /* El medidor abre más el agujero: la cifra va dentro, y con 0,55 el número
      grande se sale del hueco y se lee encima del propio arco. */
   const hole = type === 'pie' ? 0 : type === 'gauge' ? 0.68 : 0.55;
@@ -115,8 +104,13 @@ function switchType(config: ChartConfig, type: ChartConfig['type']): Partial<Cha
   /* Solo se pisan los datos de EJEMPLO. Si el usuario ya ha escrito los suyos,
      cambiar de tipo no puede borrárselos. Ahora hay deshacer, pero eso no es
      excusa: que una acción sea reversible no la vuelve aceptable. */
-  const pristine = JSON.stringify(config.data) === JSON.stringify(INITIAL.data);
-  const sample = CHART_TYPES.find((entry) => entry.id === type)?.sample;
+  /* Se compara contra el ejemplo de CUALQUIER idioma, no solo el de ahora: si
+     alguien empieza en español y cambia el selector a inglés, sus datos siguen
+     siendo los de muestra y sustituirlos es exactamente lo que quiere. Son dos
+     comparaciones de cadena; el coste no existe. */
+  const actual = JSON.stringify(config.data);
+  const pristine = LOCALES.some((l) => actual === JSON.stringify(initialConfig(l).data));
+  const sample = chartTypes(locale).find((entry) => entry.id === type)?.sample;
 
   if (pristine && sample) return { type, data: trim(sample.data), ...shape };
 
@@ -151,6 +145,7 @@ export type EditorProps = {
 };
 
 export function Editor({ initial, chartId, visibility, signedIn, userId }: EditorProps) {
+  const { d, locale } = useI18n();
   /* El póster se captura del canvas al guardar. Va por `ref` porque no es un
      evento: es algo que se PIDE cuando hace falta. Ver lib/charts/poster.ts. */
   const capture = useRef<(() => string) | null>(null);
@@ -242,7 +237,6 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
     );
   }, [parsed]);
 
-  const patch = (next: Partial<ChartConfig>) => setConfig((c) => ({ ...c, ...next }));
   const patchStyle = (next: Partial<NonNullable<ChartConfig['style']>>) =>
     setConfig((c) => ({ ...c, style: { ...c.style, ...next } }));
 
@@ -292,8 +286,8 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
 
   const themeChoices: Choice[] = THEMES.map((theme) => ({
     id: theme.id,
-    label: theme.name,
-    hint: theme.use,
+    label: d.themes[theme.id as keyof Dictionary['themes']].name,
+    hint: d.themes[theme.id as keyof Dictionary['themes']].use,
     preview: (
       <span className="swatch" aria-hidden>
         {theme.swatch.map((c) => (
@@ -303,10 +297,10 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
     ),
   }));
 
-  const typeChoices: Choice[] = CHART_TYPES.map((type) => ({
+  const typeChoices: Choice[] = chartTypes(locale).map((type) => ({
     id: String(type.id),
-    label: type.name,
-    hint: type.status === 'listo' ? type.answers : 'Todavía no disponible',
+    label: d.types[type.id].name,
+    hint: type.status === 'listo' ? d.types[type.id].answers : d.editor.notAvailable,
     disabled: type.status !== 'listo',
     preview: <TypePreview id={String(type.id)} ready={type.status === 'listo'} />,
   }));
@@ -335,7 +329,7 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
       */}
       <header className="topbar">
         <div className="topbar-left">
-          <Link href="/" className="panel-brand" aria-label="Volumine — inicio">
+          <Link href="/" className="panel-brand" aria-label={d.nav.home}>
             <Wordmark size={1.0625} />
           </Link>
 
@@ -345,7 +339,7 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
                 /
               </span>
               <Link className="panel-nav" href="/mis-graficas">
-                Mis gráficas
+                {d.nav.myCharts}
               </Link>
             </>
           )}
@@ -360,9 +354,9 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
             ref={tituloRef}
             className="chart-title"
             value={config.title ?? ''}
-            placeholder="Ponle un nombre"
+            placeholder={d.editor.namePlaceholder}
             maxLength={200}
-            aria-label="Nombre de la gráfica"
+            aria-label={d.editor.nameLabel}
             aria-invalid={faltaNombre || undefined}
             data-missing={faltaNombre || undefined}
             onChange={(e) => {
@@ -374,7 +368,9 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
 
         <div className="topbar-right">
           {url && !url.ok && (
-            <span className="topbar-warn">Pasa de {MAX_URL_LENGTH} caracteres</span>
+            <span className="topbar-warn">
+              {fill(d.editor.tooLong, { max: MAX_URL_LENGTH })}
+            </span>
           )}
 
           {/* Deshacer y rehacer. Los atajos los pone el hook; los botones están
@@ -385,8 +381,8 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
               type="button"
               onClick={history.undo}
               disabled={!history.canUndo}
-              title="Deshacer (Ctrl+Z)"
-              aria-label="Deshacer"
+              title={`${d.editor.undo} (Ctrl+Z)`}
+              aria-label={d.editor.undo}
             >
               ↶
             </button>
@@ -394,12 +390,17 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
               type="button"
               onClick={history.redo}
               disabled={!history.canRedo}
-              title="Rehacer (Ctrl+Shift+Z)"
-              aria-label="Rehacer"
+              title={`${d.editor.redo} (Ctrl+Shift+Z)`}
+              aria-label={d.editor.redo}
             >
               ↷
             </button>
           </div>
+
+          {/* El selector de idioma va junto a guardar y no en un menú: cabe en
+              cuatro caracteres y quien lo necesita lo necesita ANTES de saber
+              buscarlo — justo porque la interfaz está en un idioma que no lee. */}
+          <LocaleSwitch />
 
           <SaveBar
             config={config}
@@ -456,9 +457,11 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
 
         {url && (
           <div className="sharebar">
-            <code>{url.ok ? url.url : `${url.length} caracteres — demasiado largo`}</code>
+            <code>
+              {url.ok ? url.url : fill(d.editor.tooLongChars, { n: url.length })}
+            </code>
             <button type="button" onClick={copy} disabled={!url.ok}>
-              {copied ? 'Copiado' : 'Copiar link'}
+              {copied ? d.common.copied : d.common.copyLink}
             </button>
           </div>
         )}
@@ -466,7 +469,7 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
 
       <aside className="panel">
         {/* Nivel 1 — un control, y con esto ya se puede publicar. */}
-        <Group title="Tema" hint="Empieza por aquí">
+        <Group title={d.editor.groupTheme} hint={d.editor.groupThemeHint}>
           <Choices
             label="Tema"
             options={themeChoices}
@@ -487,7 +490,7 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
         {/* Los DATOS van antes que el aspecto. Es lo que la gente viene a meter,
             y ordenar el panel al revés convierte la herramienta en un juguete de
             estilo con unos números de ejemplo pegados. */}
-        <Group title="Datos" hint="Pega desde tu hoja">
+        <Group title={d.editor.groupData} hint={d.editor.groupDataHint}>
           <DataEditor
             config={config}
             onChange={(data, discrete) =>
@@ -496,21 +499,24 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
           />
         </Group>
 
-        <Group title="Tipo">
+        <Group title={d.editor.groupType}>
           <Choices
-            label="Tipo de gráfica"
+            label={d.editor.chartType}
             options={typeChoices}
             value={config.type}
             onChange={(id) =>
-              setConfig((c) => ({ ...c, ...switchType(c, id as ChartConfig['type']) }), {
-                coalesce: false,
-              })
+              setConfig(
+                (c) => ({ ...c, ...switchType(c, id as ChartConfig['type'], locale) }),
+                {
+                  coalesce: false,
+                },
+              )
             }
           />
         </Group>
 
         {/* Nivel 2 — los ajustes que de verdad usa la mayoría. */}
-        <Group title="Color">
+        <Group title={d.editor.groupColor}>
           <div className="segments">
             {config.data.labels.map((label, i) => {
               const values = config.data.series[0].values;
@@ -525,7 +531,7 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
                     type="color"
                     value={color}
                     onChange={(e) => setSegmentColor(i, e.target.value)}
-                    aria-label={`Color de ${label}`}
+                    aria-label={fill(d.editor.colorOf, { name: label })}
                   />
                   <span>{label}</span>
                   {/* En barras el porcentaje del total no dice nada: 42 no es
@@ -546,37 +552,39 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
         {/* El globo no comparte casi nada con los demás: no tiene canto, ni
             grosor, ni separación. Sus propios controles, y solo los suyos. */}
         {isGlobe && (
-          <Group title="Planeta">
+          <Group title={d.editor.groupPlanet}>
             <div className="segments">
               <ColorRow
-                label="Planeta"
+                label={d.editor.groupPlanet}
                 value={style?.globe.base ?? '#111634'}
                 onChange={(base) => patchGlobe({ base })}
               />
               <ColorRow
-                label="Tierra"
+                label={d.editor.land}
                 value={style?.globe.land ?? '#8b7dff'}
                 onChange={(land) => patchGlobe({ land })}
               />
               <ColorRow
-                label="Halo"
+                label={d.editor.halo}
                 value={style?.globe.glow ?? '#5b3ce6'}
                 onChange={(glow) => patchGlobe({ glow })}
               />
             </div>
             <Slider
-              label="Densidad del mapa"
+              label={d.editor.mapDensity}
               value={style?.globe.density ?? 0.72}
               min={0}
               max={1}
               step={0.01}
               format={(v) =>
-                `${Math.round(6000 + (40000 - 6000) * v).toLocaleString('es-ES')} puntos`
+                fill(d.editor.dots, {
+                  count: Math.round(6000 + (40000 - 6000) * v).toLocaleString(locale),
+                })
               }
               onChange={(density) => patchGlobe({ density })}
             />
             <Slider
-              label="Tamaño del punto"
+              label={d.editor.dotSize}
               value={style?.globe.dotSize ?? 0.7}
               min={0}
               max={1}
@@ -584,7 +592,7 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
               onChange={(dotSize) => patchGlobe({ dotSize })}
             />
             <Choices
-              label="Marcador"
+              label={d.editor.marker}
               value={config.style?.globe?.marker ?? 'dot'}
               onChange={(marker) =>
                 patchGlobe({ marker: marker as 'dot' | 'pin' | 'pulse' })
@@ -592,26 +600,26 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
               options={[
                 {
                   id: 'dot',
-                  label: 'Punto',
-                  hint: 'Lo más sobrio.',
+                  label: d.editor.markerDot,
+                  hint: d.editor.markerDotHint,
                   preview: <MarkerPreview kind="dot" />,
                 },
                 {
                   id: 'pin',
-                  label: 'Chincheta',
-                  hint: 'Se ve dónde toca, incluso de canto.',
+                  label: d.editor.markerPin,
+                  hint: d.editor.markerPinHint,
                   preview: <MarkerPreview kind="pin" />,
                 },
                 {
                   id: 'pulse',
-                  label: 'Pulso',
-                  hint: 'Para «está pasando ahora».',
+                  label: d.editor.markerPulse,
+                  hint: d.editor.markerPulseHint,
                   preview: <MarkerPreview kind="pulse" />,
                 },
               ]}
             />
             <Slider
-              label="Tamaño del marcador"
+              label={d.editor.markerSize}
               value={style?.globe.markerSize ?? 0.62}
               min={0}
               max={1}
@@ -625,15 +633,15 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
             es lo único de esta pantalla que cambia lo que el dato QUIERE DECIR
             en vez de cómo se ve. */}
         {isGauge && (
-          <Group title="Escala" hint="Sobre qué se mide">
+          <Group title={d.editor.groupScale} hint={d.editor.groupScaleHint}>
             <label className="control">
               <header>
-                <span>Tope de la escala</span>
+                <span>{d.editor.scaleMax}</span>
                 {/* Solo se dice algo cuando hay algo que decir. Pasarse del tope
                     llena el arco entero, así que sin este aviso la gráfica se ve
                     igual de llena con 100 que con 240 y no se entiende por qué. */}
                 {gaugeReading?.overflow && (
-                  <output className="warn">Los datos se pasan del tope</output>
+                  <output className="warn">{d.editor.overflow}</output>
                 )}
               </header>
               <input
@@ -647,29 +655,29 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
               />
             </label>
             <Slider
-              label="Apertura del arco"
+              label={d.editor.arcSpread}
               value={config.style?.gauge?.sweep ?? 270}
               min={120}
               max={360}
               step={5}
-              format={(v) => (v === 360 ? 'Anillo completo' : `${v}°`)}
+              format={(v) => (v === 360 ? d.editor.fullRing : `${v}°`)}
               onChange={(sweep) => patchGauge({ sweep })}
             />
             <Choices
-              label="Resto de la escala"
+              label={d.editor.restOfScale}
               value={config.style?.gauge?.track === false ? 'off' : 'on'}
               onChange={(v) => patchGauge({ track: v === 'on' })}
               options={[
                 {
                   id: 'on',
-                  label: 'A la vista',
-                  hint: 'Se ve cuánto falta.',
+                  label: d.editor.trackOn,
+                  hint: d.editor.trackOnHint,
                   preview: <TrackPreview track />,
                 },
                 {
                   id: 'off',
-                  label: 'Oculto',
-                  hint: 'Solo el trozo lleno.',
+                  label: d.editor.trackOff,
+                  hint: d.editor.trackOffHint,
                   preview: <TrackPreview track={false} />,
                 },
               ]}
@@ -680,20 +688,23 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
         {/* Cada tipo enseña SOLO sus campos. Un slider que no hace nada es peor
             que uno que falta: te hace dudar de si la gráfica está rota. */}
         {!isGlobe && (
-          <Group title="Forma" hint="Rangos seguros">
+          <Group title={d.editor.groupShape} hint={d.editor.groupShapeHint}>
             <Slider
-              label="Canto redondeado"
+              label={d.editor.bevel}
               value={style?.bevel ?? 0.6}
               min={0}
               max={1}
               step={0.01}
               format={(v) =>
-                `${(v * bevelCeiling).toFixed(3)} de ${bevelCeiling.toFixed(3)}`
+                fill(d.editor.ofMax, {
+                  value: (v * bevelCeiling).toFixed(3),
+                  max: bevelCeiling.toFixed(3),
+                })
               }
               onChange={(v) => patchStyle({ bevel: v })}
             />
             <Slider
-              label={isBar ? 'Altura' : 'Grosor'}
+              label={isBar ? d.editor.barHeight : d.editor.thickness}
               value={style?.height ?? 0.34}
               min={0.05}
               max={1}
@@ -702,7 +713,7 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
             />
             {isBar ? (
               <Slider
-                label="Punta redondeada"
+                label={d.editor.roundedTip}
                 value={style?.cornerRadius ?? 0.2}
                 min={0}
                 max={1}
@@ -711,7 +722,7 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
               />
             ) : (
               <Slider
-                label="Agujero central"
+                label={d.editor.innerRadius}
                 value={style?.innerRadius ?? 0.55}
                 min={0}
                 max={0.85}
@@ -720,7 +731,7 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
               />
             )}
             <Slider
-              label="Separación"
+              label={d.editor.gap}
               value={style?.gap ?? 0.012}
               min={0}
               max={0.05}
@@ -730,7 +741,7 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
             />
             {!isBar && (
               <Slider
-                label="Sectores separados"
+                label={d.editor.explode}
                 value={style?.explode ?? 0}
                 min={0}
                 max={1}
@@ -744,10 +755,10 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
         {/* Los marcadores del globo son emisivos a propósito: el material no
             los toca, así que el selector engañaría. */}
         {!isGlobe && (
-          <Group title="Acabado">
+          <Group title={d.editor.groupFinish}>
             <Choices
-              label="Material"
-              options={MATERIALS.map((m) => ({
+              label={d.editor.material}
+              options={materiales(d).map((m) => ({
                 id: m.id,
                 label: m.label,
                 hint: m.hint,
@@ -769,9 +780,9 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
           es no romper nunca un link que ya existe.
         */}
         {supportsLabels && (
-          <Group title="Etiquetas" hint="Ver los datos sin pasar el ratón">
+          <Group title={d.editor.groupLabels} hint={d.editor.groupLabelsHint}>
             <Choices
-              label="Etiquetas"
+              label={d.editor.groupLabels}
               value={
                 config.labels?.show !== true ? 'none' : (config.labels?.mode ?? 'outside')
               }
@@ -791,14 +802,14 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
               options={[
                 {
                   id: 'none',
-                  label: 'Al pasar',
-                  hint: 'Solo al poner el ratón encima.',
+                  label: d.editor.labelsOnHover,
+                  hint: d.editor.labelsOnHoverHint,
                   preview: <LabelPreview leaders={false} bars={isBar || isRace} />,
                 },
                 {
                   id: 'outside',
-                  label: 'Siempre',
-                  hint: 'Junto a cada parte.',
+                  label: d.editor.labelsAlways,
+                  hint: d.editor.labelsAlwaysHint,
                   preview: <LabelPreview leaders bars={isBar || isRace} />,
                 },
                 {
@@ -806,8 +817,8 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
                   /* Con nombres largos o muchas categorías, colocadas alrededor
                      del dibujo no caben y la mitad se descartan; en lista caben
                      todas. */
-                  label: 'Leyenda',
-                  hint: 'Una lista en una esquina.',
+                  label: d.editor.labelsLegend,
+                  hint: d.editor.labelsLegendHint,
                   preview: <LegendPreview />,
                 },
               ]}
@@ -816,7 +827,7 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
             {config.labels?.show && (
               <>
                 <Choices
-                  label="Qué se enseña"
+                  label={d.editor.whatShows}
                   value={
                     config.labels?.showPercent
                       ? config.labels?.showValues
@@ -840,26 +851,26 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
                   options={[
                     {
                       id: 'valor',
-                      label: 'Valor',
-                      hint: 'La cifra tal cual.',
+                      label: d.editor.showValue,
+                      hint: d.editor.showValueHint,
                       preview: <ShowPreview texto="42" />,
                     },
                     {
                       id: 'porcentaje',
-                      label: 'Porcentaje',
-                      hint: 'Su parte del total.',
+                      label: d.editor.showPercent,
+                      hint: d.editor.showPercentHint,
                       preview: <ShowPreview texto="35%" />,
                     },
                     {
                       id: 'ambos',
-                      label: 'Los dos',
-                      hint: 'Cifra y porcentaje.',
+                      label: d.editor.showBoth,
+                      hint: d.editor.showBothHint,
                       preview: <ShowPreview texto="42 · 35%" />,
                     },
                   ]}
                 />
                 <Slider
-                  label="Tamaño del texto"
+                  label={d.editor.textSize}
                   value={config.labels?.size ?? 1}
                   min={0.7}
                   max={1.6}
@@ -874,10 +885,10 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
           </Group>
         )}
 
-        <Group title="Fondo">
+        <Group title={d.editor.groupBackground}>
           <Choices
-            label="Fondo"
-            options={BACKGROUNDS.map((b) => ({
+            label={d.editor.groupBackground}
+            options={fondos(d).map((b) => ({
               id: b.id,
               label: b.label,
               hint: b.hint,
@@ -917,13 +928,13 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
           {bgKind !== 'transparent' && (
             <div className="segments">
               <ColorRow
-                label={bgKind === 'gradient' ? 'Desde' : 'Color'}
+                label={bgKind === 'gradient' ? d.editor.bgFrom : d.editor.bgColor}
                 value={config.scene?.background?.from ?? '#0b0b12'}
                 onChange={(from) => patchBackground({ from })}
               />
               {bgKind === 'gradient' && (
                 <ColorRow
-                  label="Hasta"
+                  label={d.editor.bgTo}
                   value={config.scene?.background?.to ?? '#1a1030'}
                   onChange={(to) => patchBackground({ to })}
                 />
@@ -933,7 +944,7 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
 
           {bgKind === 'gradient' && (
             <Slider
-              label="Ángulo"
+              label={d.editor.bgAngle}
               value={config.scene?.background?.angle ?? 135}
               min={0}
               max={360}
@@ -948,10 +959,10 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
             control de movimiento. El grupo entero se va: una tarjeta con título
             y nada dentro se lee como algo que se ha roto al cargar. */}
         {(!isGauge || isRace) && (
-          <Group title="Movimiento">
+          <Group title={d.editor.groupMotion}>
             {isRace && (
               <Slider
-                label="Duración de cada periodo"
+                label={d.editor.frameDuration}
                 value={config.motion?.frameDuration ?? DEFAULT_FRAME_MS}
                 min={300}
                 max={4000}
@@ -971,12 +982,16 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
               peor que uno que falta, así que aquí directamente no está. */}
             {!isGauge && (
               <Slider
-                label={isRace || isBar ? 'Vaivén' : 'Velocidad de giro'}
+                label={isRace || isBar ? d.editor.sway : d.editor.spinSpeed}
                 value={config.motion?.speed ?? 0.9}
                 min={0}
                 max={4}
                 step={0.1}
-                format={(v) => (v === 0 ? 'Parado' : `${v.toFixed(1)} vueltas/min`)}
+                format={(v) =>
+                  v === 0
+                    ? d.editor.stopped
+                    : fill(d.editor.turnsPerMin, { n: v.toFixed(1) })
+                }
                 onChange={(v) =>
                   setConfig((c) => ({
                     ...c,
@@ -998,7 +1013,7 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
               fontWeight: 700,
             }}
           >
-            Avanzado
+            {d.editor.advanced}
           </summary>
           <div
             style={{
@@ -1008,7 +1023,7 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
             }}
           >
             <Slider
-              label="Intensidad de luz"
+              label={d.editor.lightIntensity}
               value={config.scene?.lightIntensity ?? 0.55}
               min={0}
               max={1.2}
@@ -1018,7 +1033,7 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
               }
             />
             <Slider
-              label="Rugosidad"
+              label={d.editor.roughness}
               value={style?.roughness ?? 0.32}
               min={0}
               max={1}
@@ -1026,7 +1041,7 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
               onChange={(v) => patchStyle({ roughness: v })}
             />
             <Slider
-              label="Ángulo de cámara"
+              label={d.editor.cameraAngle}
               value={config.camera?.polar ?? 62}
               min={5}
               max={88}
@@ -1063,13 +1078,14 @@ function ColorRow({
   value: string;
   onChange: (color: string) => void;
 }) {
+  const { d } = useI18n();
   return (
     <label className="segment">
       <input
         type="color"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        aria-label={`Color: ${label}`}
+        aria-label={fill(d.editor.colorOf, { name: label })}
       />
       <span>{label}</span>
       <output>{value.toUpperCase()}</output>
