@@ -5,6 +5,7 @@ import '@/styles/marketing.css';
 import { HeroChart } from './HeroChart';
 import { TypeCard } from './TypeCard';
 import { EnUso } from './EnUso';
+import { LOGOS } from '@/lib/logos';
 import { chartTypes } from '@/lib/chart-types';
 import { getDictionary } from '@/lib/i18n/server';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
@@ -128,11 +129,18 @@ export default async function HomePage() {
         <section className="shell worksin">
           <p className="worksin-title">{d.landing.worksInTitle}</p>
           <ul className="worksin-list">
-            {['Notion', 'Canva', 'Framer', 'Webflow', 'WordPress', 'Medium', 'Confluence'].map(
-              (sitio) => (
-                <li key={sitio}>{sitio}</li>
-              ),
-            )}
+            {LOGOS.map((l) => (
+              <li key={l.nombre}>
+                {l.path ? (
+                  <svg viewBox="0 0 24 24" aria-hidden focusable="false">
+                    <path d={l.path} fill="currentColor" />
+                  </svg>
+                ) : null}
+                {l.nombre}
+              </li>
+            ))}
+            {/* La propia web de quien mira: el caso que más gente tiene y el
+                único que ninguna marca de terceros representa. */}
             <li className="worksin-own">&lt;iframe&gt;</li>
           </ul>
         </section>

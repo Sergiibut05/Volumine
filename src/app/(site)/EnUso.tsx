@@ -86,8 +86,12 @@ const PUESTOS: Record<string, Puesto> = {
   /* En la diapositiva es la protagonista y ocupa media hoja. */
   slide: { dx: 35.7, dy: 2.5, escala: 0.95 },
   /* En el panel vive dentro de una celda blanca, con las cifras al lado. */
-  panel: { dx: -30.4, dy: 8.75, escala: 0.93 },
+  panel: { dx: -30.4, dy: 11.9, escala: 0.84 },
 };
+
+/* Los mismos números en la gráfica y en el desglose del panel. Dos listas
+   distintas acabarían contando cosas distintas en la misma pantalla. */
+const VALORES = [42, 26, 18, 14];
 
 const base = (
   labels: string[],
@@ -100,7 +104,7 @@ const base = (
   theme: 'estudio',
   data: {
     labels: labels.slice(0, 4),
-    series: [{ values: [42, 26, 18, 14] }],
+    series: [{ values: VALORES }],
     format: { unit, locale: numberLocale },
   },
   /* Transparente A PROPÓSITO: es la prueba de la promesa, y aquí se ve sola
@@ -235,23 +239,51 @@ export function EnUso() {
               <p className="deco-kicker">{d.landing.panelTitle}</p>
               <span className="panel-range">{d.landing.panelRange}</span>
             </div>
+
             {/* La celda. En un panel de verdad la gráfica no flota sobre el
-                fondo: vive dentro de una tarjeta, como todo lo demás. Va aquí
-                y no en el hueco porque el hueco es el mismo nodo en los tres
-                decorados y en los otros dos no debe haber ninguna tarjeta. */}
-            <div className="panel-celda" />
-            <div className="panel-stats">
-              <div>
-                <span>{d.landing.panelStat1}</span>
-                <b>{d.landing.panelStat1Value}</b>
+                fondo: vive dentro de una tarjeta y con su propio titulillo,
+                como el resto de widgets. Va aquí y no en el hueco porque el
+                hueco es el mismo nodo en los tres decorados y en los otros dos
+                no debe haber ninguna tarjeta. Sus cifras y las de
+                `PUESTOS.panel` se mueven juntas. */}
+            <div className="panel-celda">
+              <p className="panel-celda-tit">{d.landing.panelChartTitle}</p>
+            </div>
+
+            <div className="panel-lado">
+              <div className="panel-stats">
+                {[
+                  [d.landing.panelStat1, d.landing.panelStat1Value, d.landing.panelStat1Delta],
+                  [d.landing.panelStat2, d.landing.panelStat2Value, d.landing.panelStat2Delta],
+                  [d.landing.panelStat3, d.landing.panelStat3Value, d.landing.panelStat3Delta],
+                ].map(([etiqueta, valor, delta]) => (
+                  <div key={etiqueta}>
+                    <span>{etiqueta}</span>
+                    <b>{valor}</b>
+                    <i>{delta}</i>
+                  </div>
+                ))}
               </div>
-              <div>
-                <span>{d.landing.panelStat2}</span>
-                <b>{d.landing.panelStat2Value}</b>
-              </div>
-              <div>
-                <span>{d.landing.panelStat3}</span>
-                <b>{d.landing.panelStat3Value}</b>
+
+              {/*
+                El desglose, con los MISMOS datos que la gráfica. Es lo que hace
+                que esto parezca un panel y no cuatro cajas: en un panel de
+                verdad el mismo dato aparece dos veces, dibujado y en cifras.
+              */}
+              <div className="panel-lista">
+                <p className="panel-lista-tit">{d.landing.panelBreakdown}</p>
+                {muestra.labels.slice(0, 4).map((etiqueta, i) => (
+                  <div key={etiqueta}>
+                    {/* Nombre y cifra en la MISMA fila, y la barra debajo. Con
+                        la barra en medio, la rejilla empujaba la cifra a una
+                        tercera línea y cada categoría ocupaba el triple. */}
+                    <span>{etiqueta}</span>
+                    <b>
+                      {VALORES[i]} {muestra.unit}
+                    </b>
+                    <em style={{ width: `${(VALORES[i] / VALORES[0]) * 100}%` }} />
+                  </div>
+                ))}
               </div>
             </div>
           </div>

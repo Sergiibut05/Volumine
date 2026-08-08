@@ -579,11 +579,18 @@ Técnicamente todo depende de dos decisiones:
   casi negra y sobre negro se fundiría. Y bastante más clara que la banda: con
   el primer gris, decorado y fondo eran casi el mismo color y la frontera
   desaparecía otra vez.
-- En el panel la gráfica va dentro de una **celda blanca**, porque en un panel
-  de verdad no flota sobre el fondo: vive en una tarjeta como todo lo demás. La
-  celda la pinta el decorado y no el hueco —el hueco es el mismo nodo en los
-  tres y en los otros dos no debe haber ninguna tarjeta detrás—, así que sus
-  cifras y las de `PUESTOS.panel` hay que moverlas juntas.
+- **El panel es el que más costó.** Con la gráfica flotando sobre el fondo y
+  tres tarjetas sueltas no parecía un panel: parecía cuatro cajas con medio
+  fondo vacío. Lo que le faltaba era densidad y jerarquía de widgets. Ahora
+  lleva barra con rango, la gráfica dentro de una **celda blanca con su propio
+  titulillo** —en un panel de verdad la gráfica no flota, vive en una tarjeta— y
+  una columna con tres indicadores CON variación más un **desglose con los
+  mismos datos que la gráfica**. Eso último es lo que lo vuelve creíble: en un
+  panel real el mismo dato aparece dos veces, dibujado y en cifras. Las
+  variaciones van en gris y no en verde/rojo — un semáforo pide que se lea el
+  dato, y aquí el dato da igual: lo que importa es que se lea como un panel.
+  La celda la pinta el decorado y no el hueco, así que sus cifras y las de
+  `PUESTOS.panel` hay que moverlas juntas.
 - En móvil la gráfica NO viaja: se queda abajo, centrada y a todo lo ancho. El
   `transform` por decorado se anula ahí con un `!important`, que es lo correcto
   porque el desplazamiento lo pone el componente como estilo en línea.
@@ -615,15 +622,26 @@ REAL.
 
 ## La tira de compatibilidad
 
-Debajo, en la página clara: «Si acepta un link, acepta Volumine» y los sitios.
+Debajo, en la página clara: «Si acepta un link, acepta Volumine» y los sitios,
+con **logotipo y nombre**. Los paths están congelados en `src/lib/logos.ts`.
 
-Van los **nombres y no los logotipos**, y es a propósito. Nombrar una marca para
-identificar compatibilidad es uso nominativo y es el estándar del sector; el
-riesgo no está ahí, está en insinuar una relación que no existe —por eso jamás
-«partner de»— y en **deformar el logo**, que es literalmente lo primero que
-prohíben todas esas guías de marca. Un logo dibujado de memoria está deformado
-por definición. Para poner los logotipos hay que bajar los SVG de su media kit;
-mientras tanto, el nombre no tiene ese problema.
+Salieron UNA SOLA VEZ de `simple-icons` (CC0), que publica las versiones
+monocromas oficiales; el paquete no se quedó como dependencia, así que la página
+no le pide nada a nadie y los paths viajan en el propio bundle. **No están
+dibujados a mano**: reproducir un logotipo de memoria lo deforma, y no
+deformarlo es lo primero que piden todas las guías de marca.
+
+Van en **gris plano**, nunca en el color de la marca — usar el color de marca
+acerca el logo a un uso promocional, y en gris se queda donde tiene que estar,
+diciendo «esto funciona ahí». Y el copy dice «funciona en», jamás «partner de»:
+lo que hace legítimo nombrar a otro es identificar compatibilidad, no insinuar
+una relación que no existe.
+
+**CANVA va sin logotipo, y no es un descuido.** De los 3453 iconos del paquete
+ese es justo el que falta, y simple-icons retira una marca cuando su titular se
+lo pide. Ante esa señal, su nombre va en texto —uso nominativo puro, que no
+reproduce nada—. Si algún día hace falta el logo, sale de su media kit y de
+ningún otro sitio.
 
 ## Dos fallos que solo salieron mirando la pantalla
 
