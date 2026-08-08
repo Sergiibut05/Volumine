@@ -112,6 +112,31 @@ export default async function HomePage() {
             luego POR QUÉ pesa poco, luego DÓNDE vive, y al final los tipos. */}
         <EnUso />
 
+        {/*
+          La tira de compatibilidad, justo después de enseñar que encaja en
+          cualquier sitio: primero se ve, y acto seguido se nombra dónde.
+
+          Van los NOMBRES y no los logotipos. Reproducir una marca de memoria la
+          deforma, y no deformar el logo es literalmente lo primero que piden
+          todas esas guías de marca; el original hay que sacarlo de su media kit.
+          El nombre a secas es uso nominativo puro y no tiene ese problema.
+
+          Y el copy dice «funciona en», nunca «partner de»: lo que hace legítimo
+          nombrar a otra marca es identificar compatibilidad, no insinuar una
+          relación que no existe.
+        */}
+        <section className="shell worksin">
+          <p className="worksin-title">{d.landing.worksInTitle}</p>
+          <ul className="worksin-list">
+            {['Notion', 'Canva', 'Framer', 'Webflow', 'WordPress', 'Medium', 'Confluence'].map(
+              (sitio) => (
+                <li key={sitio}>{sitio}</li>
+              ),
+            )}
+            <li className="worksin-own">&lt;iframe&gt;</li>
+          </ul>
+        </section>
+
         <section className="shell" style={{ paddingBottom: '2rem' }}>
           <p className="spec-label">{d.landing.typesLabel}</p>
           <h2

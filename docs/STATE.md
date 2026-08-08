@@ -535,58 +535,90 @@ El tema ELEGIDO se cuela siempre en la lista corta aunque esté en la parte de
 abajo. Sin eso, al recargar una gráfica con un tema de los últimos el control se
 quedaba sin ninguna ficha marcada y parecía que no había tema.
 
-## La gráfica en su sitio, en el landing
+## Un solo embed, y alrededor cambia el mundo
 
-Una sección nueva —`src/app/(site)/EnUso.tsx`— con **un `<iframe>` de `/embed`
-de verdad** metido en un documento de papel, y **el borde se arrastra**: al
-cambiarle el ancho, el texto del documento se recoloca solo alrededor.
+`src/app/(site)/EnUso.tsx`. Hay un `<iframe>` de `/embed` DE VERDAD y **no se
+desmonta nunca**: lo que se mueve es el decorado —un documento de papel, una
+diapositiva oscura, un panel de tarjetas—, que va rotando solo cada 4,2 s. La
+gráfica ni parpadea ni se recarga: sigue girando sin cortar mientras cambia de
+sitio y de tamaño en cada uno.
 
-Por qué así y no de otra manera:
+Esa continuidad ES el argumento. Tres capturas distintas dicen «aquí hay tres
+imágenes»; una sola que no corta el giro dice «es la misma cosa, y encaja en
+todo», y eso se entiende en dos segundos sin leer una palabra. De paso demuestra
+sola la promesa más difícil de contar: al pasar de papel claro a diapositiva
+oscura, la gráfica se apoya en las dos SIN traer un rectángulo de fondo — que es
+lo que significa el fondo transparente, y contarlo con palabras nunca funcionó.
 
-- **No es un vídeo.** Un vídeo de un producto interactivo es su peor versión:
-  pesa megas, se ve blando al escalar, hay que pelear el autoplay en el móvil y,
-  sobre todo, DICE que la gráfica gira en vez de girarla. El argumento de la
-  página es que el link es el producto; un vídeo lo convierte en «te enseño un
-  vídeo de un link». Esto no cuesta nada que no costara ya: es el producto.
-- **Un documento, no una diapositiva.** Una diapositiva es un rectángulo con una
-  gráfica encima: sin nada contra lo que contrastar, no se ve nada que no se
-  viera ya. Con texto alrededor se enseña el caso difícil y el más común.
-- **Sin ventana de navegador dibujada.** Es el cliché número uno del sector y
-  `docs/DESIGN.md` lo prohíbe. Y no aparece la interfaz de nadie: ni marcas, ni
-  logos, ni una copia de un producto ajeno. Esa era también la respuesta a la
-  pregunta legal.
-- **Fondo transparente a propósito**: es la prueba de la promesa. La gráfica se
-  apoya sobre el papel sin traer un rectángulo de otro color.
-- El iframe **no se monta hasta que la sección se ve** (`IntersectionObserver`).
-  La página ya tiene un canvas en el héroe y hasta seis en la galería, y un
-  navegador aguanta del orden de 8-16 contextos WebGL.
-- El ancho se decide con `ResizeObserver` sobre **el elemento**, no sobre la
-  ventana: lo que manda es cuánto sitio hay, no qué aparato es. Por debajo de
-  720px la gráfica deja de flotar y el tirador desaparece.
+Técnicamente todo depende de una decisión: **el hueco es un único nodo del DOM**
+y lo único que cambia son sus cuatro coordenadas en porcentaje. Un contenedor
+por decorado obligaría a montar tres iframes y destruiría el efecto.
 
-### Los topes del arrastre están medidos, no elegidos a ojo
+- Las etiquetas van en `finish: 'solid'`. Con `plain` hay que elegir un color de
+  tinta, y el mismo embed pasa por papel blanco y por fondo oscuro sin
+  recargarse: cualquier tinta fija se vuelve ilegible en uno de los dos.
+- El ciclo se para en cuanto alguien pulsa una pestaña, no cicla si la sección
+  no se está viendo, y no cicla con `prefers-reduced-motion`.
+- La diapositiva es grafito AZULADO y no negro: la píldora de las etiquetas es
+  casi negra y sobre negro se fundiría.
 
-38%–60%. Las etiquetas del embed tienen **tamaño fijo en píxeles** y el dibujo
-no, así que por abajo llega un punto en el que se le echan encima y tapan las
-porciones —al 30% era ilegible— y por arriba otro en el que la etiqueta de la
-derecha roza el borde del marco. Anotado como problema abierto, porque le pasa
-igual a cualquiera que ponga el embed en un hueco pequeño.
+### Por qué la banda es oscura
 
-### Dos fallos que solo salieron al mirar la pantalla
+La versión anterior era un documento de papel blanco sobre el papel pálido de la
+página, y se leía como **otra tarjeta más de la propia landing**: no había
+frontera que cruzar, así que prometía «vive dentro de otra página» y no enseñaba
+ninguna otra página. Con el suelo oscuro el papel pasa a ser un objeto ajeno
+flotando delante, y la sombra —que ya existía, de tres capas— por fin se ve
+contra algo. No contradice `docs/DESIGN.md`: pide un set de fotografía de
+producto, y cambiar el ciclorama detrás del mismo objeto es exactamente lo que
+hace un fotógrafo de producto.
 
-- **La landing entera tenía scroll horizontal en el móvil**, y llevaba ahí desde
-  el principio. `.stagebox` tenía `min-height: 340px` con `aspect-ratio: 4/3`: el
-  navegador despeja el ancho —453px— y en una pantalla de 400 no cabe. Como el
-  héroe es una rejilla, el desbordamiento arrastraba a toda la fila, titular
-  incluido. Ahora `min-height: min(340px, 70vw)`. Comprobado a 360, 400, 768 y
-  1440: `scrollWidth == clientWidth` en los cuatro.
+### Y por qué NO lleva ventana de navegador ni interfaces ajenas
+
+Los tres decorados son genéricos. Ni los tres puntitos de macOS —el cliché
+número uno del sector, prohibido por `docs/DESIGN.md`— ni copias de la interfaz
+de Notion, Canva o Framer. Nombrar productos compatibles es legítimo y se hace
+en la tira; reproducir su interfaz ya no identifica, imita, y además obliga a
+mantener tres imitaciones de UIs que cambian solas.
+
+Tampoco se convirtió el texto de los decorados en bloques grises de wireframe,
+que es el consejo habitual: bloques grises = maqueta de Figma, y el argumento
+entero de la sección es que esto es real. El problema de jerarquía —el titular
+falso competía con el de verdad— se arregló bajando tamaño y contraste del texto
+REAL.
+
+## La tira de compatibilidad
+
+Debajo, en la página clara: «Si acepta un link, acepta Volumine» y los sitios.
+
+Van los **nombres y no los logotipos**, y es a propósito. Nombrar una marca para
+identificar compatibilidad es uso nominativo y es el estándar del sector; el
+riesgo no está ahí, está en insinuar una relación que no existe —por eso jamás
+«partner de»— y en **deformar el logo**, que es literalmente lo primero que
+prohíben todas esas guías de marca. Un logo dibujado de memoria está deformado
+por definición. Para poner los logotipos hay que bajar los SVG de su media kit;
+mientras tanto, el nombre no tiene ese problema.
+
+## Dos fallos que solo salieron mirando la pantalla
+
+- **El tirador de la versión anterior parecía un botón de PAUSA.** Dos barras
+  verticales dentro de un círculo blanco, encima de una gráfica que gira: el
+  único significado que se le encuentra es «parar la rotación». Un control que
+  promete lo contrario de lo que hace es peor que no tenerlo.
+- **La landing entera tenía scroll horizontal en el móvil**, desde el principio.
+  `.stagebox` tenía `min-height: 340px` con `aspect-ratio: 4/3`: el navegador
+  despeja el ancho —453px— y en una pantalla de 400 no cabe. Como el héroe es
+  una rejilla, arrastraba a toda la fila, titular incluido.
+- **El titular del héroe partía «Tus datos, / con / volumen.»** No era el tope
+  cuatro píxeles alto —a 1440 la frase medía 510 y la columna medía 510 exactos—
+  era la REFERENCIA: el `clamp` iba en `vw` mientras el hueco donde vive es la
+  mitad de ancho que la ventana. Ahora va en `cqw` contra su propia columna.
 - **La línea guía de la etiqueta tachaba el valor.** `label-layer.ts` la hacía
   morir en `y + alto/2`, el centro vertical de la caja — que con nombre Y valor
   son dos líneas, así que caía en la franja del número. En la columna derecha el
-  codo llega justo hasta donde empieza el texto y el «42 k€» salía TACHADO: en un
-  informe de cifras, la peor lectura posible. Ahora muere a la altura del
-  nombre. Con `showValues` apagado no se ve nunca, porque entonces las dos
-  medidas coinciden — por eso llevaba tanto ahí.
+  codo llega justo hasta donde empieza el texto y el «42 k€» salía TACHADO. Ahora
+  muere a la altura del nombre. Con `showValues` apagado no se ve nunca, porque
+  entonces las dos medidas coinciden — por eso llevaba tanto ahí.
 
 ## Problemas abiertos
 
@@ -723,10 +755,11 @@ build` + `npm start`.**
   así que una porción por debajo del ~2% deja a todo el donut casi sin canto.
   Opciones: suelo mínimo de bevel, o agrupar automáticamente en "Otros".
 - **Las etiquetas no encogen con el dibujo.** Su tamaño es fijo en píxeles, así
-  que en un hueco pequeño se le echan encima a las porciones y lo tapan. Se ve
-  bien en el rango medido para la demo del landing (38-60% de una columna), pero
-  le pasa a cualquiera que ponga el embed en un contenedor estrecho. Falta atar
-  el tamaño de etiqueta al del canvas, con suelo y techo.
+  que en un hueco pequeño se le echan encima a las porciones y lo tapan. En la
+  sección «en su sitio» se compensa a mano —`labels.size: 0.78` por debajo de
+  720px— porque esa sección sí sabe en qué hueco vive, pero le pasa a cualquiera
+  que ponga el embed en un contenedor estrecho. Falta atar el tamaño de etiqueta
+  al del canvas, con suelo y techo.
 - **No hay póster estático ni `?static=1`.** El fallback sin WebGL hoy es la
   tabla de datos, que funciona pero no es bonito. Falta el render en servidor.
 - El lector de consola de la extensión de Chrome se traga los logs tras navegar.
