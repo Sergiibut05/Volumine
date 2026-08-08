@@ -131,6 +131,139 @@ export const THEMES: Theme[] = [
       scene: { environment: 'night', lightIntensity: 0.45 },
     },
   },
+{
+    id: 'menta',
+    surface: 'light',
+    swatch: ['#2f6f5e', '#4fa88c', '#86c9ae', '#bfe3d2', '#e8a33d'],
+    config: {
+      style: {
+        palette: ['#2f6f5e', '#4fa88c', '#86c9ae', '#bfe3d2', '#e8a33d'],
+        globe: { base: '#cfe6dc', land: '#20574a', glow: '#4fa88c' },
+        material: 'matte',
+        roughness: 0.82,
+      },
+      scene: { environment: 'soft', lightIntensity: 0.72 },
+    },
+  },
+  {
+    id: 'coral',
+    surface: 'light',
+    swatch: ['#f2705a', '#f79f7e', '#f9c9a8', '#7d5a8c', '#3d3550'],
+    config: {
+      style: {
+        palette: ['#f2705a', '#f79f7e', '#f9c9a8', '#7d5a8c', '#3d3550'],
+        globe: { base: '#f7dbcd', land: '#c4472f', glow: '#f2705a' },
+        material: 'physical',
+        roughness: 0.34,
+      },
+      scene: { environment: 'studio', lightIntensity: 0.62 },
+    },
+  },
+  {
+    id: 'indigo',
+    surface: 'light',
+    swatch: ['#2b3a8f', '#4c62c9', '#7f92e0', '#b3bff0', '#f0a202'],
+    config: {
+      style: {
+        palette: ['#2b3a8f', '#4c62c9', '#7f92e0', '#b3bff0', '#f0a202'],
+        globe: { base: '#d7ddf6', land: '#22307a', glow: '#4c62c9' },
+        material: 'physical',
+        roughness: 0.3,
+      },
+      scene: { environment: 'studio', lightIntensity: 0.6 },
+    },
+  },
+  {
+    id: 'escala',
+    surface: 'light',
+    /* UN SOLO TONO, de oscuro a claro. No hay color de acento a propósito: es
+       para datos que van de menos a más, donde un color distinto por categoría
+       sugiere que son cosas distintas y no lo son. */
+    swatch: ['#0d3b66', '#1b5e8f', '#3f88b5', '#79b0d1', '#b8d5e8'],
+    config: {
+      style: {
+        palette: ['#0d3b66', '#1b5e8f', '#3f88b5', '#79b0d1', '#b8d5e8'],
+        globe: { base: '#d2e2ef', land: '#0d3b66', glow: '#3f88b5' },
+        material: 'matte',
+        roughness: 0.86,
+      },
+      scene: { environment: 'soft', lightIntensity: 0.74 },
+    },
+  },
+  {
+    id: 'tierra',
+    surface: 'light',
+    swatch: ['#8c4a2f', '#c2703d', '#d9a566', '#7d8471', '#3f3a33'],
+    config: {
+      style: {
+        palette: ['#8c4a2f', '#c2703d', '#d9a566', '#7d8471', '#3f3a33'],
+        globe: { base: '#ead8c2', land: '#73391f', glow: '#c2703d' },
+        material: 'matte',
+        roughness: 0.9,
+      },
+      scene: { environment: 'sunset', lightIntensity: 0.72 },
+    },
+  },
+  {
+    id: 'prensa',
+    surface: 'light',
+    swatch: ['#141414', '#454545', '#767676', '#a8a8a8', '#d7263d'],
+    config: {
+      style: {
+        palette: ['#141414', '#454545', '#767676', '#a8a8a8', '#d7263d'],
+        globe: { base: '#ffffff', land: '#141414', glow: '#767676' },
+        material: 'toon',
+      },
+      /* Igual que «papel»: un difuso puro no tiene especular que rellene, así
+         que con la luz de los temas brillantes las caras en sombra se van a
+         negro. */
+      scene: { environment: 'soft', lightIntensity: 1.02 },
+    },
+  },
+  {
+    id: 'hielo',
+    surface: 'light',
+    /* El único tema de VIDRIO. Con muchas categorías se emborrona —lo dice el
+       propio material—, así que su paleta va de pocos tonos bien separados. */
+    swatch: ['#4bb8dd', '#7fd8f7', '#b9e9f7', '#5a7d9a', '#24405c'],
+    config: {
+      style: {
+        palette: ['#4bb8dd', '#7fd8f7', '#b9e9f7', '#5a7d9a', '#24405c'],
+        globe: { base: '#cbe6f2', land: '#1b3149', glow: '#4bb8dd' },
+        material: 'glass',
+        roughness: 0.12,
+      },
+      scene: { environment: 'city', lightIntensity: 0.82 },
+    },
+  },
+  {
+    id: 'bosque',
+    surface: 'dark',
+    swatch: ['#40916c', '#74c69d', '#a7dfc2', '#d8f3dc', '#e9c46a'],
+    config: {
+      style: {
+        palette: ['#40916c', '#74c69d', '#a7dfc2', '#d8f3dc', '#e9c46a'],
+        globe: { base: '#08160f', land: '#74c69d', glow: '#2d6a4f' },
+        material: 'physical',
+        roughness: 0.42,
+      },
+      scene: { environment: 'soft', lightIntensity: 0.58 },
+    },
+  },
+  {
+    id: 'neon',
+    surface: 'dark',
+    swatch: ['#00f5d4', '#00bbf9', '#9b5de5', '#f15bb5', '#fee440'],
+    config: {
+      style: {
+        palette: ['#00f5d4', '#00bbf9', '#9b5de5', '#f15bb5', '#fee440'],
+        globe: { base: '#05050f', land: '#00f5d4', glow: '#9b5de5' },
+        material: 'physical',
+        roughness: 0.16,
+      },
+      scene: { environment: 'night', lightIntensity: 0.5 },
+    },
+  },
 ];
 
 export function themeById(id: string | undefined): Theme | undefined {

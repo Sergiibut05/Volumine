@@ -114,6 +114,8 @@ export const en = {
     tooLongChars: '{n} characters — too long',
     groupTheme: 'Theme',
     groupThemeHint: 'Start here',
+    themesMore: 'See {n} more themes',
+    themesLess: 'Show fewer',
     groupData: 'Data',
     groupDataHint: 'Paste from your sheet',
     groupType: 'Type',
@@ -375,6 +377,42 @@ export const en = {
       name: 'Nocturne',
       use: 'Low light and deep colours. For almost black backgrounds.',
     },
+    menta: {
+      name: 'Mint',
+      use: 'Cool and quiet. For a long report where colour must not shout.',
+    },
+    coral: {
+      name: 'Coral',
+      use: 'Warm and friendly. For marketing and social.',
+    },
+    indigo: {
+      name: 'Indigo',
+      use: 'Serious and blue. The palette of a company deck.',
+    },
+    escala: {
+      name: 'Scale',
+      use: 'One colour in shades. For data that goes from less to more.',
+    },
+    tierra: {
+      name: 'Clay',
+      use: 'Earthy and matte. Next to photography or printed text.',
+    },
+    prensa: {
+      name: 'Press',
+      use: 'High contrast, no gloss. Newspaper style.',
+    },
+    hielo: {
+      name: 'Ice',
+      use: 'Translucent and cold. Few categories, plenty of light.',
+    },
+    bosque: {
+      name: 'Forest',
+      use: 'Deep greens on dark. For anything that grows.',
+    },
+    neon: {
+      name: 'Neon',
+      use: 'Saturated on black. For a dashboard on a big screen.',
+    },
   },
   meta: {
     siteTitle: 'Volumine — 3D charts you embed with a link',
@@ -486,6 +524,8 @@ export const es: Dictionary = {
     tooLongChars: '{n} caracteres — demasiado largo',
     groupTheme: 'Tema',
     groupThemeHint: 'Empieza por aquí',
+    themesMore: 'Ver {n} temas más',
+    themesLess: 'Ver menos',
     groupData: 'Datos',
     groupDataHint: 'Pega desde tu hoja',
     groupType: 'Tipo',
@@ -739,6 +779,42 @@ export const es: Dictionary = {
     nocturno: {
       name: 'Nocturno',
       use: 'Luz baja y colores profundos. Para fondos casi negros.',
+    },
+    menta: {
+      name: 'Menta',
+      use: 'Fría y tranquila. Para un informe largo donde el color no debe gritar.',
+    },
+    coral: {
+      name: 'Coral',
+      use: 'Cálida y amable. Para marketing y redes.',
+    },
+    indigo: {
+      name: 'Índigo',
+      use: 'Seria y azul. La paleta de una presentación de empresa.',
+    },
+    escala: {
+      name: 'Escala',
+      use: 'Un solo color en tonos. Para datos que van de menos a más.',
+    },
+    tierra: {
+      name: 'Tierra',
+      use: 'Terrosa y mate. Junto a fotografía o a texto impreso.',
+    },
+    prensa: {
+      name: 'Prensa',
+      use: 'Mucho contraste y sin brillos. Estilo periódico.',
+    },
+    hielo: {
+      name: 'Hielo',
+      use: 'Translúcida y fría. Pocas categorías y luz de sobra.',
+    },
+    bosque: {
+      name: 'Bosque',
+      use: 'Verdes profundos sobre oscuro. Para todo lo que crece.',
+    },
+    neon: {
+      name: 'Neón',
+      use: 'Saturada sobre negro. Para un panel en una pantalla grande.',
     },
   },
   meta: {

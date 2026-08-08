@@ -160,6 +160,9 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
      algo. No se enciende al cargar: avisar de un campo vacío que nadie ha
      intentado usar todavía es regañar por adelantado. */
   const [faltaNombre, setFaltaNombre] = useState(false);
+  /* Con quince temas, enseñarlos todos de golpe convierte el primer grupo del
+     panel en una pared de fichas. Ver `temasVisibles`. */
+  const [todosLosTemas, setTodosLosTemas] = useState(false);
   const tituloRef = useRef<HTMLInputElement>(null);
 
   const origin = useOrigin();
@@ -284,7 +287,26 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
     setTimeout(() => setCopied(false), 1800);
   };
 
-  const themeChoices: Choice[] = THEMES.map((theme) => ({
+  /*
+    CUÁNTOS TEMAS SE VEN DE ENTRADA.
+
+    Seis. Es el primer grupo del panel —«Empieza por aquí»— y quince fichas ahí
+    no son quince opciones: son una pared que hay que leer antes de poder hacer
+    nada. Con seis se elige en un vistazo, y quien quiera mirar más lo pide.
+
+    El que esté ELEGIDO se cuela siempre en la lista corta aunque esté en la
+    parte de abajo. Si no, al recargar una gráfica con un tema de los últimos, el
+    control se quedaba sin ninguna ficha marcada y parecía que no había tema.
+  */
+  const TEMAS_A_LA_VISTA = 6;
+
+  const temasVisibles = todosLosTemas
+    ? THEMES
+    : THEMES.filter(
+        (theme, i) => i < TEMAS_A_LA_VISTA || theme.id === (config.theme ?? 'aurora'),
+      );
+
+  const themeChoices: Choice[] = temasVisibles.map((theme) => ({
     id: theme.id,
     label: d.themes[theme.id as keyof Dictionary['themes']].name,
     hint: d.themes[theme.id as keyof Dictionary['themes']].use,
@@ -487,6 +509,19 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
               })
             }
           />
+        
+          {THEMES.length > TEMAS_A_LA_VISTA && (
+            <button
+              type="button"
+              className="linky"
+              onClick={() => setTodosLosTemas((v) => !v)}
+              style={{ justifySelf: 'start' }}
+            >
+              {todosLosTemas
+                ? d.editor.themesLess
+                : fill(d.editor.themesMore, { n: THEMES.length - TEMAS_A_LA_VISTA })}
+            </button>
+          )}
         </Group>
 
         {/* Los DATOS van antes que el aspecto. Es lo que la gente viene a meter,

@@ -496,6 +496,45 @@ de él. Griego, cirílico y CJK caen a la fuente del sistema, como hasta ahora.
 visitantes de nuestros clientes) y subir tipografías propias (redistribuiríamos
 ficheros cuya licencia no controlamos).
 
+## Quince temas
+
+De seis a quince. Cada uno con **superficie declarada, material y entorno
+propios** — no son nueve paletas sobre la misma receta. Los nuevos:
+
+| tema | superficie | material | para qué |
+|---------|---------|----------|-------------------------------------------|
+| menta | claro | mate | informe largo donde el color no debe gritar |
+| coral | claro | plástico | marketing y redes |
+| indigo | claro | plástico | presentación de empresa |
+| escala | claro | mate | **un solo tono**, para datos de menos a más |
+| tierra | claro | mate | junto a fotografía o texto impreso |
+| prensa | claro | plano | estilo periódico, contraste puro |
+| hielo | claro | **vidrio** | el único con ese material; pocas categorías |
+| bosque | oscuro | plástico | verdes profundos |
+| neon | oscuro | plástico | panel en pantalla grande |
+
+`escala` no tiene color de acento **a propósito**: es para datos ordinales,
+donde un color distinto por categoría sugiere que son cosas distintas y no lo
+son.
+
+**Validados renderizados**, que es lo que pide la regla de `themes/index.ts`:
+los nueve contra anillo, barras, globo y medidor sobre su propia superficie, y
+además cada uno sobre el fondo contrario. No es burocracia — de mirarlos salió
+un fallo que no se ve en el código: **las bases de globo casi blancas las
+aplasta a gris el mapeado de tono (ACES)**, así que el planeta perdía el color
+del tema y los siete claros salían idénticos. Se subió la saturación de las
+bases; `prensa` se queda en blanco puro porque su gracia es el contraste.
+
+### El «ver más»
+
+Seis a la vista y el resto a un clic. Es el primer grupo del panel —«empieza por
+aquí»— y quince fichas ahí no son quince opciones: son una pared que hay que
+leer antes de poder hacer nada.
+
+El tema ELEGIDO se cuela siempre en la lista corta aunque esté en la parte de
+abajo. Sin eso, al recargar una gráfica con un tema de los últimos el control se
+quedaba sin ninguna ficha marcada y parecía que no había tema.
+
 ## Problemas abiertos
 
 - ~~Las sombras tienen dientes de sierra.~~ **Arreglado**, y era la sospecha
