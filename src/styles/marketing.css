@@ -106,11 +106,19 @@
   color: var(--ink-soft);
 }
 
-/* El objeto, apoyado sobre el papel. La sombra la pinta el propio renderer. */
+/*
+  El objeto, apoyado sobre el papel. La sombra la pinta el propio renderer.
+
+  `min-height` en MIN() y no en un valor fijo. Con 340px pelados y una
+  proporción de 4/3, el navegador despeja el ancho: 453 px. En un móvil de 400
+  eso no cabe, y como el héroe es una rejilla, el desbordamiento arrastraba a
+  toda la fila —el titular incluido— y la LANDING ENTERA tenía scroll
+  horizontal. No se veía en el escritorio y llevaba ahí desde el principio.
+*/
 .stagebox {
   position: relative;
   aspect-ratio: 4 / 3;
-  min-height: 340px;
+  min-height: min(340px, 70vw);
   border-radius: 1.25rem;
 }
 
@@ -213,6 +221,206 @@
 }
 
 /* ── galería de tipos ───────────────────────────────────────────────────── */
+
+
+/* ── la gráfica en su sitio ─────────────────────────────────────────────── */
+
+/*
+  Un DOCUMENTO de papel, no una ventana de navegador dibujada.
+
+  La ventana con sus tres puntitos de colores es el cliché número uno de las
+  landings de este sector, y `docs/DESIGN.md` prohíbe parecer una plantilla.
+  Aquí el documento se apoya sobre el mismo papel que el resto de la página, con
+  sombra real, como el objeto fotografiado del héroe. Y no aparece la interfaz
+  de nadie: ni marcas, ni logos, ni copias de productos ajenos.
+*/
+.enuso {
+  padding-top: 1rem;
+  padding-bottom: 3rem;
+}
+
+.enuso-title {
+  margin: 0.75rem 0 0;
+  font-size: clamp(1.75rem, 1.1rem + 2.4vw, 2.75rem);
+}
+
+.enuso-lead {
+  margin: 0.875rem 0 2rem;
+  max-width: 52ch;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+
+/*
+  EL PAPEL SE CIÑE AL TEXTO.
+
+  Iba al ancho del contenedor con la columna de texto limitada a 64 caracteres
+  dentro, así que un tercio de la página quedaba en blanco a la derecha y la
+  gráfica flotaba en mitad de la nada. Un documento de verdad tiene el ancho de
+  su propio texto: es lo que lo hace parecer un documento y no un panel.
+*/
+.doc {
+  position: relative;
+  max-width: 58rem;
+  margin-inline: auto;
+  padding: clamp(1.75rem, 1rem + 3vw, 3.25rem);
+  border-radius: 1.25rem;
+  background: #fdfdfe;
+  box-shadow:
+    0 1px 2px rgb(20 20 26 / 0.05),
+    0 2px 6px rgb(20 20 26 / 0.04),
+    0 30px 60px -30px rgb(20 20 26 / 0.28);
+}
+
+/* Mientras se arrastra, el texto NO se selecciona y el cursor no cambia por
+   pasar sobre un párrafo. Sin esto, el gesto arrastra media página de texto. */
+.doc[data-arrastrando] {
+  user-select: none;
+  cursor: ew-resize;
+}
+
+.doc-body {
+  color: var(--ink);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+
+.doc-kicker {
+  margin: 0;
+  color: var(--ink-faint);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.doc-title {
+  margin: 0.5rem 0 1.25rem;
+  font-family: var(--font-display), serif;
+  font-size: clamp(1.25rem, 0.9rem + 1.4vw, 1.75rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+
+.doc-body p {
+  margin: 0 0 0.9rem;
+  color: var(--ink-soft);
+}
+
+/*
+  LA GRÁFICA FLOTA Y EL TEXTO LA RODEA.
+
+  Es lo que hace que al cambiar su ancho el párrafo se recomponga solo. Sin
+  flotar, el texto se quedaría quieto debajo y no se vería lo único que esta
+  sección quiere enseñar.
+*/
+.doc-chart {
+  position: relative;
+  float: right;
+  margin: 0.25rem 0 1rem 1.75rem;
+  shape-margin: 1.75rem;
+}
+
+/* 3/2 y no 4/3: un anillo es ANCHO, así que con 4/3 sobraba alto y el tirador
+   —anclado a la esquina del marco— quedaba descolgado, flotando lejos del
+   dibujo al que se supone que agarra. */
+.doc-frame {
+  aspect-ratio: 3 / 2;
+  /* El embed es transparente: se apoya sobre el papel del documento sin traer
+     un rectángulo de otro color. Esa es la promesa que viene a demostrar. */
+  background: none;
+}
+
+/*
+  El tirador.
+
+  Discreto hasta que se acerca el ratón: es una invitación, no un control de
+  aplicación. Va FUERA del iframe porque dentro de un iframe los eventos de
+  puntero son del otro documento y no llegan aquí.
+*/
+/*
+  EN EL BORDE DERECHO, A MEDIA ALTURA. No en una esquina.
+
+  El gesto es HORIZONTAL —solo cambia el ancho— así que la esquina prometía un
+  arrastre en diagonal que no existe. Y encima quedaba descolgada: el marco es
+  más alto que el dibujo, así que el tirador flotaba lejos de la gráfica a la
+  que se supone que agarra. En el borde y centrado, agarra el borde que de
+  verdad se mueve.
+*/
+.doc-grip {
+  position: absolute;
+  right: -1.125rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgb(20 20 26 / 0.08),
+    0 8px 20px -8px rgb(20 20 26 / 0.35);
+  color: var(--ink-faint);
+  cursor: ew-resize;
+  touch-action: none;
+  transition:
+    transform var(--p-dur-2) var(--p-ease-out),
+    color var(--p-dur-2) var(--p-ease-out);
+}
+
+.doc-grip:hover,
+.doc-grip:focus-visible {
+  transform: translateY(-50%) scale(1.08);
+  color: var(--spark);
+}
+
+/* Dos barritas: el gesto es horizontal y el icono tiene que decirlo. */
+.doc-grip span {
+  width: 0.75rem;
+  height: 0.75rem;
+  background:
+    linear-gradient(currentColor, currentColor) 3px 0 / 2px 100% no-repeat,
+    linear-gradient(currentColor, currentColor) 9px 0 / 2px 100% no-repeat;
+  opacity: 0.55;
+}
+
+/* La medida, con el mismo tono de ficha técnica que el specsheet de arriba. */
+.doc-size {
+  position: absolute;
+  right: 1rem;
+  bottom: 0.875rem;
+  color: var(--ink-faint);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0;
+  transition: opacity var(--p-dur-2) var(--p-ease-out);
+}
+
+.doc:hover .doc-size,
+.doc[data-arrastrando] .doc-size {
+  opacity: 1;
+}
+
+.enuso-foot {
+  margin: 1rem 0 0;
+  color: var(--ink-faint);
+  font-size: 0.8125rem;
+}
+
+/* En columna estrecha la gráfica deja de flotar y se pone encima del texto:
+   rodear un flotado en 40 caracteres de ancho parte las palabras. */
+@media (max-width: 720px) {
+  .doc-chart {
+    float: none;
+    width: 100% !important;
+    margin: 0 0 1.25rem;
+  }
+}
 
 /* Tres columnas como máximo: con cinco tipos, cuatro columnas dejan una tarjeta
    huérfana en la segunda fila. 3 + 2 se lee mucho mejor. */

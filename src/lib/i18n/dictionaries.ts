@@ -265,6 +265,20 @@ export const en = {
     specSignup: 'Sign-up',
     specSignupNote: 'The config travels in the link.',
     specSignupValue: 'No',
+    inUseLabel: 'In place',
+    inUseTitle: 'It lives inside the page, not on top of it.',
+    inUseBody:
+      'This is not a screenshot: it is the real embed, spinning. Drag its edge and watch the text make room.',
+    dragHint: 'Drag its edge to resize it',
+    inUseFootNarrow: 'The chart takes whatever room the page gives it.',
+    docKicker: 'Quarterly report · Finance',
+    docTitle: 'Where the revenue came from',
+    docP1:
+      'Subscriptions carried the quarter again, and this time without the discount push that flattered the previous one. The mix is the interesting part: services grew without taking anything away from licences.',
+    docP2:
+      'Training stays small and stays profitable. It is the line nobody watches and the one that has not missed a target in four quarters.',
+    docP3:
+      'None of this needed a plugin, an account or a build step. The chart above is a link, pasted into this page.',
     typesLabel: 'Chart types',
     typesTitle: 'Every shape answers a different question.',
     /* `{not}` se sustituye por una palabra en cursiva. Va como marcador y no
@@ -675,6 +689,20 @@ export const es: Dictionary = {
     specSignup: 'Registro',
     specSignupNote: 'La config viaja en el link.',
     specSignupValue: 'No',
+    inUseLabel: 'En su sitio',
+    inUseTitle: 'Vive dentro de la página, no encima.',
+    inUseBody:
+      'Esto no es una captura: es el embed de verdad, girando. Arrastra su borde y mira cómo el texto le hace sitio.',
+    dragHint: 'Arrastra su borde para cambiarle el tamaño',
+    inUseFootNarrow: 'La gráfica ocupa el hueco que le dé la página.',
+    docKicker: 'Informe trimestral · Finanzas',
+    docTitle: 'De dónde vinieron los ingresos',
+    docP1:
+      'Las suscripciones volvieron a sostener el trimestre, y esta vez sin la campaña de descuentos que maquilló el anterior. Lo interesante es el reparto: los servicios crecieron sin quitarle nada a las licencias.',
+    docP2:
+      'La formación sigue siendo pequeña y sigue siendo rentable. Es la línea que nadie mira y la única que no ha fallado un objetivo en cuatro trimestres.',
+    docP3:
+      'Nada de esto ha necesitado un plugin, ni una cuenta, ni un paso de compilación. La gráfica de arriba es un link, pegado en esta página.',
     typesLabel: 'Tipos de gráfica',
     typesTitle: 'Cada forma responde a una pregunta distinta.',
     typesBody:

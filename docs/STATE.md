@@ -535,6 +535,59 @@ El tema ELEGIDO se cuela siempre en la lista corta aunque esté en la parte de
 abajo. Sin eso, al recargar una gráfica con un tema de los últimos el control se
 quedaba sin ninguna ficha marcada y parecía que no había tema.
 
+## La gráfica en su sitio, en el landing
+
+Una sección nueva —`src/app/(site)/EnUso.tsx`— con **un `<iframe>` de `/embed`
+de verdad** metido en un documento de papel, y **el borde se arrastra**: al
+cambiarle el ancho, el texto del documento se recoloca solo alrededor.
+
+Por qué así y no de otra manera:
+
+- **No es un vídeo.** Un vídeo de un producto interactivo es su peor versión:
+  pesa megas, se ve blando al escalar, hay que pelear el autoplay en el móvil y,
+  sobre todo, DICE que la gráfica gira en vez de girarla. El argumento de la
+  página es que el link es el producto; un vídeo lo convierte en «te enseño un
+  vídeo de un link». Esto no cuesta nada que no costara ya: es el producto.
+- **Un documento, no una diapositiva.** Una diapositiva es un rectángulo con una
+  gráfica encima: sin nada contra lo que contrastar, no se ve nada que no se
+  viera ya. Con texto alrededor se enseña el caso difícil y el más común.
+- **Sin ventana de navegador dibujada.** Es el cliché número uno del sector y
+  `docs/DESIGN.md` lo prohíbe. Y no aparece la interfaz de nadie: ni marcas, ni
+  logos, ni una copia de un producto ajeno. Esa era también la respuesta a la
+  pregunta legal.
+- **Fondo transparente a propósito**: es la prueba de la promesa. La gráfica se
+  apoya sobre el papel sin traer un rectángulo de otro color.
+- El iframe **no se monta hasta que la sección se ve** (`IntersectionObserver`).
+  La página ya tiene un canvas en el héroe y hasta seis en la galería, y un
+  navegador aguanta del orden de 8-16 contextos WebGL.
+- El ancho se decide con `ResizeObserver` sobre **el elemento**, no sobre la
+  ventana: lo que manda es cuánto sitio hay, no qué aparato es. Por debajo de
+  720px la gráfica deja de flotar y el tirador desaparece.
+
+### Los topes del arrastre están medidos, no elegidos a ojo
+
+38%–60%. Las etiquetas del embed tienen **tamaño fijo en píxeles** y el dibujo
+no, así que por abajo llega un punto en el que se le echan encima y tapan las
+porciones —al 30% era ilegible— y por arriba otro en el que la etiqueta de la
+derecha roza el borde del marco. Anotado como problema abierto, porque le pasa
+igual a cualquiera que ponga el embed en un hueco pequeño.
+
+### Dos fallos que solo salieron al mirar la pantalla
+
+- **La landing entera tenía scroll horizontal en el móvil**, y llevaba ahí desde
+  el principio. `.stagebox` tenía `min-height: 340px` con `aspect-ratio: 4/3`: el
+  navegador despeja el ancho —453px— y en una pantalla de 400 no cabe. Como el
+  héroe es una rejilla, el desbordamiento arrastraba a toda la fila, titular
+  incluido. Ahora `min-height: min(340px, 70vw)`. Comprobado a 360, 400, 768 y
+  1440: `scrollWidth == clientWidth` en los cuatro.
+- **La línea guía de la etiqueta tachaba el valor.** `label-layer.ts` la hacía
+  morir en `y + alto/2`, el centro vertical de la caja — que con nombre Y valor
+  son dos líneas, así que caía en la franja del número. En la columna derecha el
+  codo llega justo hasta donde empieza el texto y el «42 k€» salía TACHADO: en un
+  informe de cifras, la peor lectura posible. Ahora muere a la altura del
+  nombre. Con `showValues` apagado no se ve nunca, porque entonces las dos
+  medidas coinciden — por eso llevaba tanto ahí.
+
 ## Problemas abiertos
 
 - ~~Las sombras tienen dientes de sierra.~~ **Arreglado**, y era la sospecha
@@ -669,6 +722,11 @@ build` + `npm start`.**
 - **Sectores diminutos.** El bevel global lo marca el sector más restrictivo,
   así que una porción por debajo del ~2% deja a todo el donut casi sin canto.
   Opciones: suelo mínimo de bevel, o agrupar automáticamente en "Otros".
+- **Las etiquetas no encogen con el dibujo.** Su tamaño es fijo en píxeles, así
+  que en un hueco pequeño se le echan encima a las porciones y lo tapan. Se ve
+  bien en el rango medido para la demo del landing (38-60% de una columna), pero
+  le pasa a cualquiera que ponga el embed en un contenedor estrecho. Falta atar
+  el tamaño de etiqueta al del canvas, con suelo y techo.
 - **No hay póster estático ni `?static=1`.** El fallback sin WebGL hoy es la
   tabla de datos, que funciona pero no es bonito. Falta el render en servidor.
 - El lector de consola de la extensión de Chrome se traga los logs tras navegar.

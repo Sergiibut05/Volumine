@@ -4,6 +4,7 @@ import { currentUser } from '@/lib/charts/queries';
 import '@/styles/marketing.css';
 import { HeroChart } from './HeroChart';
 import { TypeCard } from './TypeCard';
+import { EnUso } from './EnUso';
 import { chartTypes } from '@/lib/chart-types';
 import { getDictionary } from '@/lib/i18n/server';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
@@ -104,6 +105,10 @@ export default async function HomePage() {
             ))}
           </div>
         </section>
+
+        {/* Después de la ficha técnica y antes de la galería: primero QUÉ es,
+            luego POR QUÉ pesa poco, luego DÓNDE vive, y al final los tipos. */}
+        <EnUso />
 
         <section className="shell" style={{ paddingBottom: '2rem' }}>
           <p className="spec-label">{d.landing.typesLabel}</p>

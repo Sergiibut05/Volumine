@@ -416,6 +416,20 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
       // y del tamaño que haya pedido el config, así que se mide, no se supone.
       const alto = items[0].box.offsetHeight || 20;
 
+      /*
+        Y el alto SOLO DEL NOMBRE, que no es lo mismo en cuanto la etiqueta
+        muestra valor o porcentaje: entonces la caja tiene dos líneas.
+
+        La línea guía tiene que morir a la altura del nombre. Apuntándola al
+        centro de la caja —que es lo que hacía— cae en la franja del valor y lo
+        cruza: en la columna derecha el codo llega justo hasta donde empieza el
+        texto, y el «42 k€» de debajo quedaba TACHADO. En un informe de cifras
+        es la peor lectura posible, y con `showValues` apagado no se ve nunca
+        porque entonces las dos medidas coinciden.
+      */
+      const altoNombre =
+        (items[0].box.firstElementChild as HTMLElement | null)?.offsetHeight || alto;
+
       type Puesto = { item: Item; x: number; y: number; lado: -1 | 1 };
       const puestos: Puesto[] = [];
 
@@ -544,7 +558,7 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
              que la línea "entre" en la etiqueta en vez de apuntar a su esquina. */
           const finX = lado < 0 ? MARGIN + ancho : width - MARGIN - ancho;
           const codoX = finX + lado * ELBOW;
-          const finY = y + alto / 2;
+          const finY = y + altoNombre / 2;
           const puntos = `${puesto.x.toFixed(1)},${puesto.y.toFixed(1)} ${codoX.toFixed(1)},${finY.toFixed(1)} ${finX.toFixed(1)},${finY.toFixed(1)}`;
           puesto.item.line.setAttribute('points', puntos);
           puesto.item.casing.setAttribute('points', puntos);
