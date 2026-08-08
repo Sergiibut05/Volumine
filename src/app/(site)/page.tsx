@@ -70,44 +70,52 @@ export default async function HomePage() {
       </header>
 
       <main>
-        <section className="shell hero">
-          {/* `hero-copy` no es decorativo: declara el contenedor contra el que
-              se mide el titular. Ver `.hero h1` en marketing.css. */}
-          <div className="hero-copy">
-            <p className="spec-label">{d.landing.tagline}</p>
-            <h1 className="display" style={{ marginTop: '1rem' }}>
-              {d.landing.heroTitle1}
-              <br />
-              {d.landing.heroTitle2}
-            </h1>
-            <p>{d.landing.heroBody}</p>
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '2rem' }}>
-              <Link className="cta" href="/crear">
-                {d.landing.heroCta}
-              </Link>
-            </div>
-          </div>
-
-          <div>
-            <HeroChart />
-          </div>
-        </section>
-
-        {/* Ficha técnica. Las specs SON el diferenciador de este producto, así
-            que se presentan como specs y no como "beneficios". */}
-        <section className="shell">
-          <div className="specsheet">
-            {specs(d).map((spec) => (
-              <div key={spec.label}>
-                <p className="spec-label" style={{ margin: 0 }}>
-                  {spec.label}
-                </p>
-                <strong>{spec.value}</strong>
-                <span>{spec.note}</span>
+        {/*
+          La PRIMERA PANTALLA: el titular, el objeto y sus specs, juntos y a
+          pantalla completa. La ficha técnica no es una sección aparte —es el
+          pie del héroe—: son las medidas de lo que acabas de ver, y separarlas
+          dejaba una tira de 142px flotando entre dos pantallas.
+        */}
+        <div className="primera">
+          <section className="shell hero">
+            {/* `hero-copy` no es decorativo: declara el contenedor contra el
+                que se mide el titular. Ver `.hero h1` en marketing.css. */}
+            <div className="hero-copy">
+              <p className="spec-label">{d.landing.tagline}</p>
+              <h1 className="display" style={{ marginTop: '1rem' }}>
+                {d.landing.heroTitle1}
+                <br />
+                {d.landing.heroTitle2}
+              </h1>
+              <p>{d.landing.heroBody}</p>
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '2rem' }}>
+                <Link className="cta" href="/crear">
+                  {d.landing.heroCta}
+                </Link>
               </div>
-            ))}
-          </div>
-        </section>
+            </div>
+
+            <div>
+              <HeroChart />
+            </div>
+          </section>
+
+          {/* Ficha técnica. Las specs SON el diferenciador de este producto, así
+              que se presentan como specs y no como "beneficios". */}
+          <section className="shell">
+            <div className="specsheet">
+              {specs(d).map((spec) => (
+                <div key={spec.label}>
+                  <p className="spec-label" style={{ margin: 0 }}>
+                    {spec.label}
+                  </p>
+                  <strong>{spec.value}</strong>
+                  <span>{spec.note}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
 
         {/* Después de la ficha técnica y antes de la galería: primero QUÉ es,
             luego POR QUÉ pesa poco, luego DÓNDE vive, y al final los tipos. */}

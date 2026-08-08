@@ -535,6 +535,66 @@ El tema ELEGIDO se cuela siempre en la lista corta aunque esté en la parte de
 abajo. Sin eso, al recargar una gráfica con un tema de los últimos el control se
 quedaba sin ninguna ficha marcada y parecía que no había tema.
 
+## La landing por pantallas
+
+**Las dos primeras secciones ocupan la pantalla entera** (`min-height: 100svh`,
+no `100vh` — en un móvil `vh` cuenta con la barra del navegador retraída y
+siempre asoma un trozo de la siguiente).
+
+La ficha técnica dejó de ser una sección aparte: **es el pie del héroe**. Suelta
+medía 142px y quedaba como una tira flotando entre dos pantallas, sin ser ni el
+final de una ni el principio de la otra. Ahora la primera pantalla es una sola
+idea: titular, objeto y sus medidas.
+
+### La costura entre la primera y la segunda
+
+El fondo oscuro vive en un `::before` con las cuatro esquinas redondeadas: eso
+convierte el corte en una LÁMINA apoyada sobre el papel en vez de en una
+frontera a media página, y no cuesta nada porque es estático. El gesto lo pone
+la entrada, con `animation-timeline: view()` — scroll nativo del CSS, fuera del
+hilo principal y **sin instalar nada**. Aquí importa más de lo normal: la página
+existe para decir que esto no arrastra setenta kilobytes de librería para mover
+una caja, así que resolverlo con GSAP habría sido contradecirse en la propia
+demostración.
+
+Tres cosas que la guía de web moderna corrige y que hay que respetar:
+
+- El `@supports` comprueba **también** `animation-range`. Hay navegadores con
+  `animation-timeline` a medias, y sin esa segunda condición se quedarían con
+  los elementos invisibles para siempre.
+- Se animan **solo `opacity` y `transform`**. La primera versión animaba el
+  `border-radius` de la banda —bonito y equivocado—: el radio no se compone, se
+  repinta, y repintar una caja de pantalla completa en cada fotograma de scroll
+  es justo lo que esta página no puede permitirse.
+- Como el gesto es decorativo, donde no exista (Firefox) **no hay respaldo**: se
+  ve igual, sin el gesto. Y bajo `prefers-reduced-motion`, tampoco.
+
+Tres fallos propios en el camino, los tres invisibles en el código:
+
+- `.enuso > .shell > *` tiene dos clases y **le gana en especificidad** a
+  `.escena`, así que la escena se quedaba con el desplazamiento genérico y nunca
+  hacía lo suyo. De ahí el `:not(.escena)`.
+- `position: relative` a secas **no crea contexto de apilamiento**, así que el
+  `z-index: -1` de la lámina se escapaba hasta la raíz y se pintaba detrás del
+  papel: la banda oscura desaparecía entera y el texto blanco se quedaba sobre
+  fondo claro. De ahí el `isolation: isolate`.
+- Y antes de eso, con la sección en `static`, el `::before` se colgaba del
+  viewport y sus esquinas redondeadas acababan fuera de pantalla.
+
+### La sección «en su sitio» ya no repite forma
+
+Pasó de anillo a **barras**. El héroe ya enseña un anillo y con los dos iguales
+la página parecía tener un solo truco en sus dos primeras pantallas; barras
+además es lo que de verdad lleva un informe trimestral, así que el decorado y la
+gráfica dicen lo mismo.
+
+Y cambió de tema a `indigo`. Con la escala de grises la barra MAYOR es la más
+oscura y **sobre la diapositiva oscura se perdía entera** — justo la que lleva
+el argumento. En el anillo no pasaba porque la porción oscura iba rodeada de
+claras y el conjunto se leía como una forma; con barras cada una está sola
+contra el fondo, y como el mismo embed pasa por papel blanco y por grafito sin
+recargarse, la paleta tiene que funcionar en los dos.
+
 ## Un solo embed, y alrededor cambia el mundo
 
 `src/app/(site)/EnUso.tsx`. Hay un `<iframe>` de `/embed` DE VERDAD y **no se

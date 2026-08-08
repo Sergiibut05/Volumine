@@ -239,6 +239,125 @@
 
 /* ── galería de tipos ───────────────────────────────────────────────────── */
 
+/* ── las dos primeras pantallas ─────────────────────────────────────────── */
+
+/*
+  La primera pantalla es UNA: titular, objeto y specs.
+
+  La ficha técnica no es una sección aparte, es el pie del héroe —son las
+  medidas de lo que acabas de ver—. Suelta medía 142px y quedaba como una tira
+  flotando entre dos pantallas, sin ser ni el final de una ni el principio de
+  la otra.
+
+  `100svh` y no `100vh`: en un móvil, `vh` cuenta con la barra del navegador
+  RETRAÍDA, así que la primera pantalla se pasa de largo y siempre asoma un
+  trozo de la siguiente. `svh` es la altura pequeña, la que de verdad se ve al
+  llegar.
+*/
+.primera {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100svh;
+  padding-block: 1.5rem 2.5rem;
+}
+
+/* Dentro de la primera pantalla el héroe ya no pone su propio aire: lo reparte
+   el contenedor. Con los dos, no cabían las specs. */
+.primera .hero {
+  padding-block: 0;
+}
+
+.primera .specsheet {
+  margin-block: clamp(2rem, 5vh, 3.5rem) 0;
+}
+
+/*
+  Y la segunda pantalla también es completa. Es la que lleva el argumento
+  —«el mismo link, en cualquier sitio»— y ya venía midiendo casi una pantalla:
+  cerrarla del todo la convierte en un sitio donde pararse en vez de en algo por
+  lo que se pasa.
+*/
+.enuso {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100svh;
+}
+
+/*
+  ── LA COSTURA ENTRE LAS DOS ────────────────────────────────────────────
+
+  El fondo oscuro vive en un `::before` con las esquinas de arriba redondeadas.
+  Eso ya convierte el corte entre la página clara y la oscura en una LÁMINA
+  puesta encima en vez de en una frontera a media página, y no cuesta nada
+  porque es estático.
+
+  El gesto lo pone la entrada: lo de dentro asoma con `opacity` y `translateY`,
+  y la escena además se acerca un pelo. Solo esas dos propiedades, que son las
+  que el navegador puede mover en el compositor sin repintar. La primera versión
+  animaba el `border-radius` de la banda —bonito y equivocado—: el radio no se
+  compone, se repinta, y repintar una caja de pantalla completa en cada
+  fotograma de scroll es justo lo que esta página no puede permitirse.
+
+  Va con `animation-timeline: view()`, scroll nativo del CSS: corre fuera del
+  hilo principal, no despierta a JavaScript y no pesa un byte. Aquí importa más
+  de lo normal, porque la página entera existe para decir que esto no arrastra
+  setenta kilobytes de librería para mover una caja.
+
+  El `@supports` comprueba TAMBIÉN `animation-range`: hay navegadores con
+  `animation-timeline` a medias, y sin esa segunda condición se quedarían con
+  los elementos invisibles para siempre. Y como el gesto es decorativo, donde no
+  exista no hay respaldo ninguno: se ve igual, sin el gesto.
+*/
+.enuso::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  /* Las CUATRO esquinas. Con solo las de arriba, la banda entraba como una
+     lámina y salía como un tajo. Redondeada entera se lee como lo que es: una
+     hoja oscura apoyada sobre el papel de la página, igual que las gráficas se
+     apoyan sobre el papel del estudio. */
+  border-radius: 2rem;
+  background: radial-gradient(120% 90% at 50% 0%, #1c1c23 0%, #121217 55%, #0d0d11 100%);
+}
+
+@supports ((animation-timeline: view()) and (animation-range: entry)) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* Primero aparece el sitio y después lo que hay en él, así que el contenido
+       entra un poco más tarde que la banda. */
+    /* `:not(.escena)` no es cosmética: `.enuso > .shell > *` tiene DOS clases y
+       le gana en especificidad a `.escena`, así que la escena se quedaba con el
+       desplazamiento genérico y nunca llegaba a hacer lo suyo. */
+    .enuso > .shell > *:not(.escena) {
+      animation: asomar auto linear backwards;
+      animation-timeline: view();
+      animation-range: entry 15% entry 70%;
+    }
+
+    .escena {
+      animation: acercarse auto linear backwards;
+      animation-timeline: view();
+      animation-range: entry 10% entry 80%;
+    }
+  }
+}
+
+@keyframes asomar {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
+}
+
+@keyframes acercarse {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
 /* ── un solo embed, y alrededor cambia el mundo ─────────────────────────── */
 
 /*
@@ -256,9 +375,21 @@
   esto, cambiar el ciclorama detrás del mismo objeto.
 */
 .enuso {
-  margin-top: 4rem;
+  /*
+    `relative` para que el `::before` que pinta la lámina se posicione contra
+    ESTA sección: en `static` el pseudo-elemento se cuelga del viewport y sus
+    esquinas redondeadas acaban fuera de la pantalla, que es lo que dejaba una
+    banda a corte recto de lado a lado.
+
+    Y `isolation: isolate` además, que no es adorno. `relative` a secas NO crea
+    contexto de apilamiento, así que el `z-index: -1` de la lámina se escapa
+    hasta la raíz y se pinta DETRÁS del papel de la página: la banda oscura
+    desaparecía entera y el texto blanco se quedaba sobre fondo claro. Con
+    contexto propio, ese -1 solo significa «detrás de lo mío».
+  */
+  position: relative;
+  isolation: isolate;
   padding-block: clamp(3rem, 7vh, 5rem);
-  background: radial-gradient(120% 90% at 50% 0%, #23232c 0%, #17171d 55%, #121217 100%);
   color: #f2f2f5;
 }
 
@@ -727,8 +858,13 @@
   encuentre de un vistazo el nombre de la herramienta que usa a diario, no
   competir con nada. Va en gris plano y en una sola línea de peso.
 */
+/*
+  Con `2.75rem 0.5rem` la tira quedaba a 36px del titular de la galería y las
+  dos cosas se leían como un solo bloque apelotonado. Son dos ideas distintas
+  —dónde se pega y qué formas hay— y necesitan respirar como tales.
+*/
 .worksin {
-  padding-block: 2.75rem 0.5rem;
+  padding-block: clamp(4rem, 9vh, 7rem) clamp(4rem, 9vh, 7rem);
   text-align: center;
 }
 

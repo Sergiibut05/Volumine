@@ -100,8 +100,22 @@ const base = (
   estrecho: boolean,
 ): ChartConfig => ({
   v: 1,
-  type: 'donut',
-  theme: 'estudio',
+  /*
+    BARRAS y no anillo. El héroe ya enseña un anillo, y con los dos iguales la
+    página parecía tener un solo truco —la misma forma dos veces en las dos
+    primeras pantallas—. Barras además es lo que de verdad lleva un informe
+    trimestral, así que el decorado y la gráfica dicen lo mismo.
+  */
+  type: 'bar',
+  /*
+    `indigo` y no `estudio`. Con la escala de grises, la barra MAYOR es la más
+    oscura, y sobre la diapositiva oscura se perdía entera: justo la que lleva
+    el argumento. En el anillo no pasaba porque la porción oscura iba rodeada de
+    claras y el conjunto se leía como una forma. Aquí cada barra está sola
+    contra el fondo, así que el tema tiene que funcionar sobre papel blanco Y
+    sobre grafito — la gráfica pasa por los dos sin recargarse.
+  */
+  theme: 'indigo',
   data: {
     labels: labels.slice(0, 4),
     series: [{ values: VALORES }],
@@ -131,7 +145,9 @@ const base = (
     size: estrecho ? 0.78 : 1,
   },
   motion: { autoRotate: true, speed: 0.35 },
-  camera: { distance: 0.9 },
+  /* Un poco más lejos que el anillo: de cerca, la barra alta se veía volcada
+     por la perspectiva y parecía que se caía. */
+  camera: { distance: 1.05 },
   layout: { watermark: false },
 });
 
