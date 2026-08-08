@@ -153,15 +153,21 @@ export async function composePoster(
     transparencia no la respeta nadie — la rellena cada cliente con su color, y
     una gráfica oscura desaparece en una tarjeta blanca.
 
-    Se pierde el alfa, y con él el único uso donde servía: el respaldo sin WebGL
-    dentro de la propia página. Ese respaldo hoy NO existe (es la tabla de
-    datos), así que se elige lo que sí está en uso. El día que se construya, lo
-    que hará falta son dos imágenes, no una.
+    Se pierde el alfa, y aquí se dijo que eso no importaba porque el relleno de
+    dentro del embed «no existía todavía». SÍ EXISTÍA: es el
+    `<img class="poster">` que pinta `embed/html.ts`. En Notion en modo oscuro
+    salía un rectángulo blanco nítido donde tenía que verse la página de detrás,
+    y para siempre si WebGL no arrancaba.
+
+    La consecuencia está corregida allí —con fondo transparente no se pone
+    relleno—, no aquí: la tarjeta de enlace sigue necesitando una imagen opaca.
+
+    El arreglo completo son DOS imágenes, una con alfa y otra opaca, y va con el
+    póster estático (`?static=1`): es ahí donde toca decidir cuántas se guardan
+    por gráfica.
   */
   const relleno =
-    background.kind === 'transparent'
-      ? posterBackdrop(chart.theme, chart.palette)
-      : null;
+    background.kind === 'transparent' ? posterBackdrop(chart.theme, chart.palette) : null;
 
   const image = await loadImage(dataUrl);
   const width = image.naturalWidth;

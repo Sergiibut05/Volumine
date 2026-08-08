@@ -325,12 +325,37 @@ function oembedLink(canonical: string | null | undefined): string {
  * Así se ve la gráfica desde el primer byte —antes de que arranque WebGL— y
  * sigue viéndose si WebGL no arranca nunca. Un `<img>` con `alt` vacío porque
  * el escenario ya lleva su `aria-label` y la tabla de datos completa.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * CON FONDO TRANSPARENTE NO SE PONE, Y ESO ARREGLA UN FALLO REAL
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * El póster tiene DOS usos con necesidades opuestas:
+ *
+ *   · aquí dentro, de relleno, quiere ALFA — la gráfica se funde con la página
+ *     de quien la incrusta, que es la promesa del fondo transparente;
+ *   · como `og:image`, quiere ser OPACO — en una tarjeta de enlace nadie
+ *     respeta la transparencia y cada cliente la rellena con su color.
+ *
+ * Se eligió opaco (ver `lib/charts/poster.ts`) razonando que el relleno de
+ * dentro «no existe todavía». Existe: es esta etiqueta. Resultado en Notion en
+ * modo oscuro: un rectángulo blanco nítido donde tenía que verse la página de
+ * detrás, hasta que arrancara WebGL — y para siempre si no arrancaba.
+ *
+ * Con fondo transparente se prefiere NO PONER NADA a poner un rectángulo del
+ * color equivocado: no ver la gráfica un instante es mucho menos malo que ver
+ * un recuadro que no es de nadie. El resto de fondos sí lo llevan, porque ahí
+ * el póster y el embed son del mismo color por construcción.
+ *
+ * El arreglo completo son DOS imágenes —una con alfa para aquí y otra opaca
+ * para la tarjeta— y va con el póster estático (`?static=1`), que es donde
+ * toca decidir cuántas imágenes se guardan por gráfica.
  */
 function posterImgHtml(
   config: ResolvedChartConfig,
   poster: string | null | undefined,
 ): string {
-  if (!poster) return '';
+  if (!poster || config.scene.background.kind === 'transparent') return '';
   return `<img class="poster" src="${escapeHtml(poster)}" alt="" aria-hidden="true" decoding="async">`;
 }
 
