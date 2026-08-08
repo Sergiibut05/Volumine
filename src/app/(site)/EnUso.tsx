@@ -51,23 +51,42 @@ import type { ChartConfig } from '@/lib/config/schema';
 const CADA = 4200;
 
 /*
-  Dónde vive la gráfica en cada decorado, en porcentaje de la escena.
+  Dónde vive la gráfica en cada decorado.
 
-  Va en PORCENTAJES y no en píxeles porque el hueco es el mismo nodo del DOM en
-  los tres —esa es toda la idea— y lo único que cambia son estas cuatro cifras.
-  Un contenedor por decorado obligaría a montar tres iframes, que es justo lo
-  que destruiría el efecto: tres gráficas distintas en vez de una que viaja.
+  ── POR QUÉ ESTO ES UN `transform` Y NO UN TAMAÑO ────────────────────────
+
+  La primera versión animaba `left/top/width/height` del hueco, y PARPADEABA al
+  cambiar de decorado. La causa no era el fundido: era que cambiar el tamaño de
+  un `<iframe>` sesenta veces por segundo obliga al embed de dentro a
+  redimensionar su canvas otras tantas —reasignar el framebuffer, recalcular la
+  densidad, reencuadrar la cámara— y el navegador a re-rasterizar todo el
+  documento incrustado en cada fotograma. En una captura suelta se veía perfecto;
+  en movimiento, no.
+
+  Ahora el hueco tiene un tamaño FIJO y lo único que se anima es `transform`.
+  Eso no toca el layout, no llega al iframe y se compone en la GPU: el canvas de
+  dentro no se entera de que la gráfica está viajando. Que es literalmente lo que
+  esta sección quiere decir.
+
+  Todas las escalas son ≤ 1 a propósito: el tamaño base es el del decorado más
+  grande, así que aquí solo se REDUCE. Ampliar un iframe compuesto lo dejaría
+  borroso —el mismo mecanismo que emborronaba la etiqueta dentro de Canva—.
 */
-type Hueco = { left: number; top: number; width: number; height: number };
+type Puesto = {
+  /** Desplazamiento en % del propio hueco, no de la escena. */
+  dx: number;
+  dy: number;
+  escala: number;
+};
 
-const HUECOS: Record<string, Hueco> = {
-  /* En el documento la gráfica es una ilustración dentro del texto: pequeña,
-     a la derecha, alineada con la mancha. */
-  doc: { left: 52, top: 18, width: 42, height: 64 },
+const PUESTOS: Record<string, Puesto> = {
+  /* En el documento es una ilustración dentro del texto: pequeña y a la
+     derecha, en el hueco que deja la mancha. */
+  doc: { dx: 42.9, dy: 2.5, escala: 0.72 },
   /* En la diapositiva es la protagonista y ocupa media hoja. */
-  slide: { left: 44, top: 10, width: 52, height: 80 },
-  /* En el panel vive dentro de una celda, con las cifras al lado. */
-  panel: { left: 6, top: 14, width: 56, height: 78 },
+  slide: { dx: 35.7, dy: 2.5, escala: 0.95 },
+  /* En el panel vive dentro de una celda blanca, con las cifras al lado. */
+  panel: { dx: -30.4, dy: 8.75, escala: 0.93 },
 };
 
 const base = (
@@ -168,7 +187,7 @@ export function EnUso() {
   const config = base(muestra.labels, muestra.unit, muestra.numberLocale, estrecho);
   const url = origin ? buildEmbedUrl(config, origin) : null;
 
-  const hueco = HUECOS[activo];
+  const puesto = PUESTOS[activo];
 
   const elegir = (cual: 'doc' | 'slide' | 'panel') => {
     setActivo(cual);
@@ -204,12 +223,23 @@ export function EnUso() {
           <div className="deco deco-slide" aria-hidden={activo !== 'slide'}>
             <p className="deco-kicker">{d.landing.slideKicker}</p>
             <h3 className="deco-title">{d.landing.slideTitle}</h3>
+            {/* La conclusión, que es lo que de verdad lleva una diapositiva de
+                consejo: el titular dice de qué va y esta línea dice qué pasó. */}
+            <p className="slide-lead">{d.landing.slideLead}</p>
             <p className="slide-foot">{d.landing.slideFoot}</p>
           </div>
 
           {/* ── decorado 3: un panel ──────────────────────────────────── */}
           <div className="deco deco-panel" aria-hidden={activo !== 'panel'}>
-            <p className="deco-kicker">{d.landing.panelTitle}</p>
+            <div className="panel-bar">
+              <p className="deco-kicker">{d.landing.panelTitle}</p>
+              <span className="panel-range">{d.landing.panelRange}</span>
+            </div>
+            {/* La celda. En un panel de verdad la gráfica no flota sobre el
+                fondo: vive dentro de una tarjeta, como todo lo demás. Va aquí
+                y no en el hueco porque el hueco es el mismo nodo en los tres
+                decorados y en los otros dos no debe haber ninguna tarjeta. */}
+            <div className="panel-celda" />
             <div className="panel-stats">
               <div>
                 <span>{d.landing.panelStat1}</span>
@@ -235,10 +265,7 @@ export function EnUso() {
           <div
             className="hueco"
             style={{
-              left: `${hueco.left}%`,
-              top: `${hueco.top}%`,
-              width: `${hueco.width}%`,
-              height: `${hueco.height}%`,
+              transform: `translate(-50%, -50%) translate(${puesto.dx}%, ${puesto.dy}%) scale(${puesto.escala})`,
             }}
           >
             {visible && url?.ok ? (

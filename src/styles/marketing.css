@@ -239,7 +239,6 @@
 
 /* ── galería de tipos ───────────────────────────────────────────────────── */
 
-
 /* ── un solo embed, y alrededor cambia el mundo ─────────────────────────── */
 
 /*
@@ -259,12 +258,7 @@
 .enuso {
   margin-top: 4rem;
   padding-block: clamp(3rem, 7vh, 5rem);
-  background: radial-gradient(
-    120% 90% at 50% 0%,
-    #23232c 0%,
-    #17171d 55%,
-    #121217 100%
-  );
+  background: radial-gradient(120% 90% at 50% 0%, #23232c 0%, #17171d 55%, #121217 100%);
   color: #f2f2f5;
 }
 
@@ -315,9 +309,9 @@
     visibility 520ms step-end;
 }
 
-.escena[data-ctx="doc"] .deco-doc,
-.escena[data-ctx="slide"] .deco-slide,
-.escena[data-ctx="panel"] .deco-panel {
+.escena[data-ctx='doc'] .deco-doc,
+.escena[data-ctx='slide'] .deco-slide,
+.escena[data-ctx='panel'] .deco-panel {
   opacity: 1;
   visibility: visible;
   transition:
@@ -381,6 +375,14 @@
   font-size: clamp(1.25rem, 0.6rem + 2.6vw, 2.75rem);
 }
 
+.slide-lead {
+  max-width: 24ch;
+  margin: 0;
+  color: rgb(255 255 255 / 0.62);
+  font-size: clamp(0.75rem, 0.55rem + 0.7vw, 1rem);
+  line-height: 1.45;
+}
+
 .slide-foot {
   position: absolute;
   bottom: clamp(1.75rem, 1rem + 3vw, 3.5rem);
@@ -391,6 +393,36 @@
 }
 
 /* ── decorado 3: un panel ─────────────────────────────────────────────── */
+
+.panel-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.panel-range {
+  color: #5c5c68;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: clamp(0.5625rem, 0.5rem + 0.2vw, 0.6875rem);
+}
+
+/*
+  La celda de la gráfica. Sus cifras son las de `PUESTOS.panel` en EnUso.tsx —
+  si se mueve una, se mueve la otra. Va en el decorado y no en el hueco porque
+  el hueco es el mismo nodo en los tres y en los otros dos no hay ninguna
+  tarjeta detrás de la gráfica.
+*/
+.panel-celda {
+  position: absolute;
+  top: 20%;
+  left: 4%;
+  width: 58%;
+  height: 74%;
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+}
 
 .deco-panel {
   padding: clamp(1.25rem, 0.8rem + 2vw, 2.25rem);
@@ -405,15 +437,15 @@
    la gráfica. Tarjetas blancas sobre el gris del panel, como cualquier panel. */
 .panel-stats {
   position: absolute;
-  top: calc(clamp(1.25rem, 0.8rem + 2vw, 2.25rem) + 2rem);
-  right: clamp(1.25rem, 0.8rem + 2vw, 2.25rem);
+  top: 20%;
+  right: 4%;
   display: grid;
   /* Altura natural y pegadas arriba. Estirándolas para llenar la columna
      quedaban tres cajas enormes con dos líneas de texto flotando en medio, que
      es peor que el hueco: una tarjeta vacía se lee como un fallo de carga. */
   align-content: start;
   gap: 0.625rem;
-  width: 30%;
+  width: 34%;
 }
 
 .panel-stats div {
@@ -460,22 +492,29 @@
 }
 
 /*
-  EL HUECO. Un solo nodo del DOM en los tres decorados, y lo único que cambia
-  son sus cuatro coordenadas. El iframe de dentro NO se desmonta, así que la
-  gráfica no corta el giro al pasar de un mundo a otro — que es toda la idea.
+  EL HUECO. Un solo nodo del DOM en los tres decorados, con TAMAÑO FIJO.
 
-  La transición es más larga que el fundido del decorado (700 vs 520): así la
-  gráfica sigue viajando un instante después de que el mundo nuevo haya
-  terminado de aparecer, y el ojo la sigue a ella.
+  Lo único que se anima es `transform`. Antes se animaban `width` y `height`, y
+  la gráfica PARPADEABA: redimensionar un `<iframe>` sesenta veces por segundo
+  obliga al embed de dentro a reasignar su framebuffer y reencuadrar la cámara
+  en cada fotograma, y al navegador a re-rasterizar el documento incrustado
+  entero. En una captura fija se veía perfecto; en movimiento, no. Con
+  `transform` nada de eso llega al iframe: se compone en la GPU y el canvas ni
+  se entera de que la gráfica está viajando.
+
+  El tamaño base es el del decorado más grande, así que todas las escalas son
+  ≤ 1 —ver PUESTOS en EnUso.tsx—. Ampliar un iframe compuesto lo dejaría
+  borroso, que es el mismo mecanismo que emborronaba la etiqueta dentro de Canva.
 */
 .hueco {
   position: absolute;
+  top: 50%;
+  left: 50%;
   z-index: 1;
-  transition:
-    left 700ms var(--p-ease-out),
-    top 700ms var(--p-ease-out),
-    width 700ms var(--p-ease-out),
-    height 700ms var(--p-ease-out);
+  width: 56%;
+  height: 80%;
+  transition: transform 700ms var(--p-ease-out);
+  will-change: transform;
 }
 
 /* ── las pestañas ─────────────────────────────────────────────────────── */
@@ -505,7 +544,7 @@
   color: rgb(255 255 255 / 0.9);
 }
 
-.enuso-tab[aria-selected="true"] {
+.enuso-tab[aria-selected='true'] {
   background: #fff;
   color: #14141a;
 }
@@ -536,10 +575,17 @@
     formato, que es exactamente para lo que existe la regla.
   */
   .hueco {
-    top: 42% !important;
-    left: 3% !important;
-    width: 94% !important;
-    height: 55% !important;
+    top: 62%;
+    left: 50%;
+    width: 94%;
+    height: 56%;
+    /*
+      `!important` SOLO en `transform`, y por un motivo concreto: el
+      desplazamiento por decorado lo pone el componente como estilo en línea, y
+      un estilo en línea solo lo gana una declaración importante. Los otros
+      cuatro valores viven en CSS y se sobreescriben sin nada especial.
+    */
+    transform: translate(-50%, -50%) !important;
   }
 
   /* Y el decorado se recoge en la mitad de arriba, que es la que le queda. */
@@ -562,12 +608,32 @@
     margin-top: 0.75rem;
   }
 
+  /* La celda sigue al hueco, que en estrecho se queda abajo y a todo lo ancho. */
+  .panel-celda {
+    top: 32%;
+    left: 2%;
+    width: 96%;
+    height: 60%;
+  }
+
+  .slide-lead {
+    max-width: none;
+  }
+
   .panel-stats div {
     padding: 0.5rem 0.625rem;
   }
 
   .deco-slide .deco-title {
     max-width: none;
+  }
+
+  .slide-lead {
+    max-width: 16ch;
+    margin: 0;
+    color: rgb(255 255 255 / 0.62);
+    font-size: clamp(0.75rem, 0.55rem + 0.7vw, 1rem);
+    line-height: 1.45;
   }
 
   .slide-foot {

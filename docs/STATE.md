@@ -550,9 +550,25 @@ sola la promesa más difícil de contar: al pasar de papel claro a diapositiva
 oscura, la gráfica se apoya en las dos SIN traer un rectángulo de fondo — que es
 lo que significa el fondo transparente, y contarlo con palabras nunca funcionó.
 
-Técnicamente todo depende de una decisión: **el hueco es un único nodo del DOM**
-y lo único que cambia son sus cuatro coordenadas en porcentaje. Un contenedor
-por decorado obligaría a montar tres iframes y destruiría el efecto.
+Técnicamente todo depende de dos decisiones:
+
+1. **El hueco es un único nodo del DOM.** Un contenedor por decorado obligaría a
+   montar tres iframes y destruiría el efecto.
+2. **Lo único que se anima es `transform`.** La primera versión animaba
+   `left/top/width/height` y la gráfica PARPADEABA al cambiar de decorado.
+   Cambiar el tamaño de un `<iframe>` sesenta veces por segundo obliga al embed
+   de dentro a reasignar su framebuffer, recalcular la densidad y reencuadrar la
+   cámara en cada fotograma, y al navegador a re-rasterizar el documento
+   incrustado entero. **En capturas fijas se veía perfecto; solo se nota en
+   movimiento** —lo cazó Manuel mirando la página, no ninguna medición mía—.
+   Con `transform` nada de eso llega al iframe: se compone en la GPU y el canvas
+   ni se entera. Medido: el canvas se queda en 1322×944 antes, durante y después
+   de la transición; antes se reasignaba en cada fotograma.
+
+   Las escalas son todas ≤ 1 a propósito: el tamaño base es el del decorado más
+   grande, así que aquí solo se reduce. Ampliar un iframe compuesto lo dejaría
+   borroso, que es el mismo mecanismo que emborronaba la etiqueta dentro de
+   Canva.
 
 - Las etiquetas van en `finish: 'solid'`. Con `plain` hay que elegir un color de
   tinta, y el mismo embed pasa por papel blanco y por fondo oscuro sin
@@ -560,7 +576,17 @@ por decorado obligaría a montar tres iframes y destruiría el efecto.
 - El ciclo se para en cuanto alguien pulsa una pestaña, no cicla si la sección
   no se está viendo, y no cicla con `prefers-reduced-motion`.
 - La diapositiva es grafito AZULADO y no negro: la píldora de las etiquetas es
-  casi negra y sobre negro se fundiría.
+  casi negra y sobre negro se fundiría. Y bastante más clara que la banda: con
+  el primer gris, decorado y fondo eran casi el mismo color y la frontera
+  desaparecía otra vez.
+- En el panel la gráfica va dentro de una **celda blanca**, porque en un panel
+  de verdad no flota sobre el fondo: vive en una tarjeta como todo lo demás. La
+  celda la pinta el decorado y no el hueco —el hueco es el mismo nodo en los
+  tres y en los otros dos no debe haber ninguna tarjeta detrás—, así que sus
+  cifras y las de `PUESTOS.panel` hay que moverlas juntas.
+- En móvil la gráfica NO viaja: se queda abajo, centrada y a todo lo ancho. El
+  `transform` por decorado se anula ahí con un `!important`, que es lo correcto
+  porque el desplazamiento lo pone el componente como estilo en línea.
 
 ### Por qué la banda es oscura
 
