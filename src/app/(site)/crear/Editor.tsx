@@ -513,13 +513,11 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
           {THEMES.length > TEMAS_A_LA_VISTA && (
             <button
               type="button"
-              className="linky"
+              className="mas"
+              aria-expanded={todosLosTemas}
               onClick={() => setTodosLosTemas((v) => !v)}
-              style={{ justifySelf: 'start' }}
             >
-              {todosLosTemas
-                ? d.editor.themesLess
-                : fill(d.editor.themesMore, { n: THEMES.length - TEMAS_A_LA_VISTA })}
+              {todosLosTemas ? d.editor.themesLess : d.editor.themesMore}
             </button>
           )}
         </Group>

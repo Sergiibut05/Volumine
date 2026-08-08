@@ -762,6 +762,45 @@
   text-decoration: underline;
 }
 
+/*
+  «Ver más», y poco más.
+
+  Iba con `.linky`, que es la clase de un ENLACE DE ACCIÓN —acento, negrita y
+  subrayado— y ahí gritaba más que las propias fichas de tema: lo primero que
+  veía el ojo al abrir el panel era un enlace morado, no los colores.
+
+  Esto no es una acción destacada, es una puerta a lo que hay debajo. Va del
+  tamaño de una nota, en tinta apagada, y solo se aviva al pasar por encima.
+*/
+.mas {
+  justify-self: start;
+  padding: 0.25rem 0;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--p-dur-2) var(--p-ease-out);
+}
+
+.mas:hover {
+  color: var(--text-primary);
+}
+
+/* La punta de flecha gira al abrir: dice el estado sin gastar una palabra. */
+.mas::after {
+  content: ' ›';
+  display: inline-block;
+  transform: rotate(90deg);
+  transition: transform var(--p-dur-2) var(--p-ease-out);
+}
+
+.mas[aria-expanded='true']::after {
+  transform: rotate(-90deg);
+}
+
 /* ── deshacer / rehacer ─────────────────────────────────────────────────── */
 
 .undo {
