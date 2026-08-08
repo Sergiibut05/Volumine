@@ -54,6 +54,34 @@ canvas {
   height: 100%;
 }
 
+/*
+  ══════════════════════════════════════════════════════════════════════════
+  POR QUÉ LA CHROME DEL EMBED YA NO LLEVA `backdrop-filter`
+  ══════════════════════════════════════════════════════════════════════════
+
+  El tooltip y la marca de agua lo tenían, y en una diapositiva de Canva a
+  pantalla completa salían BORROSOS mientras el anillo se veía nítido. Esa es la
+  pista que lo delata: lo único que separa a esos dos elementos del canvas es
+  ese filtro.
+
+  `backdrop-filter` obliga al navegador a sacar el elemento a su propia capa de
+  composición, y esa capa se rasteriza a la escala que el documento CONOCE.
+  Dentro de un iframe el documento no sabe que el anfitrión ha ampliado el
+  lienzo —comprobado: la transformación vive en el padre y aquí no llega—, así
+  que la capa se dibuja a 1× y se estira. El canvas se libra porque lo dibujamos
+  nosotros con la densidad que decidimos (ver `pixelRatioPara`).
+
+  Y de regalo: era un desenfoque por fotograma detrás de cada pieza de chrome,
+  en la página de otra persona, para una gráfica que gira. Caro para lo poco que
+  aporta — la píldora ya se despega del fondo con su color y su filo.
+
+  Lo conserva el acabado «vidrio» de las ETIQUETAS, porque ahí es una elección
+  con nombre y tiene «sólido» al lado para quien prefiera nitidez.
+
+  NO ESTÁ REPRODUCIDO EN LOCAL: en Chromium headless las dos versiones salen
+  igual de nítidas, así que la prueba es la captura de Canva y el razonamiento.
+  Si algún día se puede reproducir, este comentario es por dónde empezar.
+*/
 .tooltip {
   position: absolute;
   left: 50%;
@@ -64,8 +92,7 @@ canvas {
   align-items: baseline;
   padding: 6px 11px;
   border-radius: 10px;
-  background: rgb(16 16 24 / 0.82);
-  backdrop-filter: blur(12px);
+  background: rgb(16 16 24 / 0.94);
   box-shadow:
     0 8px 32px rgb(0 0 0 / 0.45),
     inset 0 0 0 1px rgb(255 255 255 / 0.09);
@@ -238,7 +265,6 @@ canvas {
   padding: 4px 9px 4px 6px;
   border-radius: 999px;
   background: rgb(16 16 24 / 0.46);
-  backdrop-filter: blur(6px);
   font-size: 11.5px;
   font-weight: 600;
   letter-spacing: -0.005em;
