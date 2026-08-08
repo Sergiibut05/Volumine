@@ -453,7 +453,6 @@ function pixelRatioPara(width: number, height: number): number {
   return Math.max(1, Math.min(querido, MAX_DENSIDAD, porArea));
 }
 
-
 export function createChartRenderer(
   canvas: HTMLCanvasElement,
   initialConfig: ResolvedChartConfig,
@@ -992,12 +991,31 @@ export function createChartRenderer(
     const values = config.data.series[0]?.values ?? [];
     const layout = computeMarkers(values, config.data.coords, { size: globe.markerSize });
 
-    /* Se encuadra por el diámetro más el marcador mayor, y con más aire que el
-       resto de tipos: un globo pegado a los bordes deja de leerse como un objeto
-       suelto y parece un fondo. */
-    /* El halo es una esfera del 1,18 del radio, así que encuadrar solo por el
-       globo lo deja cortado por los bordes. */
-    const reach = Math.max(GLOBE_RADIUS + layout.largest, GLOBE_RADIUS * 1.18) * 2 * 1.16;
+    /*
+      Se encuadra por el diámetro más el marcador mayor, o por el HALO si es más
+      grande — es una esfera de 1,18 radios, así que medir solo el globo lo
+      dejaba cortado por los bordes.
+
+      SIN aire extra. Lo llevaba (`* 1.16`) porque la cámara iba a distancia
+      fija y era la única forma de que respirara. Ahora el globo se mide con
+      `fitDistance`, que ya aplica su propio margen: dejar los dos multiplicaba
+      el aire y el planeta salía diminuto en el centro del hueco.
+
+      Y AQUÍ VA UNA CORRECCIÓN QUE NO SE VE VENIR: la caja que se pasa tiene que
+      ser la que tiene las ESQUINAS sobre el halo, no las caras.
+
+      `fitDistance` encuadra proyectando las ocho esquinas de la caja, y las
+      esquinas de un cubo están a √3/2 de lado del centro mientras que sus caras
+      están a 1/2. Pasarle el cubo que envuelve al halo es pedirle que quepa una
+      caja que no existe: encuadra por unas esquinas vacías y el planeta sale un
+      42% más pequeño de lo que debería. Se vio en una captura — cabía de sobra
+      y quedaba diminuto en medio del hueco.
+
+      Dividiendo el diámetro por √3, las esquinas de la caja caen JUSTO sobre la
+      superficie del halo, que es lo que de verdad hay que encuadrar.
+    */
+    const diametro = Math.max(GLOBE_RADIUS + layout.largest, GLOBE_RADIUS * 1.18) * 2;
+    const reach = diametro / Math.sqrt(3);
     plotBox = { width: reach, height: reach, depth: reach };
 
     /* El planeta. Mate y sin recibir el entorno: una esfera lisa y pulida
@@ -1415,6 +1433,25 @@ export function createChartRenderer(
   function placeCamera() {
     const standing = config.type === 'bar' || config.type === 'bar-race';
 
+    /*
+      QUIÉN SE MIDE Y QUIÉN VA A DISTANCIA FIJA.
+
+      Antes solo se medían las barras. El globo iba a distancia fija y se salía:
+      su halo es una esfera de 1,18 radios, así que ocupa 2,74 unidades de lado
+      y a 800×450 se cortaba por arriba y por abajo — el ancho le sobraba y el
+      ALTO no, que es lo que una distancia fija no puede saber.
+
+      Ahora se mide también. `fitDistance` proyecta las ocho esquinas con la
+      cámara de verdad, así que tiene en cuenta el aspecto del hueco; una
+      distancia fija solo acierta con la proporción para la que se eligió.
+
+      El anillo, la tarta y el medidor siguen a distancia fija A PROPÓSITO: son
+      planos y anchos, su tamaño no cambia con los datos, y el encuadre está
+      elegido a ojo para que se vean con el peso justo. Medirlos los alejaría un
+      poco y cambiaría el aspecto de todo link ya publicado a cambio de nada.
+    */
+    const medido = standing || config.type === 'globe';
+
     camera.fov = config.camera.fov;
     camera.updateProjectionMatrix();
 
@@ -1422,9 +1459,11 @@ export function createChartRenderer(
     const target = new Vector3(0, standing ? plotBox.height / 2 : group.position.y, 0);
     controls.target.copy(target);
 
-    if (standing) {
-      /* Las barras se miden: su alto cambia veinte veces entre los extremos de
-         `style.height`, y el usuario ajusta desde `camera.distance`. */
+    if (medido) {
+      /* Las barras cambian de alto veinte veces entre los extremos de
+         `style.height`; el globo lleva un halo que se sale en cuanto el hueco
+         es más ancho que alto. Los dos hay que medirlos. El usuario sigue
+         ajustando encima desde `camera.distance`. */
       const direction = cameraDirection(config);
       const distance =
         fitDistance(plotBox, camera, target, direction) * config.camera.distance;

@@ -769,6 +769,35 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
               value={style?.material ?? 'physical'}
               onChange={(id) => patchStyle({ material: id as never })}
             />
+
+            {/*
+              LA SOMBRA SE PUEDE APAGAR.
+
+              `style.shadow` estaba en el contrato y no se podía tocar. Y hace
+              falta: la sombra se proyecta hacia un lado, así que en un hueco
+              estrecho se sale por el borde — y hay sitios donde no se puede
+              hacer el hueco más ancho. Poder quitarla es la única salida que
+              tiene ahí quien la incrusta.
+            */}
+            <Choices
+              label={d.editor.shadow}
+              value={style?.shadow === false ? 'no' : 'si'}
+              onChange={(id) => patchStyle({ shadow: id === 'si' })}
+              options={[
+                {
+                  id: 'si',
+                  label: d.editor.shadowOn,
+                  hint: d.editor.shadowOnHint,
+                  preview: <ShadowPreview on />,
+                },
+                {
+                  id: 'no',
+                  label: d.editor.shadowOff,
+                  hint: d.editor.shadowOffHint,
+                  preview: <ShadowPreview on={false} />,
+                },
+              ]}
+            />
           </Group>
         )}
 
@@ -1059,59 +1088,6 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
           </Group>
         )}
 
-        {/*
-          LA PROPORCIÓN DEL EMBED.
-
-          Estaba en el contrato desde la v1 y no se podía tocar sin escribir la
-          config a mano. Y resulta ser justo lo que decide cómo se comporta el
-          link donde se pega: `/api/oembed` publica esta proporción, y hay
-          editores —Canva -- que bloquean el redimensionado a ella. Sin este
-          control, la única forma de tener una gráfica cuadrada en Canva era no
-          tenerla.
-        */}
-        <Group title={d.editor.groupShape2} hint={d.editor.groupShape2Hint}>
-          <Choices
-            label={d.editor.groupShape2}
-            value={config.layout?.aspect ?? '16:9'}
-            onChange={(id) =>
-              setConfig(
-                (c) => ({
-                  ...c,
-                  layout: { ...c.layout, aspect: id as '16:9' | '4:3' | '1:1' | 'auto' },
-                }),
-                { coalesce: false },
-              )
-            }
-            options={[
-              {
-                id: '16:9',
-                label: d.editor.aspectWide,
-                hint: d.editor.aspectWideHint,
-                preview: <AspectPreview ratio="16 / 9" />,
-              },
-              {
-                id: '4:3',
-                label: d.editor.aspectClassic,
-                hint: d.editor.aspectClassicHint,
-                preview: <AspectPreview ratio="4 / 3" />,
-              },
-              {
-                id: '1:1',
-                label: d.editor.aspectSquare,
-                hint: d.editor.aspectSquareHint,
-                preview: <AspectPreview ratio="1 / 1" />,
-              },
-              {
-                id: 'auto',
-                label: d.editor.aspectAuto,
-                hint: d.editor.aspectAutoHint,
-                preview: <AspectPreview ratio={null} />,
-              },
-            ]}
-          />
-          <p className="nota">{d.editor.aspectNote}</p>
-        </Group>
-
         <Group title={d.editor.groupBackground}>
           <Choices
             label={d.editor.groupBackground}
@@ -1229,6 +1205,64 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
             )}
           </Group>
         )}
+
+        {/*
+          LA PROPORCIÓN DEL EMBED, AL FONDO DEL PANEL.
+
+          Estaba en el contrato desde la v1 y no se podía tocar sin escribir la
+          config a mano. Y resulta ser justo lo que decide cómo se comporta el
+          link donde se pega: `/api/oembed` publica esta proporción, y hay
+          editores —Canva -- que bloquean el redimensionado a ella. Sin este
+          control, la única forma de tener una gráfica cuadrada en Canva era no
+          tenerla.
+
+          Va la última porque se toca UNA VEZ, cuando ya sabes dónde vas a
+          pegarla — no mientras eliges los datos. Arriba le robaba sitio a lo
+          que sí se toca cada minuto.
+        */}
+        <Group title={d.editor.groupShape2} hint={d.editor.groupShape2Hint}>
+          <Choices
+            label={d.editor.groupShape2}
+            value={config.layout?.aspect ?? '16:9'}
+            onChange={(id) =>
+              setConfig(
+                (c) => ({
+                  ...c,
+                  layout: { ...c.layout, aspect: id as '16:9' | '4:3' | '1:1' | 'auto' },
+                }),
+                { coalesce: false },
+              )
+            }
+            options={[
+              {
+                id: '16:9',
+                label: d.editor.aspectWide,
+                hint: d.editor.aspectWideHint,
+                preview: <AspectPreview ratio="16 / 9" />,
+              },
+              {
+                id: '4:3',
+                label: d.editor.aspectClassic,
+                hint: d.editor.aspectClassicHint,
+                preview: <AspectPreview ratio="4 / 3" />,
+              },
+              {
+                id: '1:1',
+                label: d.editor.aspectSquare,
+                hint: d.editor.aspectSquareHint,
+                preview: <AspectPreview ratio="1 / 1" />,
+              },
+              {
+                id: 'auto',
+                label: d.editor.aspectAuto,
+                hint: d.editor.aspectAutoHint,
+                preview: <AspectPreview ratio={null} />,
+              },
+            ]}
+          />
+          <p className="nota">{d.editor.aspectNote}</p>
+        </Group>
+
 
         {/* Nivel 3 — avanzado. Cerrado por defecto: quien lo necesita lo abre. */}
         <details className="group" style={{ padding: 'var(--p-space-4)' }}>
@@ -1367,6 +1401,27 @@ function InkControl({
         </label>
       </div>
     </div>
+  );
+}
+
+/** Con y sin sombra proyectada. La diferencia se ve de un vistazo. */
+function ShadowPreview({ on }: { on: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className="thumb"
+      style={{ background: 'var(--surface-sunken)' }}
+    >
+      <i
+        style={{
+          width: '34%',
+          aspectRatio: '1',
+          borderRadius: '50%',
+          background: 'linear-gradient(150deg, #c4c4d2, #6b6b7c)',
+          boxShadow: on ? '9px 10px 9px -5px rgb(0 0 0 / .55)' : 'none',
+        }}
+      />
+    </span>
   );
 }
 
@@ -1656,6 +1711,19 @@ function TrackPreview({ track }: { track: boolean }) {
 /** Con y sin líneas guía. La diferencia se ve, no se explica. */
 function LabelPreview({ leaders, bars }: { leaders: boolean; bars?: boolean }) {
   if (bars) {
+    /*
+      LAS ALTURAS VAN EN PORCENTAJE, NO EN PÍXELES.
+
+      Estaban en píxeles calculados a ojo (`h * 0.32`) dentro de una caja que se
+      dimensiona con `aspect-ratio` sobre el ancho del panel. O sea que la caja
+      encogía con el panel y las barras no: en cuanto la tarjeta bajaba de unos
+      110 px, la barra más alta más su línea no cabían y se salían por arriba.
+      Solo se veía con barras y carrera, que son los únicos tipos que enseñan
+      esta miniatura.
+
+      Con porcentajes, la miniatura es la misma figura a cualquier tamaño, que
+      es lo que se le pide a una miniatura.
+    */
     return (
       <span
         aria-hidden
@@ -1663,19 +1731,34 @@ function LabelPreview({ leaders, bars }: { leaders: boolean; bars?: boolean }) {
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
           alignItems: 'end',
-          gap: '14%',
+          gap: '10%',
           aspectRatio: '16/9',
-          padding: '14% 16%',
+          padding: '12% 14%',
           borderRadius: 5,
           background: 'var(--surface-sunken)',
+          /* Red de seguridad: si algún día vuelve a desbordar, que se recorte
+             dentro de su caja en vez de pisar la tarjeta de al lado. */
+          overflow: 'hidden',
         }}
       >
         {[70, 100, 45].map((h, i) => (
-          <i key={h} style={{ display: 'grid', gap: 3, justifyItems: 'center' }}>
+          <i
+            key={h}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              gap: '8%',
+              height: '100%',
+            }}
+          >
             <i
               style={{
                 width: '100%',
-                height: `${h * 0.32}px`,
+                /* Deja sitio a la línea de debajo, que también es parte del
+                   dibujo: las dos suman el alto del hueco, nunca más. */
+                height: `${h * 0.82}%`,
                 borderRadius: 2,
                 background: ['#7c5cff', '#00d4ff', '#41ffc9'][i],
               }}
@@ -1683,7 +1766,8 @@ function LabelPreview({ leaders, bars }: { leaders: boolean; bars?: boolean }) {
             <i
               style={{
                 width: leaders ? '100%' : 0,
-                height: 2,
+                height: '8%',
+                minHeight: 2,
                 borderRadius: 2,
                 background: 'currentColor',
                 opacity: 0.5,
