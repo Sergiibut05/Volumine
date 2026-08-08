@@ -93,9 +93,26 @@
   }
 }
 
+/*
+  El titular se mide contra SU COLUMNA, no contra la ventana.
+
+  Con `vw` crecía al ritmo de la pantalla mientras el hueco donde vive es la
+  mitad de ancho, así que en todo el tramo de dos columnas «con volumen.» no
+  cabía y se partía: quedaba un «con» huérfano en una línea de 84px. No es que
+  el tope estuviera cuatro píxeles alto —a 1440 la frase medía 510 y la columna
+  medía 510— es que la referencia era la equivocada.
+
+  Con `cqw` el tamaño es una fracción de la columna, así que la frase entra
+  siempre, en cualquier ancho y en los dos idiomas. Es el mismo principio que en
+  la sección «en su sitio»: manda cuánto sitio hay, no qué aparato es.
+*/
+.hero-copy {
+  container-type: inline-size;
+}
+
 .hero h1 {
   margin: 0;
-  font-size: clamp(2.75rem, 1rem + 6.4vw, 5.25rem);
+  font-size: clamp(2.75rem, 13.5cqw, 5.25rem);
 }
 
 .hero p {
@@ -378,14 +395,43 @@
   color: var(--spark);
 }
 
-/* Dos barritas: el gesto es horizontal y el icono tiene que decirlo. */
+/*
+  DOS GALONES HACIA FUERA, no dos barritas.
+
+  Lo que había antes eran dos barras verticales dentro de un círculo blanco, y
+  eso es el icono universal de PAUSA. Encima de una gráfica que está GIRANDO, el
+  único significado posible que se le encuentra es «parar la rotación». Un
+  control que promete lo contrario de lo que hace es peor que no tenerlo.
+
+  Los galones apuntando hacia fuera solo pueden querer decir una cosa: esto se
+  ensancha y se estrecha.
+*/
 .doc-grip span {
-  width: 0.75rem;
-  height: 0.75rem;
-  background:
-    linear-gradient(currentColor, currentColor) 3px 0 / 2px 100% no-repeat,
-    linear-gradient(currentColor, currentColor) 9px 0 / 2px 100% no-repeat;
-  opacity: 0.55;
+  position: relative;
+  width: 0.9375rem;
+  height: 0.9375rem;
+  opacity: 0.7;
+}
+
+.doc-grip span::before,
+.doc-grip span::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 0.34rem;
+  height: 0.34rem;
+  border-top: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+}
+
+.doc-grip span::before {
+  left: 0;
+  transform: translateY(-50%) rotate(-135deg);
+}
+
+.doc-grip span::after {
+  right: 0;
+  transform: translateY(-50%) rotate(45deg);
 }
 
 /* La medida, con el mismo tono de ficha técnica que el specsheet de arriba. */

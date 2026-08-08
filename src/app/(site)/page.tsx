@@ -70,7 +70,9 @@ export default async function HomePage() {
 
       <main>
         <section className="shell hero">
-          <div>
+          {/* `hero-copy` no es decorativo: declara el contenedor contra el que
+              se mide el titular. Ver `.hero h1` en marketing.css. */}
+          <div className="hero-copy">
             <p className="spec-label">{d.landing.tagline}</p>
             <h1 className="display" style={{ marginTop: '1rem' }}>
               {d.landing.heroTitle1}
