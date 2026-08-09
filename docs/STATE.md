@@ -760,6 +760,22 @@ lleva `will-change: transform`, así que tiene su propia capa de composición. E
 texto se rasteriza UNA vez y lo que se mueve es la capa ya pintada. Comprobado
 con captura ampliada a 2x: sigue nítido.
 
+## El vaivén de las barras no se veía
+
+En barras y en bar-race, `autoRotate` no da vueltas: es un vaivén de ±13°. Pero
+`motion.speed` está en VUELTAS POR MINUTO, y se aplicaba tal cual. Resultado
+medido: a 0,35 la gráfica recorría **1,5 px en tres segundos** y el valor de
+fábrica —0,9— tardaba más de un minuto en completar una ida y vuelta. En la
+práctica, el control de vaivén del editor no hacía nada en toda su mitad baja,
+que es donde está casi todo el mundo.
+
+`BAR_SWAY_RATE = 6` deja el valor de fábrica en unos once segundos por ciclo.
+No toca la AMPLITUD —el vaivén sigue midiendo lo mismo— solo cada cuánto va y
+viene. Medido después: 0,35 pasa de 1,5 px a 10,9 px en cuatro segundos.
+
+Es un cambio cosmético, no de contrato: un link publicado sigue funcionando y
+mostrando lo mismo, solo que ahora se mueve a un ritmo que se percibe.
+
 ## Problemas abiertos
 
 - ~~Las sombras tienen dientes de sierra.~~ **Arreglado**, y era la sospecha

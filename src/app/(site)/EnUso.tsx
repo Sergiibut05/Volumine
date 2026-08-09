@@ -152,7 +152,10 @@ const base = (
     */
     size: estrecho ? 0.78 : 1,
   },
-  motion: { autoRotate: true, speed: 0.35 },
+  /* 0,6 y no el 0,35 de antes: en barras `autoRotate` es un vaivén, y con la
+     cadencia arreglada esto deja un ciclo de ida y vuelta cada diecisiete
+     segundos — se ve que respira sin pedir que la mires. */
+  motion: { autoRotate: true, speed: 0.6 },
   /* Un poco más lejos que el anillo: de cerca, la barra alta se veía volcada
      por la perspectiva y parecía que se caía. */
   camera: { distance: 1.05 },

@@ -115,6 +115,22 @@ const BAR_CAMERA_MULTI: Record<string, CameraPlacement> = {
 /** Amplitud del vaivén de una gráfica de barras, en grados. Ver el bucle. */
 const BAR_SWAY_DEGREES = 13;
 
+/*
+  CADENCIA DEL VAIVÉN, respecto a la misma cifra de `motion.speed`.
+
+  `speed` está en VUELTAS POR MINUTO, que es la unidad correcta para algo que da
+  vueltas. Un vaivén no las da: recorre catorce grados y se vuelve. Aplicando la
+  cifra tal cual, el valor de fábrica —0,9— tardaba MÁS DE UN MINUTO en completar
+  una ida y vuelta, y a 0,35 la gráfica recorría un píxel y medio en tres
+  segundos. Medido, no estimado: en la práctica el control de vaivén del editor
+  no hacía nada en toda su mitad baja, que es donde está casi todo el mundo.
+
+  Seis veces deja el valor de fábrica en unos once segundos por ciclo, que es el
+  ritmo de algo que respira y no el de algo que se ha quedado colgado. No cambia
+  la AMPLITUD —el vaivén sigue midiendo lo mismo— solo cada cuánto va y viene.
+*/
+const BAR_SWAY_RATE = 6;
+
 /**
  * Zona de captura de un marcador del globo, en radios de globo.
  *
@@ -1686,7 +1702,7 @@ export function createChartRenderer(
            derecha. Las dos cosas mienten sobre los datos. `autoRotate` en barras
            es un vaivén: mantiene la pieza viva y no cambia nunca el orden de
            lectura. */
-        swayPhase += rate;
+        swayPhase += rate * BAR_SWAY_RATE;
       } else {
         giroAuto += rate;
       }
