@@ -480,14 +480,14 @@ export function embedHtml({
   /**
    * Origen desde el que se sirve. A dónde lleva la marca de agua.
    *
-   * Estaba escrito a mano como `https://volumine.app` — un dominio que no existe.
-   * O sea que TODOS los embeds publicados llevaban un enlace muerto, y la marca
-   * de agua es la única publicidad gratis que tiene este producto: alguien la
-   * pulsaba y no llegaba a ninguna parte.
+   * Estuvo escrito a mano como `https://volumine.app` cuando ese dominio todavía
+   * no estaba registrado, así que TODOS los embeds publicados llevaban un enlace
+   * muerto — y la marca de agua es la única publicidad gratis que tiene este
+   * producto: alguien la pulsaba y no llegaba a ninguna parte.
    *
-   * Se pasa desde la ruta y no se constantiza porque el dominio cambia —local,
-   * preview de Vercel, producción, y el propio cuando lo haya—. Escribirlo a
-   * mano es garantizar que vuelva a quedarse viejo.
+   * El dominio ya existe, pero se sigue pasando desde la ruta y no se
+   * constantiza: cambia entre local, los previews de Vercel y producción, y
+   * escribirlo a mano es garantizar que vuelva a quedarse viejo.
    */
   origin?: string | null;
 }): string {

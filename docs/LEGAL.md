@@ -16,22 +16,15 @@ artículos y la autoridad de control.
 Están en **`src/lib/legal.ts`**, en un solo sitio para que no se contradigan
 entre páginas. Titular: Sergii Butrii, persona física (sin datos registrales).
 
-**Pendiente de comprobar antes de abrir:**
+**Pendiente antes de abrir:**
 
-- [ ] **Registrar `volumine.app`.** El aviso legal ya lo declara como sitio web
-      del servicio, y hay un comentario en `src/embed/html.ts` diciendo que ese
-      dominio no existe. Un dato registral que apunta a un dominio ajeno o libre
-      es peor que no ponerlo.
-- [ ] **Correo con el dominio propio.** Hoy el contacto es una cuenta de Gmail
-      cuyo nombre (`voluma.app@`) ni siquiera coincide con el dominio declarado
-      (`volumine.app`). Legalmente vale; para un aviso legal, un
-      `hola@volumine.app` cuesta lo mismo y no siembra la duda de si el sitio es
-      de quien dice ser.
-- [ ] **Decidir si el domicilio va a ser el particular.** El que hay es una
-      dirección de vivienda y va a quedar público e indexado por los buscadores.
-      Es legal y es lo que hace mucha gente que trabaja por cuenta propia, pero
-      existen alternativas —domicilio de la gestoría, un coworking— y conviene
-      elegirlo a conciencia y no por descarte.
+- [x] ~~Registrar `volumine.app`~~ — hecho y funcionando.
+- [ ] **Correo con el dominio propio.** El contacto sigue siendo un Gmail cuyo
+      nombre (`voluma.app@`) ni siquiera coincide con el dominio (`volumine.app`).
+      Legalmente vale; en un aviso legal siembra justo la duda que ese documento
+      existe para despejar. Ver el apartado 8.
+- [ ] **Decidir el domicilio publicado.** Ver el apartado 9: no tiene por qué ser
+      la vivienda.
 
 La referencia de qué significa cada campo:
 
@@ -134,3 +127,62 @@ Nada de esto aplica hoy, pero conviene tenerlo escrito antes de tocar Stripe.
 - [ ] Procedimiento para atender derechos y para notificar brechas a la AEPD en
       72 horas. No hace falta que sea complejo, pero sí que exista antes de que
       haga falta
+
+---
+
+## 8. El correo con dominio propio
+
+Tres caminos, de menos a más:
+
+1. **Reenvío, gratis.** Cloudflare Email Routing (o el reenvío del registrador):
+   `hola@volumine.app` cae en el Gmail de siempre. Recibir queda resuelto en diez
+   minutos. Para *responder* desde esa dirección hace falta además un SMTP —ver
+   el punto 3—, o las respuestas saldrán desde el Gmail y se ve.
+2. **Buzón propio.** Zoho Mail tiene plan gratuito con dominio propio; Google
+   Workspace o Fastmail son de pago. Recibes y envías desde la dirección real, sin
+   parches.
+3. **El que ya hace falta igualmente.** `docs/STATE.md` tiene pendiente montar un
+   **SMTP propio** porque Supabase solo deja mandar un par de correos por hora y
+   eso bloquea los enlaces de acceso. Ese proveedor (Resend, Brevo, Postmark…)
+   pide verificar el dominio con registros DNS, y una vez verificado sirve para
+   las dos cosas: los correos del producto y el `hola@` del aviso legal.
+
+   **Es el orden que ahorra trabajo:** montar el SMTP resuelve un bloqueo real del
+   producto y deja el correo legal hecho de paso.
+
+---
+
+## 9. El domicilio no tiene por qué ser tu casa
+
+El artículo 10 de la LSSI obliga a publicar «su domicilio o, en su defecto, la
+dirección de uno de sus establecimientos permanentes en España». **Obliga a
+publicar un domicilio, no a publicar tu vivienda.** Vale cualquier dirección real
+donde se te pueda notificar de forma efectiva:
+
+- **La gestoría o asesoría** que lleve las cuentas. Muchas ofrecen recibir
+  notificaciones y algunas lo incluyen en la cuota. Es la salida más barata.
+- **Un coworking con domiciliación**, que suele rondar los 20-50 € al mes e
+  incluye recepción de correo.
+- **Un servicio de domiciliación** de los que se dedican a esto.
+
+Lo que **no** sirve es un apartado de correos: no es un domicilio a efectos de
+notificaciones.
+
+Ojo con no confundirlo con el **domicilio fiscal** del modelo 036/037, que es
+otra cosa y va ante Hacienda. Que quieras cambiar el publicado no significa que
+tengas que cambiar el fiscal, ni al revés — eso conviene consultarlo con quien
+lleve tus impuestos.
+
+### El NIF sí es obligatorio
+
+Aquí no hay salida siendo persona física: el mismo artículo 10 lo exige de forma
+expresa y no hay exención. Dos matices, por si sirven de consuelo:
+
+- Tu NIE **ya viaja** en cada factura que emites y en cada contrato que firmas.
+  No es un secreto del tipo de una contraseña: identifica, no autoriza. Por sí
+  solo no permite hacer nada en tu nombre.
+- La única forma de no publicar un identificador personal es que el prestador no
+  sea una persona sino una **sociedad**: entonces se publica el CIF de la S.L. y
+  su domicilio social. Eso implica constitución, contabilidad y más costes fijos,
+  así que solo compensa si el proyecto va a crecer — y conviene saber que los
+  administradores constan igualmente en el Registro Mercantil, que es público.
