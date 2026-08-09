@@ -734,6 +734,32 @@ ningún otro sitio.
   muere a la altura del nombre. Con `showValues` apagado no se ve nunca, porque
   entonces las dos medidas coinciden — por eso llevaba tanto ahí.
 
+## Las etiquetas se movían a tirones
+
+`label-layer.ts` colocaba la caja con `Math.round()` a píxel entero mientras su
+línea guía se dibujaba con decimales. Con la gráfica girando a velocidad normal
+la etiqueta avanza del orden de un píxel cada seis fotogramas, así que se
+quedaba clavada y luego pegaba un brinco — y peor: el texto y la línea que lo
+señala iban desincronizados en cada paso.
+
+**Medido antes y después**, que es lo único que distingue arreglarlo de creer
+haberlo arreglado:
+
+| | fotogramas quieta | paso máximo |
+|---|---|---|
+| antes (`Math.round`) | 66 de 79 | 1,000 px |
+| cuantizado al píxel del dispositivo | 54 de 79 | 0,500 px |
+| **sin cuantizar, `translate3d`** | **0 de 79** | **0,190 px** |
+
+Cuantizar al píxel del dispositivo en lugar del de CSS solo parte el salto por
+la mitad: sigue habiendo salto. Lo que lo quita es no cuantizar.
+
+El motivo por el que se redondeaba —que un texto en posición fraccionaria se
+rasteriza distinto en cada fotograma y parece hervir— aquí no aplica: la caja
+lleva `will-change: transform`, así que tiene su propia capa de composición. El
+texto se rasteriza UNA vez y lo que se mueve es la capa ya pintada. Comprobado
+con captura ampliada a 2x: sigue nítido.
+
 ## Problemas abiertos
 
 - ~~Las sombras tienen dientes de sierra.~~ **Arreglado**, y era la sospecha

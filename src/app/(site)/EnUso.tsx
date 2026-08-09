@@ -119,6 +119,10 @@ const base = (
     /* Menos canto que el de fábrica. En una barra el redondeo se come el
        vértice superior, que es justo el que dice cuánto mide. */
     bevel: 0.38,
+    /* Más altas que el 0.34 de fábrica: en un hueco apaisado como este, las
+       barras por defecto quedaban como fichas tumbadas y la diferencia entre la
+       primera y la última se leía peor de lo que es. */
+    height: 0.46,
   },
   data: {
     labels: labels.slice(0, 4),

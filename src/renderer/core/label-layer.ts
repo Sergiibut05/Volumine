@@ -430,6 +430,27 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
       const altoNombre =
         (items[0].box.firstElementChild as HTMLElement | null)?.offsetHeight || alto;
 
+      /*
+        NADA DE REDONDEAR LA POSICIÓN, y `translate3d` en vez de `translate`.
+
+        Aquí había un `Math.round()` a píxel entero. Con la gráfica girando a
+        velocidad normal la etiqueta avanza del orden de un píxel cada seis
+        fotogramas —medido: 66 de 79 fotogramas quieta y luego un brinco—,
+        mientras su propia línea guía, que sí se dibuja con decimales, va suave.
+        El resultado es un tirón visible y, peor, el texto y la línea que lo
+        señala desincronizados en cada paso.
+
+        Cuantizar al píxel del dispositivo en lugar del de CSS solo parte el
+        salto por la mitad: sigue habiendo salto. Lo que lo quita es no cuantizar.
+
+        El motivo por el que se redondeaba —que un texto en posición fraccionaria
+        se rasteriza distinto en cada fotograma y parece hervir— aquí no aplica:
+        la caja lleva `will-change: transform`, así que tiene su propia capa de
+        composición. El texto se rasteriza UNA vez y lo que se mueve es la capa
+        ya pintada. `translate3d` lo deja explícito y garantiza esa capa incluso
+        si algún día se toca el `will-change`.
+      */
+
       type Puesto = { item: Item; x: number; y: number; lado: -1 | 1 };
       const puestos: Puesto[] = [];
 
@@ -510,7 +531,7 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
 
           puesto.item.line.style.display = 'none';
           puesto.item.casing.style.display = 'none';
-          puesto.item.box.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+          puesto.item.box.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
           puesto.item.box.dataset.side = 'center';
         }
         return;
@@ -550,7 +571,7 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
           // restarle su propio ancho o se metería encima del dibujo.
           const x = lado < 0 ? MARGIN : width - MARGIN - ancho;
 
-          puesto.item.box.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+          puesto.item.box.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
           puesto.item.box.dataset.side = lado < 0 ? 'left' : 'right';
 
           /* La línea guía: del borde de la pieza, un tramo en diagonal, y un
