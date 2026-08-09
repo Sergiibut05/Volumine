@@ -859,6 +859,42 @@ derecho español; una traducción sin revisión produce dos documentos que no di
 lo mismo, y el que vale es el original. Si hace falta la versión inglesa, se
 traduce con revisión y se dice cuál prevalece.
 
+## Fuera el enlace mágico: Google, o correo y contraseña
+
+El motivo no es de gusto. El enlace mágico convierte **cada** inicio de sesión en
+un correo que tiene que llegar: si tarda, se pierde o cae en spam, no hay
+reintento posible —quien no entra, se va— y el remitente pasa a ser el punto más
+frágil de todo el producto. Con Google no se manda ninguno; con contraseña, dos
+por cuenta en toda su vida.
+
+- `signInWithPassword` y `signUp`, con el mismo formulario en tres modos: entrar,
+  registrarse y recuperar.
+- Recuperación completa: `resetPasswordForEmail` y una página nueva,
+  `/entrar/nueva-clave`, para poner la contraseña. **Es de cliente
+  obligatoriamente**: el token viaja en el FRAGMENTO de la URL y el fragmento no
+  se manda nunca al servidor, así que un componente de servidor ahí no vería nada.
+- El `autocomplete` cambia solo: `current-password` al entrar y `new-password` al
+  registrarse. Es lo que hace que el gestor de contraseñas ofrezca rellenar en un
+  caso y generar en el otro; con el valor equivocado propone la contraseña vieja.
+- Los errores no acusan a la entrada equivocada. Unas credenciales malas dicen
+  «revisa los dos», no «la contraseña es incorrecta»: ese segundo mensaje le
+  confirma a quien va probando direcciones cuáles tienen cuenta. Igual al
+  recuperar — se responde lo mismo haya cuenta o no.
+
+### Lo que hay que tocar en el panel de Supabase
+
+- [ ] **Auth → URL Configuration → Redirect URLs**: añadir
+      `https://volumine.app/entrar/nueva-clave`. Sin eso el enlace de
+      recuperación no vuelve a ninguna parte.
+- [ ] **Auth → Providers → Email**: dejar *Confirm email* ACTIVADO. Sin él,
+      cualquiera puede registrarse con una dirección que no es suya.
+- [ ] **Auth → Policies**: subir el mínimo de contraseña a 8. El formulario ya lo
+      exige en el cliente, pero el que manda es el del servidor.
+- [ ] **Auth → Providers → Google**: sigue pendiente de dar de alta, y ahora es la
+      vía principal de entrada.
+- [ ] **Auth → Rate Limits**: revisar el tope de correos, que es de Supabase y no
+      de Gmail.
+
 ## Problemas abiertos
 
 - ~~Las sombras tienen dientes de sierra.~~ **Arreglado**, y era la sospecha
@@ -945,23 +981,19 @@ sin que nadie pidiera la diferencia.
   está escrito, pero no se ha visto nunca con un usuario dentro: el login es por
   magic link, así que una prueba automática no puede entrar. Hay que mirarlo a
   ojo.
-- **SMTP PROPIO — esto ya no es cosmético, BLOQUEA.** El servicio de correo
-  integrado de Supabase permite del orden de **2 envíos por hora** y está
-  pensado solo para probar. Se agota en una tarde de desarrollo y a partir de
-  ahí `signInWithOtp` devuelve `429 over_email_send_rate_limit`: nadie puede
-  entrar. Comprobado en los logs de auth el 2026-08-06.
+- ~~**SMTP PROPIO — BLOQUEA.**~~ Dejó de bloquear, y no por poner mejor correo
+  sino por **mandar mucho menos**. El enlace mágico convertía CADA inicio de
+  sesión en un correo que tenía que llegar; con Google no se manda ninguno, y
+  con contraseña solo dos por CUENTA: confirmar la dirección y recuperarla.
 
-  Puesto el SMTP de Gmail, que **desbloquea el desarrollo pero no es la
-  solución**: una cuenta gratuita da del orden de 500 destinatarios al día,
-  Google puede cortarla por uso automatizado, y sobre todo **no firma con DKIM
-  propio** —Google firma con su dominio, no con `volumine.app`—. Un correo
-  transaccional que dice venir de un dominio y sale de otro tiene bastantes
-  papeletas de acabar en spam, y un enlace de acceso en spam no se reintenta:
-  es un usuario que no entra y se va.
+  Puesto el SMTP de Gmail, que aguanta ese volumen de sobra. Sigue sin ser la
+  solución definitiva —sin DKIM propio, Google firma con su dominio y no con
+  `volumine.app`, así que los transaccionales tienen papeletas de acabar en
+  spam—, pero ya no impide trabajar. Ver `docs/CORREO.md`, apartado 4.
 
-  Para producción sigue haciendo falta un proveedor propio (Resend, Postmark,
-  SES) en Auth → SMTP Settings, que verifica el dominio con DKIM de verdad. Ver
-  `docs/CORREO.md`, apartado 4.
+  **Ojo con el otro tope:** Supabase tiene su propio límite de correos en
+  Auth → Rate Limits, independiente del de Gmail y bastante bajo por defecto.
+  Aunque Gmail dé para 500 al día, ese se agota antes.
 
 - **Google como proveedor**, pendiente de dar de alta. Necesita un OAuth client
   de Google Cloud; la Redirect URI que pide Google es la de SUPABASE

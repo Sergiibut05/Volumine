@@ -428,3 +428,37 @@
   /* La miniatura sangra hasta el borde, así que la tarjeta necesita recortar. */
   overflow: hidden;
 }
+
+/*
+  Los enlaces de debajo del formulario: cambiar entre entrar y registrarse, y
+  recuperar la contraseña.
+
+  Son BOTONES y no enlaces porque no llevan a ninguna parte: cambian lo que hace
+  este mismo formulario. Un `<a href>` que no navega es una promesa rota para
+  quien usa teclado o lector de pantalla — y además rompe el «abrir en pestaña
+  nueva» del botón derecho.
+*/
+.auth-alt {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-top: 1.25rem;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+.auth-alt button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--spark);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.auth-alt button:hover {
+  text-decoration: none;
+}
