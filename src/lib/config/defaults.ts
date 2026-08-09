@@ -83,6 +83,7 @@ export const defaults = {
     explode: 0,
     cornerRadius: 0.2,
     shadow: true,
+    shadowAngle: 0,
     globe: {
       /* Azul de noche, no negro: sobre negro puro el planeta desaparece contra
          un fondo oscuro y solo se ven los puntos flotando. */
@@ -136,6 +137,7 @@ export const defaults = {
     orthographic: false,
   },
   motion: {
+    angle: 0,
     autoRotate: true,
     speed: 0.9,
     entrance: 'grow',

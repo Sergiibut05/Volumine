@@ -399,6 +399,15 @@
   color: var(--text-primary);
 }
 
+/* Aclaración bajo la etiqueta de un control. Va antes del carril, no debajo,
+   para que se lea como parte del rótulo y no como pie del propio slider. */
+.control-hint {
+  margin: 0 0 0.5rem;
+  color: var(--ink-faint);
+  font-size: 0.6875rem;
+  line-height: 1.4;
+}
+
 .slider-root {
   position: relative;
   display: flex;

@@ -73,6 +73,17 @@ export const styleSchema = z.object({
   cornerRadius: unit.optional(),
   shadow: z.boolean().optional(),
   /**
+   * Gira la luz principal —y con ella la sombra— alrededor de la gráfica, en
+   * grados. `0` es la luz de siempre, así que las gráficas ya publicadas no se
+   * mueven ni un píxel.
+   *
+   * Es un GIRO sobre la posición por defecto y no un azimut absoluto justo por
+   * eso: un absoluto obligaría a que el valor neutro fuese un número arbitrario
+   * (230°, que es donde está la luz hoy) y cualquiera que lo pusiera a 0 se
+   * encontraría la escena reiluminada sin haber pedido nada.
+   */
+  shadowAngle: z.number().min(-180).max(180).optional(),
+  /**
    * Ajustes propios del globo. Nadie más los mira.
    *
    * Van agrupados y no sueltos en `style` porque no significan nada en los otros
@@ -163,6 +174,17 @@ export const cameraSchema = z.object({
 // ── motion ──────────────────────────────────────────────────────────────────
 
 export const motionSchema = z.object({
+  /**
+   * Rotación de la GRÁFICA sobre su eje, en grados.
+   *
+   * No es lo mismo que `camera.azimuth`, que rodea la escena con la cámara y se
+   * lleva la luz y la sombra en el viaje. Esto gira la pieza dejando la
+   * iluminación quieta, que es lo que hace falta para decidir qué porción queda
+   * delante o desde qué lado se lee la fila de barras.
+   *
+   * Con `autoRotate` es el punto de PARTIDA del giro; sin él, la posición fija.
+   */
+  angle: z.number().min(-180).max(180).optional(),
   autoRotate: z.boolean().optional(),
   /** Vueltas por minuto. */
   speed: z.number().min(0).max(10).optional(),

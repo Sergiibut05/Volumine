@@ -268,6 +268,30 @@ export type HoverInfo = {
   labelled: boolean;
 } | null;
 
+/*
+  LA LUZ PRINCIPAL, Y POR TANTO LA SOMBRA.
+
+  La posición de referencia es la de siempre; `style.shadowAngle` la hace girar
+  alrededor del eje vertical sin tocar su ALTURA, que es lo que mantiene la
+  sombra igual de larga y con la misma dureza mientras solo cambia hacia dónde
+  cae. Subir o bajar la luz al girarla haría que mover la sombra pareciera
+  también cambiar la hora del día.
+
+  Un giro sobre la referencia —y no un azimut absoluto— porque así el valor
+  neutro es 0: cualquier gráfica ya publicada, que no lleva el campo, se ilumina
+  exactamente igual que antes.
+*/
+const LUZ_X = 2.6;
+const LUZ_Y = 4.2;
+const LUZ_Z = 2.2;
+
+function colocarLuz(luz: DirectionalLight, grados: number) {
+  const a = MathUtils.degToRad(grados);
+  const cos = Math.cos(a);
+  const sin = Math.sin(a);
+  luz.position.set(LUZ_X * cos - LUZ_Z * sin, LUZ_Y, LUZ_X * sin + LUZ_Z * cos);
+}
+
 export type ChartRendererHandle = {
   /** Reemplaza el config. Reconstruye solo lo que de verdad haya cambiado. */
   update(config: ResolvedChartConfig): void;
@@ -499,7 +523,7 @@ export function createChartRenderer(
   scene.environment = envTarget.texture;
 
   const key = new DirectionalLight(0xffffff, 1.1);
-  key.position.set(2.6, 4.2, 2.2);
+  colocarLuz(key, 0);
   key.shadow.mapSize.set(1024, 1024);
   /* El volumen se recalcula en `fitShadowCamera()` cada vez que cambia lo que
      hay. Estos valores solo tienen que ser válidos para el primer fotograma. */
@@ -1333,13 +1357,17 @@ export function createChartRenderer(
     controls.minPolarAngle = config.type === 'globe' ? 0.05 : 0.12;
     controls.maxPolarAngle = config.type === 'globe' ? Math.PI - 0.05 : Math.PI / 2 - 0.04;
 
-    /* Sin rotación automática, el ángulo vuelve a cero. Si no, apagarla deja la
-       pieza girada donde estuviera y el mismo config da píxeles distintos, que es
-       justo lo que rompe el render estático y las capturas de test. */
+    colocarLuz(key, config.style.shadowAngle);
+
+    /* Sin rotación automática se descarta lo acumulado y la pieza vuelve al
+       ángulo QUE PIDE LA CONFIG. Si no se descartara, apagar la rotación dejaría
+       la pieza girada donde estuviera y el mismo config daría píxeles distintos,
+       que es justo lo que rompe el render estático y las capturas de test. */
     if (!config.motion.autoRotate) {
-      group.rotation.y = 0;
+      giroAuto = 0;
       swayPhase = 0;
     }
+    aplicarGiro();
 
     controls.enabled = config.interaction.orbit;
     controls.enableZoom = config.interaction.zoom;
@@ -1535,6 +1563,25 @@ export function createChartRenderer(
   let lastTime = 0;
   let frame = 0;
   let swayPhase = 0;
+  /* Lo que lleva girado el `autoRotate`, aparte del ángulo que haya pedido la
+     config. Separarlos es lo que permite que apagar la rotación devuelva la
+     pieza al ángulo ELEGIDO y no a cero. */
+  let giroAuto = 0;
+
+  /*
+    El ángulo del grupo es SIEMPRE el que pide la config más lo que lleve
+    acumulada la animación. Antes el bucle hacía `rotation.y += rate` y el ángulo
+    de la config no habría tenido dónde entrar: cada fotograma pisaba el
+    anterior y no quedaba un sitio donde sumarle nada.
+  */
+  const aplicarGiro = () => {
+    const base = MathUtils.degToRad(config.motion.angle);
+    const animado =
+      config.type === 'bar' || config.type === 'bar-race'
+        ? Math.sin(swayPhase) * MathUtils.degToRad(BAR_SWAY_DEGREES)
+        : giroAuto;
+    group.rotation.y = base + animado;
+  };
   let pulseTime = 0;
 
   /**
@@ -1640,10 +1687,10 @@ export function createChartRenderer(
            es un vaivén: mantiene la pieza viva y no cambia nunca el orden de
            lectura. */
         swayPhase += rate;
-        group.rotation.y = Math.sin(swayPhase) * MathUtils.degToRad(BAR_SWAY_DEGREES);
       } else {
-        group.rotation.y += rate;
+        giroAuto += rate;
       }
+      aplicarGiro();
     }
 
     if (config.type === 'bar-race') updateRace(delta);

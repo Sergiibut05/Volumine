@@ -139,12 +139,15 @@ export function sectorGeometry({
     `innerR` se pasa tal cual, también cuando es 0.
 
     En una tarta la punta converge en el eje: el perfil llega a radio 0 y el
-    sector acaba en morro redondeado, como debe. Antes se forzaba aquí un radio
-    interior mínimo proporcional al canto para evitar geometría degenerada, y con
-    el canto grueso eso dejaba un agujero bien visible en el centro — la tarta
-    parecía un anillo de agujero pequeño. El caso degenerado se resuelve donde
-    corresponde: midiendo el arco en un radio de referencia con suelo, dentro de
-    `rounded-sector.ts`.
+    sector acaba EN ARISTA. Antes se forzaba aquí un radio interior mínimo
+    proporcional al canto para evitar geometría degenerada, y con el canto grueso
+    eso dejaba un agujero bien visible en el centro — la tarta parecía un anillo
+    de agujero pequeño.
+
+    Que la punta se cierre en condiciones es cosa de `rounded-sector.ts`, que
+    acota el canto INTERIOR por el radio interior disponible. Sin eso, cada
+    porción acababa en un morro de radio `b` sobre el eje y todos los morros
+    juntos formaban una bola en el centro de la tarta.
   */
   return roundedSectorGeometry({
     a0: sector.a0,

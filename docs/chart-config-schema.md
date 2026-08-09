@@ -152,6 +152,12 @@ siendo la de verdad.
 `background.kind: "transparent"` es importante: permite que el embed se funda
 con la página anfitriona.
 
+`style.shadowAngle` gira la luz principal —y con ella la sombra— alrededor del
+eje vertical, en grados, **sin tocar su altura**: la sombra conserva el largo y
+la dureza y solo cambia hacia dónde cae. Es un giro sobre la posición por
+defecto y no un azimut absoluto, así que `0` es exactamente la luz de siempre y
+las gráficas ya publicadas no se mueven un píxel.
+
 ### `camera`
 
 ```jsonc
@@ -169,6 +175,7 @@ con la página anfitriona.
 
 ```jsonc
 {
+  "angle": 0, // grados; rotación de la GRÁFICA sobre su eje
   "autoRotate": true,
   "speed": 0.35, // vueltas por minuto
   "entrance": "grow", // "none" | "grow" | "sweep" | "stagger"
@@ -178,6 +185,13 @@ con la página anfitriona.
   "reducedMotion": "respect", // "respect" | "force-off" | "ignore"
 }
 ```
+
+`motion.angle` **no es lo mismo que `camera.azimuth`.** El azimut rodea la
+escena con la cámara y se lleva la luz y la sombra en el viaje: sirve para
+elegir el punto de vista. `angle` gira la PIEZA dejando la iluminación quieta,
+que es lo que hace falta para decidir qué porción queda delante o desde qué lado
+se lee la fila de barras. Con `autoRotate` es el punto de partida del giro; sin
+él, la posición fija.
 
 `reducedMotion: "respect"` es el default y **no es negociable como default**:
 `prefers-reduced-motion` desactiva `autoRotate` y la animación de entrada.

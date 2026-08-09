@@ -79,34 +79,55 @@ function buildProfile(
   const points: ProfilePoint[] = [];
   const b = radius;
 
-  const corner = (
+  /*
+    EL CANTO INTERIOR SE ACOTA POR EL RADIO QUE HAY, y esto es lo que separa una
+    tarta de una pelota.
+
+    Con el mismo canto dentro y fuera, en una TARTA —donde `innerR` es 0— la
+    pared interior se redondeaba contra un radio que no existe: cada porción
+    acababa en un morro de radio `b` en el eje, y como todas convergen ahí, los
+    morros se sumaban en una BOLA bien visible en el centro. Con dos porciones,
+    una grande y una pequeña, era imposible no verla.
+
+    Una porción de tarta acaba en ARISTA, no en morro. Acotando el canto interior
+    a `innerR`, en la tarta vale 0 —la punta se cierra sola en el eje— y en un
+    anillo normal (`innerR > b`) no cambia absolutamente nada. De paso arregla el
+    caso intermedio, un anillo de hueco más pequeño que el canto, donde el perfil
+    interior se cruzaba consigo mismo.
+  */
+  const bIn = Math.min(b, innerR);
+
+  const arco = (
     centerR: number,
     centerY: number,
     from: number,
     to: number,
     skipFirst: boolean,
+    r: number,
   ) => {
-    const steps = cornerSegments;
+    /* Sin radio no hay esquina que recorrer: cero pasos deja el perfil pasando
+       de largo, que es justo la arista viva que queremos en la punta. */
+    const steps = r > 1e-6 ? cornerSegments : 0;
     for (let i = skipFirst ? 1 : 0; i <= steps; i += 1) {
       const angle = from + ((to - from) * i) / steps;
       const nr = Math.cos(angle);
       const ny = Math.sin(angle);
-      points.push({ r: centerR + b * nr, y: centerY + b * ny, nr, ny });
+      points.push({ r: centerR + r * nr, y: centerY + r * ny, nr, ny });
     }
   };
 
   // Base, de dentro hacia fuera.
-  points.push({ r: innerR + b, y: 0, nr: 0, ny: -1 });
+  points.push({ r: innerR + bIn, y: 0, nr: 0, ny: -1 });
   points.push({ r: outerR - b, y: 0, nr: 0, ny: -1 });
 
-  corner(outerR - b, b, -Math.PI / 2, 0, true); // canto inferior exterior
+  arco(outerR - b, b, -Math.PI / 2, 0, true, b); // canto inferior exterior
   points.push({ r: outerR, y: depth - b, nr: 1, ny: 0 }); // pared exterior
-  corner(outerR - b, depth - b, 0, Math.PI / 2, true); // canto superior exterior
+  arco(outerR - b, depth - b, 0, Math.PI / 2, true, b); // canto superior exterior
 
-  points.push({ r: innerR + b, y: depth, nr: 0, ny: 1 }); // cara superior
-  corner(innerR + b, depth - b, Math.PI / 2, Math.PI, true); // canto superior interior
-  points.push({ r: innerR, y: b, nr: -1, ny: 0 }); // pared interior
-  corner(innerR + b, b, Math.PI, Math.PI * 1.5, true); // canto inferior interior
+  points.push({ r: innerR + bIn, y: depth, nr: 0, ny: 1 }); // cara superior
+  arco(innerR + bIn, depth - bIn, Math.PI / 2, Math.PI, true, bIn); // canto sup. interior
+  points.push({ r: innerR, y: bIn, nr: -1, ny: 0 }); // pared interior
+  arco(innerR + bIn, bIn, Math.PI, Math.PI * 1.5, true, bIn); // canto inf. interior
 
   return points;
 }

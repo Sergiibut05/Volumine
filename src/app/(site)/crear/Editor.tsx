@@ -831,6 +831,27 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
                 },
               ]}
             />
+
+            {/*
+              Y SI HAY SOMBRA, HACIA DÓNDE.
+
+              Apagarla era la única salida cuando se salía del hueco, y era una
+              salida cara: la sombra es la mitad de lo que hace que la pieza
+              parezca un objeto apoyado. Girarla resuelve el mismo problema sin
+              renunciar a ella —se mete hacia el lado donde sí hay sitio— y de
+              paso deja encajarla con la luz de la página donde se incrusta.
+            */}
+            {style?.shadow !== false && (
+              <Slider
+                label={d.editor.shadowAngle}
+                value={style?.shadowAngle ?? 0}
+                min={-180}
+                max={180}
+                step={5}
+                format={(v) => `${v}°`}
+                onChange={(v) => patchStyle({ shadowAngle: v })}
+              />
+            )}
           </Group>
         )}
 
@@ -1212,6 +1233,27 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
                 }
               />
             )}
+            {/*
+              DÓNDE SE QUEDA LA GRÁFICA.
+
+              `camera.azimuth` ya rodeaba la escena, pero se lleva la luz y la
+              sombra en el viaje: sirve para elegir el punto de vista, no para
+              decidir qué porción queda delante. Esto gira la PIEZA con la
+              iluminación quieta, que es lo que hace falta cuando la rotación
+              está parada y la gráfica tiene que quedarse mirando a un sitio
+              concreto.
+            */}
+            <Slider
+              label={d.editor.chartAngle}
+              hint={d.editor.chartAngleHint}
+              value={config.motion?.angle ?? 0}
+              min={-180}
+              max={180}
+              step={5}
+              format={(v) => `${v}°`}
+              onChange={(v) => setConfig((c) => ({ ...c, motion: { ...c.motion, angle: v } }))}
+            />
+
             {/* Un medidor no gira: el hueco de abajo es el cero de la escala y
               moverlo borra por dónde empieza a contarse (ver el bucle en
               renderer/core/chart-renderer.ts). Un slider que no hace nada es

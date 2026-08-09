@@ -34,6 +34,7 @@ export function Group({
 
 export function Slider({
   label,
+  hint,
   value,
   min,
   max,
@@ -42,6 +43,12 @@ export function Slider({
   onChange,
 }: {
   label: string;
+  /**
+   * Una línea de aclaración bajo la etiqueta. Para cuando el nombre del control
+   * no basta porque hay otro que se le parece: «rotación» de la gráfica y
+   * «ángulo» de la cámara suenan igual y hacen cosas distintas.
+   */
+  hint?: string;
   value: number;
   min: number;
   max: number;
@@ -55,6 +62,7 @@ export function Slider({
         <span>{label}</span>
         <output>{format ? format(value) : value.toFixed(2)}</output>
       </header>
+      {hint && <p className="control-hint">{hint}</p>}
       <RadixSlider.Root
         className="slider-root"
         value={[value]}
