@@ -107,15 +107,19 @@ const base = (
     trimestral, así que el decorado y la gráfica dicen lo mismo.
   */
   type: 'bar',
-  /*
-    `indigo` y no `estudio`. Con la escala de grises, la barra MAYOR es la más
-    oscura, y sobre la diapositiva oscura se perdía entera: justo la que lleva
-    el argumento. En el anillo no pasaba porque la porción oscura iba rodeada de
-    claras y el conjunto se leía como una forma. Aquí cada barra está sola
-    contra el fondo, así que el tema tiene que funcionar sobre papel blanco Y
-    sobre grafito — la gráfica pasa por los dos sin recargarse.
-  */
-  theme: 'indigo',
+  theme: 'estudio',
+  style: {
+    /*
+      La sombra, girada. Por defecto cae hacia la izquierda, que en el documento
+      es justo donde está la mancha de texto: se metía debajo de las líneas y en
+      la diapositiva se salía por el borde. Llevándola hacia el otro lado cae en
+      el hueco que la propia composición deja libre.
+    */
+    shadowAngle: 150,
+    /* Menos canto que el de fábrica. En una barra el redondeo se come el
+       vértice superior, que es justo el que dice cuánto mide. */
+    bevel: 0.38,
+  },
   data: {
     labels: labels.slice(0, 4),
     series: [{ values: VALORES }],

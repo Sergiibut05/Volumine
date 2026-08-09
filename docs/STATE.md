@@ -588,12 +588,22 @@ la página parecía tener un solo truco en sus dos primeras pantallas; barras
 además es lo que de verdad lleva un informe trimestral, así que el decorado y la
 gráfica dicen lo mismo.
 
-Y cambió de tema a `indigo`. Con la escala de grises la barra MAYOR es la más
-oscura y **sobre la diapositiva oscura se perdía entera** — justo la que lleva
-el argumento. En el anillo no pasaba porque la porción oscura iba rodeada de
-claras y el conjunto se leía como una forma; con barras cada una está sola
-contra el fondo, y como el mismo embed pasa por papel blanco y por grafito sin
-recargarse, la paleta tiene que funcionar en los dos.
+El tema se quedó en **`estudio`**, que era lo que pedía Manuel, pero costó una
+corrección: con la escala de grises la barra MAYOR es la más oscura y sobre la
+diapositiva se perdía entera — justo la que lleva el argumento. En el anillo no
+pasaba porque la porción oscura iba rodeada de claras y el conjunto se leía como
+una forma; con barras cada una está sola contra el fondo.
+
+**Se arregló aclarando el DECORADO, no la gráfica**, y es la decisión correcta:
+el mismo embed pasa por papel blanco y por el grafito sin recargarse, así que no
+puede vestirse distinto según dónde esté. La diapositiva subió a un grafito medio
+(`#55556b → #3c3c4c`), que además la separa mejor de la banda.
+
+Y lleva `style.shadowAngle: 150` con `bevel: 0.38`. Por defecto la sombra cae
+hacia la izquierda, que en el documento es donde está la mancha de texto: se
+metía debajo de las líneas y en la diapositiva se salía por el borde. Girada cae
+en el hueco que la propia composición deja libre — que es exactamente para lo
+que se añadió el control.
 
 ## Un solo embed, y alrededor cambia el mundo
 
