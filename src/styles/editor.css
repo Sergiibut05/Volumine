@@ -1095,6 +1095,13 @@
   lo que ya pone al lado: destaca su etiqueta y atenúa las demás. Es la
   respuesta al gesto sin duplicar el dato en dos sitios de la pantalla.
 */
+/* Apagada por solaparse con su vecina. Va ANTES del `dim` del realce para que
+   ese pueda pisarla: si estás señalando una pieza, su etiqueta manda. */
+.volumine-label[data-solapada] {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .volumine-label[data-state='dim'] {
   opacity: 0.4;
 }

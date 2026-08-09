@@ -85,6 +85,12 @@ const MARGIN = 16;
 /** Longitud del tramo horizontal de la línea guía. */
 const ELBOW = 18;
 
+/** Aire mínimo entre dos etiquetas vecinas al calcular cuántas caben. */
+const AIRE = 10;
+
+/** Fracción del lienzo que ocupa de verdad una fila de barras. Ver el bucle. */
+const OCUPACION = 0.8;
+
 type Item = {
   index: number;
   box: HTMLDivElement;
@@ -507,27 +513,58 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
       if (placement === 'point' || placement === 'over') {
         // De izquierda a derecha en pantalla, para descartar en ese orden.
         puestos.sort((a, b) => a.x - b.x);
-        let ocupadoHasta = -Infinity;
 
-        for (const puesto of puestos) {
+        /*
+          CUÁNTAS CABEN, decidido con el ANCHO DEL LIENZO y no con dónde está
+          cada pieza en este fotograma.
+
+          Esto es el arreglo, y llegó después de dos intentos que no valían. El
+          fallo original no era el umbral: era que la decisión se tomaba con las
+          posiciones proyectadas, y esas se mueven con la animación. En un vaivén
+          la etiqueta de más a la derecha cruzaba el límite dos veces por ciclo
+          —medido: ocho apagados y encendidos en veintiún segundos—, así que
+          parpadeaba. Subir la histéresis lo cambiaba por algo peor: se apagaba en
+          el momento más apretado y ya no volvía nunca. Y tolerar un tercio de
+          solape dejaba los nombres montados unos sobre otros en un lienzo
+          estrecho.
+
+          Un eje de gráfica de toda la vida no se pregunta «¿choco ahora mismo?»,
+          se pregunta «¿cuántas etiquetas caben aquí?» y enseña una de cada N. La
+          respuesta no depende del fotograma, así que no puede parpadear. Y como
+          las barras no se reordenan, la que se enseña es siempre la misma.
+        */
+        const anchoMax = Math.max(...puestos.map((p) => p.item.box.offsetWidth), 1);
+        /* `OCUPACION` porque la fila de barras no llena el lienzo: hay margen a
+           los lados y la perspectiva junta las piezas del fondo. Contando el
+           ancho entero salían más etiquetas de las que de verdad caben. Y solo
+           en `point`: en un globo los marcadores no van en fila, así que
+           «una de cada N» no significa nada y dejaría fuera media esfera. */
+        const caben =
+          placement === 'point'
+            ? Math.max(1, Math.floor((width * OCUPACION) / (anchoMax + AIRE)))
+            : puestos.length;
+        const paso = Math.max(1, Math.ceil(puestos.length / caben));
+
+        for (const [i, puesto] of puestos.entries()) {
           const ancho = puesto.item.box.offsetWidth;
           const x = puesto.x - ancho / 2;
-
-          /* Si se solaparía con la anterior se esconde, en vez de moverla. Una
-             etiqueta desplazada bajo una barra que no es la suya miente sobre
-             qué barra es cuál, y eso es peor que no ponerla. */
-          if (x < ocupadoHasta + 4) {
-            puesto.item.box.style.display = 'none';
-            puesto.item.line.style.display = 'none';
-            puesto.item.casing.style.display = 'none';
-            continue;
-          }
-          ocupadoHasta = x + ancho;
-          shown.add(puesto.item.index);
 
           /* `over` sube la etiqueta su propio alto más un respiro, para que el
              marcador quede a la vista justo debajo. */
           const y = placement === 'over' ? puesto.y - alto - 6 : puesto.y;
+
+          if (i % paso !== 0) {
+            /* Se apaga con `opacity` y no con `display`: como la caja ya vive en
+               su propia capa, el fundido no cuesta nada, y así al cambiar de
+               tamaño la que sobra se retira en vez de desaparecer de golpe. */
+            puesto.item.box.dataset.solapada = 'si';
+            puesto.item.line.style.display = 'none';
+            puesto.item.casing.style.display = 'none';
+            continue;
+          }
+
+          delete puesto.item.box.dataset.solapada;
+          shown.add(puesto.item.index);
 
           puesto.item.line.style.display = 'none';
           puesto.item.casing.style.display = 'none';

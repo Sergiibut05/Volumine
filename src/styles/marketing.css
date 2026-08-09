@@ -52,6 +52,44 @@
   margin-inline: auto;
 }
 
+/* ── cabecera ───────────────────────────────────────────────────────────── */
+
+/*
+  El enlace secundario de la cabecera, en tinta de LECTURA y no en la suave.
+
+  `--ink-soft` es el gris de los párrafos: correcto para texto corrido de varias
+  líneas, flojo para dos palabras sueltas en una esquina sobre papel claro. Aquí
+  hay que poder encontrarlo sin buscarlo.
+*/
+.nav-link {
+  color: var(--ink);
+  font-size: 0.875rem;
+  text-decoration: none;
+  opacity: 0.72;
+  transition: opacity var(--p-dur-2) var(--p-ease-out);
+}
+
+.nav-link:hover {
+  opacity: 1;
+}
+
+/* Y la acción principal, sólida. Es lo único que se pide hacer desde aquí
+   arriba, así que es lo único que pesa. */
+.nav-cta {
+  padding: 0.4375rem 0.9375rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background var(--p-dur-2) var(--p-ease-out);
+}
+
+.nav-cta:hover {
+  background: var(--spark);
+}
+
 /* ── tipografía ─────────────────────────────────────────────────────────── */
 
 .display {
@@ -753,7 +791,9 @@
 }
 
 .enuso-foot {
-  margin: 1rem 0 0;
+  /* 2rem y no 1: pegado a las pestañas se leía como el pie de los botones —una
+     aclaración de lo que hacen— y no como lo que es, el remate de la sección. */
+  margin: 2rem 0 0;
   color: rgb(255 255 255 / 0.4);
   font-size: 0.8125rem;
 }

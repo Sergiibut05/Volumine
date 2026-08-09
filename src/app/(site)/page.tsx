@@ -45,25 +45,19 @@ export default async function HomePage() {
           <Wordmark size={1.25} />
           <span style={{ flex: 1 }} />
           {user && (
-            <Link
-              href="/mis-graficas"
-              style={{
-                color: 'var(--ink-soft)',
-                textDecoration: 'none',
-                fontSize: '0.875rem',
-              }}
-            >
+            <Link className="nav-link" href="/mis-graficas">
               {d.nav.myCharts}
             </Link>
           )}
-          <Link
-            href="/crear"
-            style={{
-              color: 'var(--ink-soft)',
-              textDecoration: 'none',
-              fontSize: '0.875rem',
-            }}
-          >
+          {/*
+            El editor, como BOTÓN y no como un enlace más.
+
+            Los dos en gris suave dejaban la cabecera sin peso a la derecha y sin
+            decir cuál de las dos cosas es la que hay que hacer. Y el gris era el
+            mismo `--ink-soft` del texto de párrafo, que sobre el papel del héroe
+            se lee flojo para algo en lo que se supone que hay que pulsar.
+          */}
+          <Link className="nav-cta" href="/crear">
             {d.nav.openEditor}
           </Link>
         </nav>

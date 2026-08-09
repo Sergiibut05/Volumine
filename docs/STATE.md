@@ -776,6 +776,43 @@ viene. Medido después: 0,35 pasa de 1,5 px a 10,9 px en cuatro segundos.
 Es un cambio cosmético, no de contrato: un link publicado sigue funcionando y
 mostrando lo mismo, solo que ahora se mueve a un ritmo que se percibe.
 
+## La etiqueta que aparecía y desaparecía
+
+En una gráfica de barras, la etiqueta de más a la derecha se apagaba y se
+encendía sola durante el vaivén. **Costó tres intentos y los dos primeros están
+aquí porque explican por qué el tercero es el bueno.**
+
+El fallo no era el umbral: era que la decisión se tomaba con las POSICIONES
+PROYECTADAS, y esas se mueven con la animación. Medido: ocho apagados y
+encendidos en veintiún segundos, siempre en la misma etiqueta —la última en el
+orden de descarte—.
+
+1. **Histéresis** (dos umbrales). Bajó de 8 cambios a 8… y luego, subiéndola
+   hasta que dejaba de parpadear, la etiqueta se apagaba en el momento más
+   apretado del ciclo y **ya no volvía nunca**. Peor que el parpadeo.
+2. **Tolerar un tercio de solape.** Cero parpadeo, pero en un lienzo estrecho
+   los nombres quedaban montados unos sobre otros e ilegibles.
+3. **Decidir con el ANCHO DEL LIENZO**, que es lo que hace un eje de gráfica de
+   toda la vida: no «¿choco ahora mismo?» sino «¿cuántas caben aquí?», y se
+   enseña una de cada N. La respuesta no depende del fotograma, así que no puede
+   parpadear; y como las barras no se reordenan, la que se enseña es siempre la
+   misma.
+
+Medido después, con vaivén activo durante 21 s: **cero cambios de visibilidad**
+a 420, 560, 700 y 1000 px, y en el globo. A 420 se ven 2 de 4 —sin solaparse—,
+de 560 en adelante las 4.
+
+De camino se arregló un fallo de fondo que nadie había mirado: el test de solape
+**solo comparaba la X**. En barras cada etiqueta va a la altura de su barra, así
+que dos vecinas de alturas distintas comparten columna sin tocarse; se estaban
+apagando etiquetas que no se pisaban. El criterio nuevo no lo necesita, pero el
+diagnóstico vale para cualquier capa que vuelva a mirar esto.
+
+`OCUPACION = 0.8` porque la fila de barras no llena el lienzo —hay margen a los
+lados y la perspectiva junta las del fondo—, y el diezmado se aplica **solo a
+`point`**: en un globo los marcadores no van en fila y «una de cada N» dejaría
+fuera media esfera.
+
 ## Problemas abiertos
 
 - ~~Las sombras tienen dientes de sierra.~~ **Arreglado**, y era la sospecha
