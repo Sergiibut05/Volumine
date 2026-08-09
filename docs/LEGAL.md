@@ -132,23 +132,15 @@ Nada de esto aplica hoy, pero conviene tenerlo escrito antes de tocar Stripe.
 
 ## 8. El correo con dominio propio
 
-Tres caminos, de menos a más:
+Los pasos concretos están en **`docs/CORREO.md`**: recibir con Cloudflare Email
+Routing y enviar con el «Enviar como» de Gmail, las dos cosas gratis.
 
-1. **Reenvío, gratis.** Cloudflare Email Routing (o el reenvío del registrador):
-   `hola@volumine.app` cae en el Gmail de siempre. Recibir queda resuelto en diez
-   minutos. Para *responder* desde esa dirección hace falta además un SMTP —ver
-   el punto 3—, o las respuestas saldrán desde el Gmail y se ve.
-2. **Buzón propio.** Zoho Mail tiene plan gratuito con dominio propio; Google
-   Workspace o Fastmail son de pago. Recibes y envías desde la dirección real, sin
-   parches.
-3. **El que ya hace falta igualmente.** `docs/STATE.md` tiene pendiente montar un
-   **SMTP propio** porque Supabase solo deja mandar un par de correos por hora y
-   eso bloquea los enlaces de acceso. Ese proveedor (Resend, Brevo, Postmark…)
-   pide verificar el dominio con registros DNS, y una vez verificado sirve para
-   las dos cosas: los correos del producto y el `hola@` del aviso legal.
+El único punto donde se rompe es el **SPF** — solo puede haber un registro por
+dominio, y aquí hay dos servicios que quieren el suyo—, así que va explicado
+aparte.
 
-   **Es el orden que ahorra trabajo:** montar el SMTP resuelve un bloqueo real del
-   producto y deja el correo legal hecho de paso.
+Cuando funcione, `email` en `src/lib/legal.ts` pasa a `hola@volumine.app` y las
+cuatro páginas se actualizan solas.
 
 ---
 

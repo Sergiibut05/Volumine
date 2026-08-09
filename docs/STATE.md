@@ -951,9 +951,17 @@ sin que nadie pidiera la diferencia.
   ahí `signInWithOtp` devuelve `429 over_email_send_rate_limit`: nadie puede
   entrar. Comprobado en los logs de auth el 2026-08-06.
 
-  Hace falta un proveedor propio (Resend, Postmark, SES) en Auth → SMTP
-  Settings. De paso resuelve las otras dos: la plantilla genérica y el remitente
-  —que es lo que de verdad decide si el magic link acaba en spam—.
+  Puesto el SMTP de Gmail, que **desbloquea el desarrollo pero no es la
+  solución**: una cuenta gratuita da del orden de 500 destinatarios al día,
+  Google puede cortarla por uso automatizado, y sobre todo **no firma con DKIM
+  propio** —Google firma con su dominio, no con `volumine.app`—. Un correo
+  transaccional que dice venir de un dominio y sale de otro tiene bastantes
+  papeletas de acabar en spam, y un enlace de acceso en spam no se reintenta:
+  es un usuario que no entra y se va.
+
+  Para producción sigue haciendo falta un proveedor propio (Resend, Postmark,
+  SES) en Auth → SMTP Settings, que verifica el dominio con DKIM de verdad. Ver
+  `docs/CORREO.md`, apartado 4.
 
 - **Google como proveedor**, pendiente de dar de alta. Necesita un OAuth client
   de Google Cloud; la Redirect URI que pide Google es la de SUPABASE
