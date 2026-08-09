@@ -11,11 +11,29 @@ artículos y la autoridad de control.
 
 ---
 
-## 1. Lo que hay que rellenar (bloquea la publicación)
+## 1. Los datos del titular — ✅ RELLENADOS
 
-Todo en **`src/lib/legal.ts`**, en un solo sitio para que no se contradigan
-entre páginas. Mientras falte cualquiera, las páginas legales muestran un aviso
-rojo.
+Están en **`src/lib/legal.ts`**, en un solo sitio para que no se contradigan
+entre páginas. Titular: Sergii Butrii, persona física (sin datos registrales).
+
+**Pendiente de comprobar antes de abrir:**
+
+- [ ] **Registrar `volumine.app`.** El aviso legal ya lo declara como sitio web
+      del servicio, y hay un comentario en `src/embed/html.ts` diciendo que ese
+      dominio no existe. Un dato registral que apunta a un dominio ajeno o libre
+      es peor que no ponerlo.
+- [ ] **Correo con el dominio propio.** Hoy el contacto es una cuenta de Gmail
+      cuyo nombre (`voluma.app@`) ni siquiera coincide con el dominio declarado
+      (`volumine.app`). Legalmente vale; para un aviso legal, un
+      `hola@volumine.app` cuesta lo mismo y no siembra la duda de si el sitio es
+      de quien dice ser.
+- [ ] **Decidir si el domicilio va a ser el particular.** El que hay es una
+      dirección de vivienda y va a quedar público e indexado por los buscadores.
+      Es legal y es lo que hace mucha gente que trabaja por cuenta propia, pero
+      existen alternativas —domicilio de la gestoría, un coworking— y conviene
+      elegirlo a conciencia y no por descarte.
+
+La referencia de qué significa cada campo:
 
 | Campo       | De dónde sale                                                                                                            |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------ |

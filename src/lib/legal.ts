@@ -42,11 +42,14 @@ export type DatosTitular = {
 };
 
 export const TITULAR: DatosTitular = {
-  nombre: null,
-  nif: null,
-  domicilio: null,
-  email: null,
-  dominio: null,
+  nombre: 'Sergii Butrii',
+  nif: 'Y4429658X',
+  domicilio: 'Fuente del Nogal, 2, 29130 Alhaurín de la Torre, Málaga',
+  email: 'voluma.app@gmail.com',
+  dominio: 'volumine.app',
+  /* Persona física: no hay inscripción registral que declarar. Poner un
+     registro inventado sería un dato falso en un documento cuya única función
+     es identificar de verdad a quien presta el servicio. */
   registro: null,
 };
 
