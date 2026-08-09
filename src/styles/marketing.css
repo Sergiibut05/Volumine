@@ -1081,6 +1081,146 @@
   background: var(--ink);
 }
 
+/* ── pie y páginas legales ──────────────────────────────────────────────── */
+
+.foot-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+}
+
+.foot-legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  /* Empuja el último enlace al extremo sin usar un `<span>` vacío de relleno. */
+  margin-inline: auto;
+}
+
+.studio-foot a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.studio-foot a:hover {
+  text-decoration: underline;
+}
+
+/*
+  Las páginas legales.
+
+  Una sola columna estrecha y tipografía de lectura. Son documentos, no
+  pantallas de producto: aquí lo único que importa es que se puedan leer de
+  arriba abajo sin cansarse y encontrar un apartado concreto de un vistazo.
+*/
+.legal {
+  max-width: 44rem;
+  padding-block: 1rem 5rem;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+.legal h1 {
+  margin: 0 0 2rem;
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(1.75rem, 1.2rem + 2vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.legal h2 {
+  margin: 2.5rem 0 0.75rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.legal p,
+.legal ul {
+  margin: 0 0 1rem;
+}
+
+.legal a {
+  color: var(--spark);
+}
+
+.legal dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.375rem 1.5rem;
+  margin: 0;
+}
+
+.legal dt {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.legal dd {
+  margin: 0;
+}
+
+/* Las tablas se van por el borde en un móvil si no se les da su propio carril
+   de desplazamiento. Y el `<table>` no puede llevarlo: hace falta el envoltorio,
+   así que el `display: block` lo convierte en uno. */
+.legal table {
+  display: block;
+  overflow-x: auto;
+  width: 100%;
+  margin: 0 0 1.25rem;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.legal th,
+.legal td {
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid var(--paper-edge);
+  text-align: left;
+  vertical-align: top;
+}
+
+.legal th {
+  color: var(--ink);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.legal code {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.8125em;
+}
+
+/* El aviso de que faltan datos del titular. Rojo y arriba del todo: su trabajo
+   es que sea imposible publicar la página sin verlo. */
+.legal-alerta {
+  margin: 0 0 2rem;
+  padding: 0.875rem 1rem;
+  border-radius: 0.625rem;
+  background: #fde8e8;
+  color: #7a1c1c;
+  font-size: 0.875rem;
+}
+
+.legal-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  margin-top: 3.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--paper-edge);
+  font-size: 0.875rem;
+}
+
+.legal-fecha {
+  margin: 1rem 0 0;
+  color: var(--ink-faint);
+  font-size: 0.8125rem;
+}
+
 /* ── cierre ─────────────────────────────────────────────────────────────── */
 
 .closer {

@@ -813,6 +813,52 @@ lados y la perspectiva junta las del fondo—, y el diezmado se aplica **solo a
 `point`**: en un globo los marcadores no van en fila y «una de cada N» dejaría
 fuera media esfera.
 
+## Páginas legales
+
+Cuatro rutas bajo `/legal`: aviso legal, privacidad, cookies y condiciones de
+uso, enlazadas desde el pie de todas las páginas —el art. 10 de la LSSI pide que
+estén disponibles de forma «permanente, fácil y directa», y una página a la que
+solo se llega escribiendo la URL no cumple—. Todo el detalle y el checklist de
+lo que queda fuera del repositorio, en **`docs/LEGAL.md`**.
+
+**No es asesoramiento jurídico**: es el andamiaje, ajustado a lo que el producto
+hace de verdad, y tiene que revisarlo alguien que sepa antes de abrir.
+
+Lo que sí está hecho con rigor es que el texto **describe el código y no una
+plantilla**:
+
+- Las categorías de datos salen del esquema real (`supabase/migrations`).
+- Los encargados viven en `src/lib/legal.ts` y la política los pinta desde ahí:
+  cada servicio nuevo que vea datos de usuarios entra en esa lista antes de
+  entrar en producción, y aparece solo en la tabla.
+- **Las cookies están auditadas, no supuestas.** Son dos y las dos técnicas:
+  `sb-…-auth-token` y `volumine-locale`. Por eso **no hace falta banner** —
+  exención del art. 22.2 LSSI—. En cuanto entre una sola herramienta de
+  analítica, esa exención desaparece y hay que reescribir la página; las dos
+  cosas van juntas y está dicho en el propio fichero.
+- Lo que la política afirma del embed está **medido**: 0 cookies y 0 peticiones
+  a terceros. Es la regla dura nº 1 del proyecto, así que es verificable en cada
+  build, no una promesa comercial.
+
+### Los datos del titular bloquean la publicación
+
+`TITULAR` en `src/lib/legal.ts` está en `null` a propósito: nombre, NIF,
+domicilio, correo y dominio no los puede inventar nadie. Mientras falte
+cualquiera, las páginas legales muestran un aviso rojo bien visible. Sin él, la
+página se ve entera y correcta salvo por unos «[pendiente]» que se pierden entre
+el texto — y un aviso legal sin NIF no es un documento incompleto, es un
+incumplimiento.
+
+`ULTIMA_REVISION` se actualiza **a mano**: una fecha que cambia sola cada día es
+una mentira sobre la vigencia del documento.
+
+### Están en castellano y sin traducir
+
+Es una decisión. El establecimiento es español y estos textos se interpretan bajo
+derecho español; una traducción sin revisión produce dos documentos que no dicen
+lo mismo, y el que vale es el original. Si hace falta la versión inglesa, se
+traduce con revisión y se dice cuál prevalece.
+
 ## Problemas abiertos
 
 - ~~Las sombras tienen dientes de sierra.~~ **Arreglado**, y era la sospecha

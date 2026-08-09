@@ -6,6 +6,7 @@ import { HeroChart } from './HeroChart';
 import { TypeCard } from './TypeCard';
 import { EnUso } from './EnUso';
 import { LOGOS } from '@/lib/logos';
+import { TITULAR } from '@/lib/legal';
 import { chartTypes } from '@/lib/chart-types';
 import { getDictionary } from '@/lib/i18n/server';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
@@ -201,13 +202,25 @@ export default async function HomePage() {
         </section>
       </main>
 
+      {/*
+        El pie con los enlaces legales.
+
+        No es adorno: el artículo 10 de la LSSI pide que la información del
+        titular esté disponible de forma «permanente, fácil, directa y
+        gratuita», y eso se traduce en un enlace desde todas las páginas. Una
+        página legal a la que solo se llega escribiendo la URL no cumple.
+      */}
       <footer className="shell studio-foot">
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+        <div className="foot-fila">
           <span>Volumine</span>
-          <span style={{ flex: 1 }} />
-          <Link href="/dev/embed" style={{ color: 'inherit' }}>
-            {d.landing.seeRealEmbed}
-          </Link>
+          <nav className="foot-legal">
+            <Link href="/legal/aviso-legal">Aviso legal</Link>
+            <Link href="/legal/privacidad">Privacidad</Link>
+            <Link href="/legal/cookies">Cookies</Link>
+            <Link href="/legal/terminos">Condiciones</Link>
+            {TITULAR.email && <a href={`mailto:${TITULAR.email}`}>Contacto</a>}
+          </nav>
+          <Link href="/dev/embed">{d.landing.seeRealEmbed}</Link>
         </div>
       </footer>
     </div>
