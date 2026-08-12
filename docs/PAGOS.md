@@ -34,7 +34,7 @@ lo dejó preparado la migración 0005.
 ```sql
 -- El plan de pago: 19 EUR, una sola vez.
 update public.plan_limits
-set stripe_price_id = 'PEGA_AQUI_EL_NUEVO_price_id',
+set stripe_price_id = 'price_1U3lnNJa0WaKbpo4SdRPvEiD',
     price_cents     = 1900,
     currency        = 'eur'
 where plan = 'pro';
@@ -47,9 +47,14 @@ set max_charts = 5
 where plan = 'free';
 ```
 
-> El `price_id` de arriba **es nuevo**: al pasar de recurrente a puntual hay que
-> crear otro precio en Stripe. El anterior (`price_1U3cFu…`) era de 9 €/mes y ya
-> no sirve.
+> El `price_id` de arriba es el del pago único de 19 €. El anterior
+> (`price_1U3cFu…`) era la suscripción de 9 €/mes y **ya no sirve**: al pasar de
+> recurrente a puntual hay que crear un precio nuevo, porque un mismo precio no
+> puede cambiar de modo. Conviene archivarlo en Stripe para no confundirse.
+>
+> Y ojo con la distinción que se cuela sola: `prod_…` es el PRODUCTO —«Volumine
+> Pro» como concepto— y `price_…` es lo que de verdad se cobra. El checkout y el
+> webhook solo miran el segundo.
 
 Para comprobar que entró:
 
