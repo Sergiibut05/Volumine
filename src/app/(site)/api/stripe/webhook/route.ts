@@ -69,18 +69,52 @@ export async function POST(request: Request) {
         const customer = String(sesion.customer ?? '');
         if (!customer) break;
 
+        /*
+          DOS CAMINOS, Y EL QUE IMPORTA HOY ES EL SEGUNDO.
+
+          Con suscripción, el precio está dentro de la suscripción y hay una
+          fecha de caducidad. Con PAGO ÚNICO no hay suscripción ninguna: el
+          precio viene en las líneas de la propia sesión y no caduca nunca.
+
+          Se miran los dos porque el modo lo decide `plan_limits`, no este
+          fichero: si algún día vuelve a haber un plan recurrente, esta rama
+          sigue funcionando sin tocarla.
+        */
         const suscripcion =
           typeof sesion.subscription === 'string' ? sesion.subscription : null;
-        if (!suscripcion) break;
 
-        const sub = await stripe.subscriptions.retrieve(suscripcion);
-        const price = sub.items.data[0]?.price?.id;
+        if (suscripcion) {
+          const sub = await stripe.subscriptions.retrieve(suscripcion);
+          const price = sub.items.data[0]?.price?.id;
+          const plan = price ? await planForPrice(price) : null;
+          if (!plan) break;
+
+          await setPlanForCustomer(customer, plan, {
+            subscriptionId: sub.id,
+            expiresAt: new Date(sub.items.data[0].current_period_end * 1000).toISOString(),
+          });
+          break;
+        }
+
+        /*
+          Pago único. `expiresAt: null` es lo que hace que sea PARA SIEMPRE, y
+          es deliberado: quien compró una vez no puede perder lo que compró
+          porque nadie va a renovar nada. Es justo lo que arregla la pregunta
+          que el modelo de suscripción no sabía contestar —qué pasa con las
+          gráficas ya publicadas cuando alguien deja de pagar—.
+
+          Las líneas no vienen en el evento: hay que pedirlas aparte.
+        */
+        const lineas = await stripe.checkout.sessions.listLineItems(sesion.id, {
+          limit: 1,
+        });
+        const price = lineas.data[0]?.price?.id;
         const plan = price ? await planForPrice(price) : null;
         if (!plan) break;
 
         await setPlanForCustomer(customer, plan, {
-          subscriptionId: sub.id,
-          expiresAt: new Date(sub.items.data[0].current_period_end * 1000).toISOString(),
+          subscriptionId: null,
+          expiresAt: null,
         });
         break;
       }

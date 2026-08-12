@@ -4,6 +4,27 @@ El código está entero: `/precios`, `/api/stripe/checkout`, `/api/stripe/portal
 el webhook. Lo que queda es configuración, y va aquí porque no vive en el
 repositorio.
 
+## 0. El modelo: PAGO ÚNICO, no suscripción
+
+La suscripción no encajaba con el producto, y el argumento que la tumbó es una
+pregunta que no tenía buena respuesta: **¿qué pasa con las gráficas ya
+publicadas cuando alguien cancela?**
+
+- Si vuelve la marca de agua, le rompes la web a un cliente retroactivamente.
+- Si no vuelve, pagar un mes equivale a pagar para siempre y nadie renueva.
+
+No hay tercera opción. El valor de Volumine es un EVENTO —haces una gráfica, la
+publicas y ya está—, no un servicio que se consume cada mes. Con pago único la
+pregunta desaparece.
+
+El código ya lo contempla: `mode: 'payment'` en el checkout y, en el webhook,
+`expiresAt: null` — que es lo que hace que sea para siempre. La rama de
+suscripción sigue ahí por si algún día vuelve a haber un plan recurrente, y
+entonces tendrá sentido: cuando exista un valor CONTINUO de verdad, como poder
+actualizar los datos de una gráfica publicada sin cambiar el link.
+
+---
+
 ## 1. El precio, en la base de datos
 
 El `price_id` **no se versiona en una migración**: es de una cuenta de Stripe
@@ -11,12 +32,24 @@ concreta y cambia entre el modo de prueba y el real. Va como dato, que es donde
 lo dejó preparado la migración 0005.
 
 ```sql
+-- El plan de pago: 19 EUR, una sola vez.
 update public.plan_limits
-set stripe_price_id = 'price_1U3cFuJa0WaKbpo4PWLqBBHR',
-    price_cents     = 900,
+set stripe_price_id = 'PEGA_AQUI_EL_NUEVO_price_id',
+    price_cents     = 1900,
     currency        = 'eur'
 where plan = 'pro';
+
+-- Y el gratuito baja de 20 a 5. Veinte gráficas gratis son tantas que quien las
+-- agota ya no va a pagar nunca, y sobre todo: un plan gratuito muy generoso
+-- señala que el producto vale poco.
+update public.plan_limits
+set max_charts = 5
+where plan = 'free';
 ```
+
+> El `price_id` de arriba **es nuevo**: al pasar de recurrente a puntual hay que
+> crear otro precio en Stripe. El anterior (`price_1U3cFu…`) era de 9 €/mes y ya
+> no sirve.
 
 Para comprobar que entró:
 

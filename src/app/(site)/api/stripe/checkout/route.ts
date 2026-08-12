@@ -69,7 +69,17 @@ export async function POST(request: Request) {
   const origen = new URL(request.url).origin;
 
   const sesion = await stripe.checkout.sessions.create({
-    mode: 'subscription',
+    /*
+      PAGO ÚNICO, no suscripción. El valor de este producto es un evento —haces
+      una gráfica, la publicas y ya está—, no un servicio que se consume cada
+      mes. Cobrar una renta por algo que se usó una tarde obliga a contestar qué
+      pasa con lo ya publicado cuando alguien cancela, y las dos respuestas
+      posibles son malas: o le rompes la web retroactivamente, o pagar un mes
+      equivale a pagar para siempre y nadie renueva.
+
+      Con `payment` esa pregunta desaparece.
+    */
+    mode: 'payment',
     line_items: [{ price: fila.stripe_price_id, quantity: 1 }],
     /* Con esto vuelve el usuario en el webhook, que empareja por cliente de
        Stripe y no por correo: el de la pasarela puede no ser el de la cuenta. */
@@ -88,6 +98,9 @@ export async function POST(request: Request) {
       escriba esa URL a mano no se lleva el plan, porque el plan lo escribe el
       webhook y nadie más.
     */
+    /* Crea el cliente aunque no haya suscripción: el webhook empareja por
+       cliente de Stripe, y sin esto un pago único llegaría sin `customer`. */
+    customer_creation: perfil?.stripe_customer_id ? undefined : 'always',
     success_url: `${origen}/mis-graficas?pago=hecho`,
     cancel_url: `${origen}/precios?pago=cancelado`,
   });

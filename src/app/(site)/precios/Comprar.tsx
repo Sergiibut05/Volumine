@@ -7,7 +7,7 @@ import { useState } from 'react';
 
   ── EL TEXTO ES UNA OBLIGACIÓN, NO UNA ELECCIÓN ──────────────────────────
 
-  Dice «Suscribirse y pagar» y no «Continuar» ni «Empezar». La normativa de
+  Dice «Comprar y pagar» y no «Continuar» ni «Empezar». La normativa de
   contratación a distancia exige que el botón que cierra el contrato indique de
   forma inequívoca que la acción OBLIGA A PAGAR. Un «Continuar» delante de una
   pasarela no cumple, y la consecuencia de no cumplir es que el contrato no
@@ -15,8 +15,9 @@ import { useState } from 'react';
 
   ── Y LA CASILLA TAMBIÉN ─────────────────────────────────────────────────
 
-  El plan empieza a valer en el momento del pago, o sea antes de que pasen los
-  catorce días de desistimiento. Para que eso sea legítimo hay que recabar el
+  Sigue haciendo falta con un pago único: el desistimiento de catorce días es de
+  la compra, no de la suscripción. El plan empieza a valer en el momento del
+  pago, o sea antes de que pase ese plazo. Para que eso sea legítimo hay que recabar el
   consentimiento EXPRESO a empezar ya, y que la persona reconozca que al hacerlo
   pierde ese derecho. Por eso es una casilla que hay que marcar a mano y el botón
   está apagado hasta entonces: preseleccionarla la invalidaría.
