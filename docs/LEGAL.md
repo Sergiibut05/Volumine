@@ -111,15 +111,13 @@ tenga que incrustar en un sitio con política estricta.
 
 Nada de esto aplica hoy, pero conviene tenerlo escrito antes de tocar Stripe.
 
-- [ ] **Derecho de desistimiento** (14 días). En contenido digital hay excepción,
-      pero exige recabar **consentimiento previo y expreso** para empezar antes
-      de que pase el plazo, y que el usuario reconozca que pierde el derecho.
-      Eso se implementa **en la pasarela**, no en un texto: una casilla marcada
-      por la persona, con constancia de que se marcó.
+- [x] **Derecho de desistimiento** — hecho en `/precios`: una casilla que hay
+      que marcar a mano, sin preseleccionar, y el botón apagado hasta entonces.
+      Preseleccionarla la invalidaría.
 - [ ] **Información precontractual**: precio con impuestos, duración, renovación
       automática y cómo cancelar, todo antes del botón de pagar.
-- [ ] El botón de pago debe decir que obliga a pagar («Suscribirse y pagar»),
-      no un genérico «Continuar».
+- [x] El botón dice **«Suscribirse y pagar»**. Un «Continuar» delante de una
+      pasarela no cumple, y la consecuencia es que el contrato no vincula.
 - [ ] **Facturas** y su conservación según normativa mercantil y fiscal.
 - [ ] Repasar el apartado «Precio» de `/legal/terminos`, hoy escrito en futuro.
 

@@ -25,6 +25,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: base, lastModified: hoy, changeFrequency: 'weekly', priority: 1 },
     { url: `${base}/crear`, lastModified: hoy, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${base}/precios`, lastModified: hoy, changeFrequency: 'monthly', priority: 0.7 },
     {
       url: `${base}/legal/aviso-legal`,
       lastModified: hoy,

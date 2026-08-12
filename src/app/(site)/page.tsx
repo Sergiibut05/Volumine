@@ -214,6 +214,7 @@ export default async function HomePage() {
         <div className="foot-fila">
           <span>Volumine</span>
           <nav className="foot-legal">
+            <Link href="/precios">Precios</Link>
             <Link href="/legal/aviso-legal">Aviso legal</Link>
             <Link href="/legal/privacidad">Privacidad</Link>
             <Link href="/legal/cookies">Cookies</Link>
