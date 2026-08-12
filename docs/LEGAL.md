@@ -77,17 +77,33 @@ Auditado en el código, no supuesto. Se ponen **dos** cookies:
 - `volumine-locale` — idioma elegido a mano
 
 Las dos son técnicas, así que entran en la exención del **art. 22.2 LSSI**:
-estrictamente necesarias para prestar un servicio pedido expresamente. Nada de
-analítica, publicidad ni medición de terceros.
+estrictamente necesarias para prestar un servicio pedido expresamente.
 
-> ⚠️ **Esto se rompe en cuanto entre una sola herramienta de analítica.** Ese
-> día aparecen a la vez la obligación del banner (con rechazo tan fácil como la
-> aceptación) y la necesidad de reescribir `/legal/cookies`. Las dos cosas van
-> juntas.
+### Sí hay analítica, y aun así no hace falta banner
 
-La ruta `/embed` no pone cookies ni llama a terceros, y eso es una regla dura
-del proyecto (`CLAUDE.md`). Es un argumento comercial real para quien tenga que
-incrustar en un sitio con política estricta.
+El sitio carga **Vercel Web Analytics** en `src/app/(site)/layout.tsx`. Que no
+esté en la lista de cookies no es un descuido: **no pone ninguna**. Cuenta
+visitas con un identificador derivado y efímero, sin escribir nada en el
+dispositivo.
+
+Ahí está la clave de por qué la exención aguanta. El art. 22.2 regula «almacenar
+información o acceder a la ya almacenada en el equipo terminal». Si no se
+almacena ni se lee nada del terminal, ese artículo **no entra** — ni con banner
+ni sin él.
+
+Lo que sí obliga es el RGPD: Vercel recibe la IP y datos de navegación, así que
+es un **destinatario** y tiene que estar declarado. Está en `ENCARGADOS` y sale
+solo en la tabla de la política de privacidad.
+
+> ⚠️ **Esto NO se extiende a cualquier analítica.** Google Analytics, Meta Pixel
+> y compañía sí escriben en el terminal: el día que entre una de esas aparecen a
+> la vez la obligación del banner —con rechazo tan fácil como la aceptación— y la
+> de reescribir `/legal/cookies`.
+
+La ruta `/embed` no pone cookies, no llama a terceros y **no carga la analítica**
+—tiene su propio layout, precisamente para que no herede nada de esto—. Es una
+regla dura del proyecto (`CLAUDE.md`) y un argumento comercial real para quien
+tenga que incrustar en un sitio con política estricta.
 
 ---
 

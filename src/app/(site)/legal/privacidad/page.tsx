@@ -50,6 +50,11 @@ export default function Privacidad() {
             <td>Interés legítimo en la seguridad (art. 6.1.f)</td>
           </tr>
           <tr>
+            <td>Visitas a las páginas, de forma agregada y sin cookies</td>
+            <td>Saber qué se usa y qué no, para decidir qué mejorar</td>
+            <td>Interés legítimo (art. 6.1.f)</td>
+          </tr>
+          <tr>
             <td>Datos de facturación, cuando existan planes de pago</td>
             <td>Cobrar y emitir la factura</td>
             <td>Contrato y obligación legal (arts. 6.1.b y 6.1.c)</td>

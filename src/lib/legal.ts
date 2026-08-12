@@ -113,6 +113,12 @@ export const ENCARGADOS: Encargado[] = [
     dpa: 'https://vercel.com/legal/dpa',
   },
   {
+    nombre: 'Vercel Web Analytics',
+    para: 'Contar visitas de forma agregada, sin cookies ni identificadores',
+    donde: 'Estados Unidos, con cláusulas contractuales tipo',
+    dpa: 'https://vercel.com/legal/dpa',
+  },
+  {
     nombre: 'Stripe',
     para: 'Cobros y facturación de los planes de pago',
     donde: 'Estados Unidos e Irlanda, con cláusulas contractuales tipo',
@@ -128,9 +134,24 @@ export const ENCARGADOS: Encargado[] = [
   LSSI exime a las estrictamente necesarias para prestar un servicio que el
   usuario ha pedido expresamente.
 
-  Si algún día entra analítica, publicidad o cualquier medición de terceros,
-  esta lista deja de ser cierta Y aparece la obligación del banner. Las dos
-  cosas van juntas.
+  ── SÍ HAY ANALÍTICA, Y AUN ASÍ NO HACE FALTA BANNER ─────────────────────
+
+  El sitio carga **Vercel Web Analytics** (`src/app/(site)/layout.tsx`). No
+  aparece en esta lista porque no pone ninguna cookie: cuenta visitas con un
+  identificador derivado y efímero, sin escribir nada en el dispositivo.
+
+  Y ahí está la clave de por qué la exención aguanta: el art. 22.2 regula
+  «almacenar información o acceder a la ya almacenada en el equipo terminal».
+  Si no se almacena ni se lee nada del terminal, ese artículo no entra — con
+  banner o sin él.
+
+  Lo que sí obliga es el RGPD: Vercel recibe la IP y datos de navegación, así
+  que es un DESTINATARIO y tiene que estar declarado. Por eso está arriba, en
+  `ENCARGADOS`, y sale solo en la tabla de la política de privacidad.
+
+  ⚠️ Esto NO se extiende a cualquier analítica. Google Analytics, Meta Pixel y
+  compañía sí escriben en el terminal: el día que entre una de esas, aparecen a
+  la vez la obligación del banner y la de reescribir `/legal/cookies`.
 */
 export type Cookie = {
   nombre: string;

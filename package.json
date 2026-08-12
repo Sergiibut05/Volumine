@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "og": "node scripts/og-image.mjs",
     "perf:embed": "node scripts/perf-embed.mjs",
     "build:embed": "node scripts/build-embed.mjs",
     "build:fonts": "node scripts/build-embed-fonts.mjs",

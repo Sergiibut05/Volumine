@@ -24,10 +24,18 @@ export default function Cookies() {
 
       <h2>Resumen</h2>
       <p>
-        Este sitio usa <strong>dos cookies, las dos técnicas</strong>. No hay analítica, ni
-        publicidad, ni medición de terceros. Por eso no verás un aviso pidiéndote permiso:
-        la ley no lo exige para cookies estrictamente necesarias para prestar el servicio
-        que has pedido.
+        Este sitio usa <strong>dos cookies, las dos técnicas</strong>. No hay publicidad, ni
+        perfilado, ni cookies de terceros. Por eso no verás un aviso pidiéndote permiso: la
+        ley no lo exige para cookies estrictamente necesarias para prestar el servicio que
+        has pedido.
+      </p>
+      <p>
+        Sí se cuentan las visitas, con <strong>Vercel Web Analytics</strong>, y conviene
+        decirlo con precisión: <strong>no usa cookies</strong> ni guarda nada en tu
+        dispositivo. Cuenta de forma agregada, sin seguirte entre sitios ni construir un
+        perfil. Como no escribe ni lee nada de tu equipo, no entra en lo que exige pedir
+        permiso; como sí recibe tu dirección IP, aparece declarado en la{' '}
+        <a href="/legal/privacidad">política de privacidad</a>.
       </p>
 
       <h2>Las gráficas incrustadas no ponen ninguna</h2>

@@ -4,6 +4,7 @@ import '@/styles/site.css';
 import { Analytics } from '@vercel/analytics/next';
 import { getDictionary } from '@/lib/i18n/server';
 import { I18nProvider } from '@/lib/i18n/client';
+import { TITULAR } from '@/lib/legal';
 
 /*
   Root layout de la app y el marketing.
@@ -42,8 +43,43 @@ export async function generateMetadata(): Promise<Metadata> {
   const { d } = await getDictionary();
 
   return {
+    /*
+      `metadataBase` es lo que convierte las rutas relativas de abajo en URLs
+      absolutas. Sin él, Next avisa por consola y las tarjetas de enlace salen
+      SIN IMAGEN: los rastreadores de Twitter, LinkedIn o Slack no resuelven
+      rutas relativas, necesitan la URL entera.
+
+      Sale del mismo sitio que el aviso legal para que no haya dos dominios
+      escritos a mano que puedan discrepar.
+    */
+    metadataBase: new URL(`https://${TITULAR.dominio}`),
     title: { default: d.meta.siteTitle, template: '%s · Volumine' },
     description: d.meta.siteDescription,
+    applicationName: 'Volumine',
+    alternates: { canonical: '/' },
+    openGraph: {
+      type: 'website',
+      siteName: 'Volumine',
+      title: d.meta.siteTitle,
+      description: d.meta.siteDescription,
+      url: '/',
+      /* La imagen la genera `scripts/og-image.mjs` capturando el héroe de
+         verdad, así que lleva la gráfica 3D con su canto y su sombra en vez de
+         una composición de texto. Hay que relanzarlo cuando cambie el héroe. */
+      images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Volumine' }],
+    },
+    /*
+      `summary_large_image` y no `summary`. La tarjeta pequeña recorta la imagen
+      a un cuadrado diminuto al lado del texto, y aquí lo que hay que enseñar es
+      un objeto tridimensional: en 120 píxeles cuadrados no se distingue de
+      cualquier otro icono.
+    */
+    twitter: {
+      card: 'summary_large_image',
+      title: d.meta.siteTitle,
+      description: d.meta.siteDescription,
+      images: ['/og.png'],
+    },
   };
 }
 
