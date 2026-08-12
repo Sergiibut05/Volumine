@@ -88,6 +88,7 @@ export default async function PreciosPage() {
           que dejes de pagar. Se compra una vez y es tuyo.
         </p>
 
+        <div className="precios-cuerpo">
         {pro ? (
           <section className="oferta">
             <p className="oferta-etiqueta">Precio de lanzamiento</p>
@@ -143,6 +144,7 @@ export default async function PreciosPage() {
             Abrir el editor
           </Link>
         </section>
+        </div>
 
         <p className="precios-nota">
           Pago único, sin renovación automática y sin nada que cancelar. Las condiciones

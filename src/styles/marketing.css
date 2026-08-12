@@ -1291,6 +1291,32 @@ footer.studio-foot {
 }
 
 /*
+  LOS DOS BLOQUES, UNO AL LADO DEL OTRO PERO NO IGUALES.
+
+  Apilados dejaban media pantalla vacía a la derecha. En columnas IGUALES —que
+  es de donde se venía— el plan gratuito se lee como alternativa legítima al de
+  pago y casi todo el mundo se queda ahí.
+
+  La solución no es elegir entre las dos cosas: es que estén al lado con pesos
+  distintos. La oferta ocupa vez y media, va sobre papel blanco y elevada; el
+  gratuito es más estrecho, está hundido y arranca a la altura del precio, no
+  del borde. Comparten fila sin competir.
+*/
+.precios-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 1.5rem;
+  max-width: 52rem;
+}
+
+@media (max-width: 780px) {
+  .precios-cuerpo {
+    grid-template-columns: 1fr;
+  }
+}
+
+/*
   LA OFERTA. Grande, elevada y centrada.
 
   La versión anterior eran dos tarjetas iguales en una rejilla, y eso presenta
@@ -1298,8 +1324,7 @@ footer.studio-foot {
   que mirar: pesa, está sobre el papel y ocupa el sitio de un titular.
 */
 .oferta {
-  max-width: 30rem;
-  margin: 0 0 3rem;
+  margin: 0;
   padding: 2.25rem;
   border-radius: 1.5rem;
   background: #fff;
@@ -1378,8 +1403,10 @@ footer.studio-foot {
   El plan gratuito: DEBAJO, hundido y sin competir. No es una alternativa, es la
   forma de probar antes de decidir.
 */
+/* Baja hasta la altura del precio: alineado con el borde superior de la oferta
+   parecía la segunda mitad de una comparativa. */
 .gratis {
-  max-width: 30rem;
+  margin-top: 3.5rem;
   padding: 1.5rem;
   border-radius: 1rem;
   background: var(--paper-deep);
