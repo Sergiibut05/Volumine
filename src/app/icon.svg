@@ -1,37 +1,44 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <!--
-    El símbolo de la marca, en versión favicon.
+    Disco sólido con el anillo recortado dentro. PLANO a propósito.
 
-    Es el mismo anillo en perspectiva del logotipo, pero SÓLIDO en vez de a
-    trazo. El logotipo lo dibuja con `stroke-width` 3.6 sobre 24, que a 16
-    píxeles —el tamaño real de una pestaña— se emborrona hasta convertirse en
-    una mancha gris: el hueco del centro desaparece y deja de ser un anillo. Un
-    favicon no es un logotipo pequeño, es otro dibujo con el mismo significado.
+    La versión anterior era el símbolo de la marca tal cual: un anillo en
+    perspectiva con su canto en otro tono. Se veía bien a 32 píxeles y era un
+    error de todas formas — un favicon no compite en detalle, compite en
+    SILUETA. Dos tonos y un canto a 16 píxeles son ruido, no volumen.
 
-    El canto va primero y por tanto DETRÁS: es la misma forma desplazada hacia
-    abajo, y al fundirse las dos siluetas en un solo color queda un anillo con
-    cuerpo. Es lo que hace que a 16 píxeles siga leyéndose como un objeto y no
-    como un aro plano — que es justo la tesis del producto.
+    Aquí hay una sola forma maciza y un hueco. Es lo que hace que el triángulo
+    de Vercel funcione: se reconoce por el contorno, no por lo que tiene dentro.
 
-    Y se adapta al tema del navegador. Un favicon negro sólido desaparece contra
-    la barra de pestañas en modo oscuro; los SVG sí atienden a
-    `prefers-color-scheme`, así que se aprovecha.
+    El hueco es el anillo visto en perspectiva, que es lo único de la marca que
+    sigue significando algo a este tamaño: dice «gráfica» sin decir «3D».
+
+    Los colores se invierten con el tema del navegador. Un disco negro sólido
+    desaparece contra la barra de pestañas en modo oscuro, y los SVG sí atienden
+    a `prefers-color-scheme`.
   -->
   <style>
-    path { fill: #14141a }
-    @media (prefers-color-scheme: dark) { path { fill: #f2f2f5 } }
+    .disco { fill: #14141a }
+    .hueco { fill: #ffffff }
+    @media (prefers-color-scheme: dark) {
+      .disco { fill: #f2f2f5 }
+      .hueco { fill: #0d0d11 }
+    }
   </style>
 
-  <!-- El canto. Misma geometría, 3,4 más abajo. -->
-  <path
-    fill-rule="evenodd"
-    d="M29.5 18.4A13.5 8.2 0 1 1 2.5 18.4A13.5 8.2 0 1 1 29.5 18.4ZM21.6 18.4A5.6 3.4 0 1 0 10.4 18.4A5.6 3.4 0 1 0 21.6 18.4Z"
-    opacity="0.45"
-  />
+  <circle class="disco" cx="16" cy="16" r="16" />
 
-  <!-- La cara de arriba. -->
+  <!--
+    Anillo elíptico, recortado. `evenodd` es lo que abre el agujero del centro:
+    la elipse interior queda dentro de la exterior, así que la regla par-impar
+    deja ese trozo sin pintar.
+
+    Proporciones medidas a 16 píxeles, no elegidas por bonitas: con el anillo más
+    fino el hueco se cerraba y quedaba un disco dentro de otro disco.
+  -->
   <path
+    class="hueco"
     fill-rule="evenodd"
-    d="M29.5 15A13.5 8.2 0 1 1 2.5 15A13.5 8.2 0 1 1 29.5 15ZM21.6 15A5.6 3.4 0 1 0 10.4 15A5.6 3.4 0 1 0 21.6 15Z"
+    d="M26 16A10 6.2 0 1 1 6 16A10 6.2 0 1 1 26 16ZM20.2 16A4.2 2.6 0 1 0 11.8 16A4.2 2.6 0 1 0 20.2 16Z"
   />
 </svg>
