@@ -56,6 +56,17 @@ export default async function MisGraficasPage() {
           </div>
 
           <div className="charts-head-actions">
+            {/*
+              El enlace a mejorar va AQUÍ y no solo en la landing, porque este es
+              el sitio donde el plan gratuito se nota: al lado del contador de
+              cuota y de las miniaturas con marca de agua. Un enlace a precios en
+              una página de marketing lo ve quien todavía no tiene el problema.
+            */}
+            {cupo?.plan === 'free' && (
+              <Link className="nav-link" href="/precios">
+                {d.nav.upgrade}
+              </Link>
+            )}
             <Link className="cta" href="/crear">
               {d.nav.newChart}
             </Link>

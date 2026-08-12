@@ -50,6 +50,14 @@ export default async function HomePage() {
               {d.nav.myCharts}
             </Link>
           )}
+          {/* Sin esto no había NINGUNA forma de llegar a la página de pago
+              salvo escribiendo la URL: el único enlace estaba en el pie. Se
+              puede construir la pasarela entera y no cobrar un euro por no
+              tener un enlace en la cabecera. */}
+          <Link className="nav-link" href="/precios">
+            {d.nav.pricing}
+          </Link>
+
           {/*
             El editor, como BOTÓN y no como un enlace más.
 

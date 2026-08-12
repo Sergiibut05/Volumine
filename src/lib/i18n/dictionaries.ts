@@ -50,6 +50,8 @@ export const en = {
   },
   nav: {
     openEditor: 'Open the editor',
+    pricing: 'Pricing',
+    upgrade: 'Remove the watermark',
     myCharts: 'My charts',
     newChart: 'New chart',
     signOut: 'Sign out',
@@ -518,6 +520,8 @@ export const es: Dictionary = {
   },
   nav: {
     openEditor: 'Abrir el editor',
+    pricing: 'Precios',
+    upgrade: 'Quitar la marca de agua',
     myCharts: 'Mis gráficas',
     newChart: 'Nueva gráfica',
     signOut: 'Cerrar sesión',
