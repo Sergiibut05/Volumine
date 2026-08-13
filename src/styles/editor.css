@@ -798,10 +798,20 @@
   color: var(--text-primary);
 }
 
-/* La punta de flecha gira al abrir: dice el estado sin gastar una palabra. */
+/*
+  La punta de flecha gira al abrir: dice el estado sin gastar una palabra.
+
+  La separación va en `margin-left` y NO como espacio dentro del `content`. Con
+  el espacio dentro, la caja del pseudo-elemento lo incluye y al girar 90 grados
+  el espacio gira con ella: acababa encima o debajo de la punta en vez de al
+  lado, y la flecha quedaba pegada al texto. Un margen exterior no rota.
+*/
 .mas::after {
-  content: ' ›';
+  content: '›';
   display: inline-block;
+  margin-left: 0.4em;
+  /* Sin esto la punta girada se sube respecto a la línea del texto. */
+  vertical-align: -0.05em;
   transform: rotate(90deg);
   transition: transform var(--p-dur-2) var(--p-ease-out);
 }

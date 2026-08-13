@@ -71,9 +71,23 @@ export function TypeCard({ type }: { type: ChartTypeEntry }) {
           }}
         >
           <h3>{texto.name}</h3>
-          <span className="tag" data-status={type.status}>
-            {type.status === 'listo' ? d.landing.ready : d.landing.comingSoon}
-          </span>
+          {/*
+            SOLO se etiqueta lo que NO está listo.
+
+            Antes todas las tarjetas llevaban un «LISTO» morado, y con los seis
+            tipos terminados eso no informaba de nada: una etiqueta que aparece
+            siempre no distingue nada, solo mete color y descuadra la línea base
+            del título —el texto del badge es más pequeño y no comparte base con
+            el h3, así que alineados por `baseline` nunca cuadran—.
+
+            Un distintivo señala la EXCEPCIÓN. Cuando haya un tipo en camino,
+            volverá a aparecer y entonces sí querrá decir algo.
+          */}
+          {type.status !== 'listo' && (
+            <span className="tag" data-status={type.status}>
+              {d.landing.comingSoon}
+            </span>
+          )}
         </div>
         <p>{texto.answers}</p>
         <p className="avoid">
