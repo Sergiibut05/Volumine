@@ -22,6 +22,17 @@ import type { ResolvedChartConfig } from '@/lib/config/defaults';
 export type PosterFormat = 'png' | 'jpg';
 
 /** Todas las extensiones, para poder limpiar la que ya no toca al reguardar. */
+/*
+  Los formatos que puede producir un póster.
+
+  ⚠️ Esta lista y el `allowed_mime_types` del bucket `posters` son LA MISMA
+  decisión escrita en dos sitios. El bucket nació aceptando solo PNG y WebP; al
+  añadir aquí el JPEG y no allí, Storage empezó a rechazar cada subida con un
+  400 — y como el guardado se traga ese error para no bloquear la gráfica, la
+  miniatura desapareció sin que nada lo dijera. Ver `0006_poster_jpeg.sql`.
+
+  Si esto cambia, hay migración.
+*/
 export const POSTER_FORMATS: readonly PosterFormat[] = ['png', 'jpg'];
 
 /** Dónde vive el póster de una gráfica dentro del bucket. */

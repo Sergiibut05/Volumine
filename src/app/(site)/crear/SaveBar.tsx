@@ -121,8 +121,17 @@ export function SaveBar({
       if (sobra.length > 0) {
         await supabaseBrowser().storage.from('posters').remove(sobra);
       }
-    } catch {
-      // Ver la nota de arriba: el póster nunca puede tumbar un guardado.
+    } catch (fallo) {
+      /*
+        El póster nunca puede tumbar un guardado —ver la nota de arriba—, pero
+        SILENCIARLO DEL TODO fue un error que costó semanas: el bucket dejó de
+        aceptar el formato del póster y aquí no pasaba nada, así que las
+        miniaturas desaparecieron sin que ni un mensaje lo dijera. Un fallo que
+        no deja rastro se descubre cuando alguien se fija, no cuando ocurre.
+
+        Tragado para quien usa la aplicación, visible para quien la mantiene.
+      */
+      console.error('[poster] no se pudo subir', fallo);
     }
   }
 
