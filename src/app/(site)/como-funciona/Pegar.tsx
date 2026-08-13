@@ -24,7 +24,19 @@ const EJEMPLO = `<iframe
   title="Reparto de ingresos"
 ></iframe>`;
 
-export function Pegar() {
+export function Pegar({
+  titulo,
+  intro,
+  copiar: txtCopiar,
+  copiado: txtCopiado,
+  nota,
+}: {
+  titulo: string;
+  intro: string;
+  copiar: string;
+  copiado: string;
+  nota: string;
+}) {
   const [copiado, setCopiado] = useState(false);
 
   const copiar = async () => {
@@ -42,25 +54,19 @@ export function Pegar() {
 
   return (
     <section className="pegar">
-      <h2>Si el sitio no lo reconoce solo</h2>
-      <p>
-        Notion, Confluence y la mayoría lo despliegan pegando la URL a secas. En una web
-        propia, o donde no haya oEmbed, va así:
-      </p>
+      <h2>{titulo}</h2>
+      <p>{intro}</p>
 
       <div className="pegar-caja">
         <pre>
           <code>{EJEMPLO}</code>
         </pre>
         <button type="button" onClick={copiar}>
-          {copiado ? 'Copiado' : 'Copiar'}
+          {copiado ? txtCopiado : txtCopiar}
         </button>
       </div>
 
-      <p className="pegar-nota">
-        La altura es lo único que conviene tocar: la gráfica se adapta al ancho sola, pero
-        no puede adivinar cuánto alto quieres darle.
-      </p>
+      <p className="pegar-nota">{nota}</p>
     </section>
   );
 }

@@ -3,12 +3,12 @@ import Link from 'next/link';
 import '@/styles/marketing.css';
 import { Pegar } from './Pegar';
 import { LOGOS } from '@/lib/logos';
+import { getDictionary } from '@/lib/i18n/server';
 
-export const metadata: Metadata = {
-  title: 'Cómo funciona',
-  description:
-    'Haces la gráfica, copias el link y lo pegas. Sin plugin, sin cuenta y sin paso de compilación.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { d } = await getDictionary();
+  return { title: d.nav.howItWorks, description: d.howto.lead };
+}
 
 /*
   ══════════════════════════════════════════════════════════════════════════
@@ -27,28 +27,15 @@ export const metadata: Metadata = {
   interesado, no el que despierta el interés.
 */
 
-const PASOS = [
-  {
-    n: '1',
-    titulo: 'Haz la gráfica',
-    texto:
-      'En el editor, sin cuenta. Pegas tus datos desde una hoja de cálculo y eliges tipo, tema y acabado.',
-  },
-  {
-    n: '2',
-    titulo: 'Copia el link',
-    texto:
-      'La configuración entera viaja dentro de la URL: los datos, los colores, la cámara. No hay nada más que guardar.',
-  },
-  {
-    n: '3',
-    titulo: 'Pégalo donde sea',
-    texto:
-      'En Notion, en Confluence o en tu web. La mayoría de sitios lo reconocen solos; si no, va el iframe de abajo.',
-  },
-];
+export default async function ComoFunciona() {
+  const { d } = await getDictionary();
 
-export default function ComoFunciona() {
+  const pasos = [
+    { n: '1', titulo: d.howto.s1t, texto: d.howto.s1b },
+    { n: '2', titulo: d.howto.s2t, texto: d.howto.s2b },
+    { n: '3', titulo: d.howto.s3t, texto: d.howto.s3b },
+  ];
+
   return (
     <div className="studio" data-theme="light">
       <header className="shell" style={{ paddingBlock: '1.75rem' }}>
@@ -58,14 +45,11 @@ export default function ComoFunciona() {
       </header>
 
       <main className="shell comofunciona">
-        <h1 className="display">Haces la gráfica. Copias el link. Ya está.</h1>
-        <p className="precios-lead">
-          Sin plugin, sin cuenta y sin paso de compilación. El link ES el producto: lleva
-          dentro todo lo que la gráfica necesita para dibujarse.
-        </p>
+        <h1 className="display">{d.howto.title}</h1>
+        <p className="precios-lead">{d.howto.lead}</p>
 
         <ol className="pasos">
-          {PASOS.map((p) => (
+          {pasos.map((p) => (
             <li key={p.n}>
               <span className="paso-n">{p.n}</span>
               <div>
@@ -79,14 +63,17 @@ export default function ComoFunciona() {
         {/* El bloque de código va en su propio componente porque copia al
             portapapeles, y eso necesita cliente. El resto de la página es
             estática y no tiene por qué pagar ese peaje. */}
-        <Pegar />
+        <Pegar
+          titulo={d.howto.iframeTitle}
+          intro={d.howto.iframeBody}
+          copiar={d.howto.copy}
+          copiado={d.howto.copied}
+          nota={d.howto.iframeNote}
+        />
 
         <section className="donde">
-          <h2>Dónde funciona</h2>
-          <p>
-            Cualquier sitio que acepte un enlace o un <code>&lt;iframe&gt;</code>. En los
-            que entienden oEmbed basta con pegar la URL y se despliega solo.
-          </p>
+          <h2>{d.howto.whereTitle}</h2>
+          <p>{d.howto.whereBody}</p>
           <ul className="worksin-list">
             {LOGOS.map((l) => (
               <li key={l.nombre}>
@@ -102,80 +89,66 @@ export default function ComoFunciona() {
         </section>
 
         <section className="donde">
-          <h2>Qué carga en la página de quien lo ve</h2>
-          <p>
-            Esto es lo que suele decidir si te dejan incrustar algo en un sitio corporativo,
-            así que va con cifras y no con adjetivos:
-          </p>
+          <h2>{d.howto.loadTitle}</h2>
+          <p>{d.howto.loadBody}</p>
           <div className="specsheet" style={{ marginBlock: '1.5rem' }}>
             <div>
               <p className="spec-label" style={{ margin: 0 }}>
-                Peso
+                {d.howto.specWeight}
               </p>
               <strong>148 KB</strong>
-              <span>Todo el visor 3D, comprimido.</span>
+              <span>{d.howto.specWeightNote}</span>
             </div>
             <div>
               <p className="spec-label" style={{ margin: 0 }}>
-                Peticiones
+                {d.howto.specReq}
               </p>
               <strong>1</strong>
-              <span>Un archivo. Nada más.</span>
+              <span>{d.howto.specReqNote}</span>
             </div>
             <div>
               <p className="spec-label" style={{ margin: 0 }}>
-                Cookies
+                {d.howto.specCookies}
               </p>
               <strong>0</strong>
-              <span>No rastrea a quien la ve.</span>
+              <span>{d.howto.specCookiesNote}</span>
             </div>
             <div>
               <p className="spec-label" style={{ margin: 0 }}>
-                Terceros
+                {d.howto.specThird}
               </p>
               <strong>0</strong>
-              <span>No llama a ningún servidor ajeno.</span>
+              <span>{d.howto.specThirdNote}</span>
             </div>
           </div>
           <p>
-            Por eso una gráfica incrustada <strong>no añade obligaciones</strong> a la
-            política de privacidad de la web donde la pongas. Es una restricción del propio
-            diseño, no una promesa comercial: está medida en cada compilación.
+            {d.howto.loadFoot1} <strong>{d.howto.loadFoot2}</strong> {d.howto.loadFoot3}
           </p>
         </section>
 
         <section className="donde">
-          <h2>Preguntas que salen siempre</h2>
+          <h2>{d.howto.faqTitle}</h2>
 
-          <h3>¿Se ve bien en el móvil?</h3>
+          <h3>{d.howto.q1}</h3>
           <p>
-            Se adapta al hueco que le dé la página. Si el sitio es estrecho, la gráfica
-            encoge y las etiquetas con ella.
-          </p>
+            {d.howto.a1}</p>
 
-          <h3>¿Qué pasa si borro la gráfica?</h3>
+          <h3>{d.howto.q2}</h3>
           <p>
-            El enlace deja de funcionar. Quien la tuviera incrustada verá el hueco vacío,
-            así que despublicar una gráfica que está en la web de otra persona es algo que
-            conviene avisar.
-          </p>
+            {d.howto.a2}</p>
 
-          <h3>¿Puedo cambiar los datos después?</h3>
+          <h3>{d.howto.q3}</h3>
           <p>
-            Sí, editando la gráfica guardada: el enlace es el mismo y se actualiza donde
-            esté puesta. Si la compartiste con un link de configuración —sin cuenta—
-            entonces el link es la gráfica, y cambiarla genera otro.
-          </p>
+            {d.howto.a3}</p>
 
-          <h3>¿Hace falta cuenta?</h3>
+          <h3>{d.howto.q4}</h3>
           <p>
-            No para crear ni para incrustar. Solo para guardar tus gráficas y volver a
-            editarlas más tarde.
-          </p>
+            {d.howto.a4}</p>
         </section>
 
         <p className="precios-nota">
-          <Link href="/crear">Abrir el editor</Link> · <Link href="/precios">Precios</Link>
+          <Link href="/crear">{d.pricing.openEditor}</Link> ·{' '}
+          <Link href="/precios">{d.nav.pricing}</Link>
         </p>
       </main>
     </div>
