@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { useI18n } from '@/lib/i18n/client';
@@ -13,23 +12,37 @@ import { useI18n } from '@/lib/i18n/client';
  * del token. Borrar solo la cookie desde el servidor dejaría al cliente de esta
  * pestaña intentando refrescar una sesión que ya no existe.
  *
- * `router.refresh()` después, para que los Server Components vuelvan a
- * renderizar ya sin usuario en vez de quedarse con lo de antes.
+ * Y la salida es una recarga completa, no una navegación de cliente: ver la
+ * nota de dentro sobre el Router Cache.
  */
 export function SignOut() {
   const { d } = useI18n();
-  const router = useRouter();
   const [pendiente, startTransition] = useTransition();
 
   const salir = () =>
     startTransition(async () => {
       await supabaseBrowser().auth.signOut();
-      /* Al editor y no a la landing: el editor FUNCIONA sin cuenta —es la
-         premisa del producto— así que cerrar sesión no puede dejarte fuera de
-         lo único que se usa aquí. Mandar a la landing daba la sensación de
-         haber sido expulsado, sin puerta de vuelta a la vista. */
-      router.replace('/crear');
-      router.refresh();
+      /*
+        NAVEGACIÓN DURA, no `router.replace()`.
+
+        Con navegación de cliente, Next conserva su Router Cache: `/mis-graficas`
+        seguía ahí con el HTML de la sesión anterior. Al entrar con OTRA cuenta y
+        volver a esa ruta, se servía la copia cacheada y aparecían las gráficas
+        de la cuenta de antes. No es una fuga —la ruta es `force-dynamic` y RLS
+        aguanta, era el caché del propio navegador—, pero da exactamente la
+        impresión contraria, que en algo que lleva cuentas es igual de grave.
+
+        `router.refresh()` tampoco basta: revalida la ruta ACTUAL, no las demás
+        que quedaron en el caché. Una recarga completa lo tira todo, y es lo
+        mismo que ya hace el inicio de sesión.
+
+        Al editor y no a la landing: el editor FUNCIONA sin cuenta —es la premisa
+        del producto— así que cerrar sesión no puede dejarte fuera de lo único
+        que se usa aquí.
+      */
+      /* Con el origen explícito: `assign` con una ruta relativa la resuelve
+         contra la URL actual, y el propio lint de Next lo señala. */
+      window.location.href = new URL('/crear', window.location.origin).toString();
     });
 
   return (
