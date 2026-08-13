@@ -13,30 +13,32 @@ import { useState } from 'react';
   pasarela no cumple, y la consecuencia de no cumplir es que el contrato no
   vincula a quien compró.
 
-  ── Y LA CASILLA TAMBIÉN ─────────────────────────────────────────────────
+  ── AQUÍ HUBO UNA CASILLA, Y ERA UN ERROR ────────────────────────────────
 
-  Sigue haciendo falta con un pago único: el desistimiento de catorce días es de
-  la compra, no de la suscripción. El plan empieza a valer en el momento del
-  pago, o sea antes de que pase ese plazo. Para que eso sea legítimo hay que recabar el
-  consentimiento EXPRESO a empezar ya, y que la persona reconozca que al hacerlo
-  pierde ese derecho. Por eso es una casilla que hay que marcar a mano y el botón
-  está apagado hasta entonces: preseleccionarla la invalidaría.
+  El consentimiento a renunciar al desistimiento de catorce días se pedía con
+  una casilla que además DESHABILITABA el botón hasta marcarla. Convertía un
+  requisito legal en un obstáculo, en el peor momento posible —justo al decidir
+  la compra— y con un aspecto que no tiene ninguna otra tienda.
+
+  Ahora lo recoge Stripe dentro de su propio checkout (`consent_collection`),
+  que es donde ese tipo de letra pequeña se espera. Aquí abajo solo queda el
+  aviso de que el acceso es inmediato, que es información útil y no un peaje:
+  quien lee entiende qué compra sin tener que hacer nada para poder pagar.
 */
 
 export function Comprar({
   plan,
   textoBoton,
-  textoCasilla,
+  textoAviso,
   entrar,
   haySesion,
 }: {
   plan: string;
   textoBoton: string;
-  textoCasilla: string;
+  textoAviso: string;
   entrar: string;
   haySesion: boolean;
 }) {
-  const [acepta, setAcepta] = useState(false);
   const [yendo, setYendo] = useState(false);
   const [error, setError] = useState('');
 
@@ -71,23 +73,11 @@ export function Comprar({
 
   return (
     <div className="precio-compra">
-      <label className="precio-casilla">
-        <input
-          type="checkbox"
-          checked={acepta}
-          onChange={(e) => setAcepta(e.target.checked)}
-        />
-        <span>{textoCasilla}</span>
-      </label>
-
-      <button
-        type="button"
-        className="cta precio-cta"
-        onClick={ir}
-        disabled={!acepta || yendo}
-      >
+      <button type="button" className="cta precio-cta" onClick={ir} disabled={yendo}>
         {textoBoton}
       </button>
+
+      <p className="precio-aviso">{textoAviso}</p>
 
       {error && (
         <p className="auth-error" role="alert">

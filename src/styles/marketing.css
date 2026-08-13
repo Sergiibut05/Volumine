@@ -1428,6 +1428,16 @@ footer.studio-foot {
   line-height: 1.55;
 }
 
+/* El aviso bajo el botón. Es información, no un peaje: dice qué compras y qué
+   va a pasar en la pasarela, sin pedir nada a cambio de poder pagar. Aquí hubo
+   una casilla que deshabilitaba el botón hasta marcarla — ver Comprar.tsx. */
+.precio-aviso {
+  margin: 0.75rem 0 0;
+  color: var(--ink-faint);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
 .precios-nota {
   margin: 2.5rem 0 0;
   color: var(--ink-faint);

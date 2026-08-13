@@ -94,6 +94,23 @@ export async function POST(request: Request) {
     automatic_tax: { enabled: true },
     billing_address_collection: 'required',
     /*
+      EL CONSENTIMIENTO, RECOGIDO POR STRIPE Y NO POR NOSOTROS.
+
+      En contenido digital el desistimiento de catorce días solo decae si quien
+      compra consiente expresamente empezar ya Y reconoce que con eso lo pierde.
+      Eso estaba resuelto con una casilla en nuestra página que además BLOQUEABA
+      el botón: un requisito legal convertido en obstáculo, en el peor sitio
+      posible —el momento de decidir la compra— y con una pinta que no tiene
+      ninguna otra tienda.
+
+      `consent_collection` lo pide dentro del propio checkout, que es donde ese
+      tipo de letra pequeña se espera y donde nadie se extraña de verla. Y de
+      paso queda mejor documentado que antes: Stripe guarda la aceptación con su
+      marca de tiempo en la sesión, así que hay constancia de verdad y no un
+      estado de React que se pierde al recargar.
+    */
+    consent_collection: { terms_of_service: 'required' },
+    /*
       `?pago=hecho` NO concede nada: solo sirve para enseñar un mensaje. Quien
       escriba esa URL a mano no se lleva el plan, porque el plan lo escribe el
       webhook y nadie más.

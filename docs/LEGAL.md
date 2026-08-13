@@ -111,9 +111,19 @@ tenga que incrustar en un sitio con política estricta.
 
 Nada de esto aplica hoy, pero conviene tenerlo escrito antes de tocar Stripe.
 
-- [x] **Derecho de desistimiento** — hecho en `/precios`: una casilla que hay
-      que marcar a mano, sin preseleccionar, y el botón apagado hasta entonces.
-      Preseleccionarla la invalidaría.
+- [x] **Derecho de desistimiento** — lo recoge **Stripe** con
+      `consent_collection` dentro de su checkout, no nuestra página.
+
+      Estuvo un tiempo como casilla propia que además deshabilitaba el botón
+      hasta marcarla, y era un error: convertía un requisito legal en un
+      obstáculo, en el peor momento posible y con un aspecto que no tiene
+      ninguna otra tienda. En la pasarela es donde ese tipo de letra pequeña se
+      espera, y encima queda **mejor documentado**: Stripe guarda la aceptación
+      con su marca de tiempo en la sesión, así que hay constancia de verdad y no
+      un estado de React que se pierde al recargar.
+
+      **Requisito:** los términos tienen que estar puestos en Stripe →
+      Configuración → Checkout, o la casilla sale sin enlace a nada.
 - [ ] **Información precontractual**: precio con impuestos, duración, renovación
       automática y cómo cancelar, todo antes del botón de pagar.
 - [x] El botón dice **«Suscribirse y pagar»**. Un «Continuar» delante de una

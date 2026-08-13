@@ -115,7 +115,7 @@ export default async function PreciosPage() {
               haySesion={Boolean(user)}
               entrar="Entra para comprar"
               textoBoton="Comprar y pagar"
-              textoCasilla="Quiero empezar a usarlo ya y entiendo que, al hacerlo, pierdo el derecho de desistimiento de 14 días."
+              textoAviso="Acceso inmediato. Como el servicio empieza al pagar, no hay derecho de desistimiento posterior: se te pedirá que lo confirmes en la pasarela."
             />
 
             <p className="oferta-nota">
