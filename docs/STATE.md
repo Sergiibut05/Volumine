@@ -6,8 +6,38 @@
 >
 > Sé concreto. "Avanzando en el renderer" no vale.
 
-**Última actualización:** 2026-08-07
+**Última actualización:** 2026-08-13
 **Fase actual:** 6 — Todos los tipos de v1 disponibles
+
+## Dos trampas que ya han mordido, y cómo se reconocen
+
+Las dos comparten forma: un fallo callado que aparece semanas después del
+cambio que lo causó. Vale la pena reconocer el patrón.
+
+### El bucket de pósters y `POSTER_FORMATS`
+
+`composePoster()` devuelve JPEG cuando el fondo es opaco y PNG solo cuando hace
+falta canal alfa. El bucket `posters` nació aceptando únicamente PNG y WebP, así
+que durante semanas Storage rechazó **cada** subida con un 400 y las miniaturas
+simplemente dejaron de aparecer. Nadie se enteró porque `subirPoster()` se traga
+el error para no bloquear el guardado.
+
+Arreglado en `0006_poster_jpeg.sql`, y el `catch` ya deja rastro en consola.
+**La lista de formatos vive en dos sitios** —`src/lib/charts/poster.ts` y el
+`allowed_mime_types` del bucket—: si cambia una, hay migración.
+
+### El canvas y `forceContextLoss()`
+
+Un `<canvas>` entrega UN contexto en toda su vida. `dispose()` llama a
+`forceContextLoss()` —correcto: un navegador aguanta unos dieciséis contextos
+vivos—, y eso deja ese canvas muerto para siempre. Mientras el canvas lo puso el
+JSX, React reutilizaba el mismo nodo al remontar (Strict Mode lo hace SIEMPRE en
+desarrollo) y el segundo montaje reventaba con un
+`Cannot read properties of null (reading 'precision')` que no nombra la causa:
+es `getShaderPrecisionFormat(...)` devolviendo `null` sobre un contexto perdido.
+
+Ahora el canvas lo crea y lo destruye el efecto de montaje en `ChartCanvas.tsx`.
+**Si algún día vuelve a aparecer ese error, es esto.**
 
 ## Qué funciona hoy
 
