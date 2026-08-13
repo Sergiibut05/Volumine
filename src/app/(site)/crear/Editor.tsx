@@ -9,7 +9,7 @@ import { ChartCanvas } from '@/renderer/ChartCanvas';
 import type { HoverInfo } from '@/renderer/core/chart-renderer';
 import { formatter } from '@/lib/format';
 import { parseConfig } from '@/lib/config/parse';
-import { buildEmbedUrl, MAX_URL_LENGTH } from '@/lib/config/url';
+import { buildEmbedIframe, buildEmbedUrl, MAX_URL_LENGTH } from '@/lib/config/url';
 import { THEMES } from '@/lib/themes';
 import { chartTypes } from '@/lib/chart-types';
 import { computeSectors, globalBevel, OUTER_RADIUS } from '@/renderer/geometry/donut';
@@ -144,6 +144,10 @@ export type EditorProps = {
   userId: string | null;
 };
 
+/** Qué se acaba de copiar de la barra de compartir, para acusar recibo en el
+    botón correcto. `null` mientras no se haya copiado nada. */
+type Copiado = 'link' | 'iframe' | null;
+
 export function Editor({ initial, chartId, visibility, signedIn, userId }: EditorProps) {
   const { d, locale } = useI18n();
   /* El póster se captura del canvas al guardar. Va por `ref` porque no es un
@@ -154,7 +158,9 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
   const history = useHistoryState<ChartConfig>(initial);
   const config = history.value;
   const setConfig = history.set;
-  const [copied, setCopied] = useState(false);
+  /* Cuál de los dos botones de la barra acaba de copiar, no un simple «sí»:
+     el acuse tiene que salir en el control que se ha pulsado. */
+  const [copied, setCopied] = useState<Copiado>(null);
   const [hovered, setHovered] = useState<HoverInfo>(null);
   /* Se enciende al intentar guardar sin nombre y se apaga en cuanto se escribe
      algo. No se enciende al cargar: avisar de un campo vacío que nadie ha
@@ -280,11 +286,48 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
     });
   };
 
-  const copy = async () => {
+  /*
+    DOS FORMAS DE LLEVARSE LA GRÁFICA, Y NO SON IGUAL DE IMPORTANTES.
+
+    El link es el producto: en Notion, en Confluence y en la mayoría de sitios
+    se pega a secas y se despliega solo. Es lo que hace casi todo el mundo y por
+    eso es el botón lleno.
+
+    El `<iframe>` hace falta en una web propia o donde no haya oEmbed. Es una
+    minoría, pero cuando hace falta, hace falta de verdad — y quien está ahí no
+    tiene por qué escribirlo de memoria. Va al lado, en voz baja: no compite por
+    la atención de quien no lo necesita, y está a un clic de quien sí.
+
+    El acuse de recibo se guarda CUÁL se copió, no un simple sí. Con un booleano
+    compartido, pulsar «iframe» encendía el «Copiado» en el botón de al lado: el
+    aviso aparecía en un control que no se había tocado, que es peor que no dar
+    aviso ninguno.
+  */
+  const copiarAlPortapapeles = async (texto: string, cual: Copiado) => {
+    try {
+      await navigator.clipboard.writeText(texto);
+      setCopied(cual);
+      setTimeout(() => setCopied(null), 1800);
+    } catch {
+      /* Sin portapapeles —contexto no seguro, permisos denegados— la URL sigue
+         escrita al lado para seleccionarla a mano. Un error aquí no rompe nada
+         que el usuario no pueda resolver mirando. */
+    }
+  };
+
+  const copy = () => {
     if (!url?.ok) return;
-    await navigator.clipboard.writeText(url.url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
+    return copiarAlPortapapeles(url.url, 'link');
+  };
+
+  const copyIframe = () => {
+    if (!url?.ok) return;
+    /* Sin nombre no se omite el atributo: un iframe sin `title` es un hueco sin
+       nombre para quien navega con lector de pantalla. Se pone uno genérico. */
+    return copiarAlPortapapeles(
+      buildEmbedIframe(url.url, config.title?.trim() || d.editor.untitledEmbed),
+      'iframe',
+    );
   };
 
   /*
@@ -434,7 +477,10 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
             /* El fondo ya resuelto: el póster lo pinta debajo de la captura,
                porque el canvas no lo lleva dentro cuando es un degradado. */
             background={parsed.ok ? parsed.config.scene.background : null}
-            chart={{ theme: config.theme, palette: parsed.ok ? parsed.config.style.palette : [] }}
+            chart={{
+              theme: config.theme,
+              palette: parsed.ok ? parsed.config.style.palette : [],
+            }}
             onMissingTitle={() => {
               setFaltaNombre(true);
               /* Además de teñir el borde, se lleva el cursor al campo: señalar
@@ -484,9 +530,22 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
         {url && (
           <div className="sharebar">
             <code>{url.ok ? url.url : fill(d.editor.tooLongChars, { n: url.length })}</code>
-            <button type="button" onClick={copy} disabled={!url.ok}>
-              {copied ? d.common.copied : d.common.copyLink}
-            </button>
+            {/* El discreto va ANTES que el lleno: el botón principal se queda
+                en el extremo, que es donde se busca sin mirar. */}
+            <div className="sharebar-acciones">
+              <button
+                type="button"
+                className="discreto"
+                onClick={copyIframe}
+                disabled={!url.ok}
+                title={d.editor.copyIframeHint}
+              >
+                {copied === 'iframe' ? d.common.copied : d.editor.copyEmbed}
+              </button>
+              <button type="button" onClick={copy} disabled={!url.ok}>
+                {copied === 'link' ? d.common.copied : d.common.copyLink}
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -509,7 +568,7 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
               })
             }
           />
-        
+
           {THEMES.length > TEMAS_A_LA_VISTA && (
             <button
               type="button"
@@ -995,7 +1054,9 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
                       id: 'system',
                       label: d.editor.fontSystem,
                       hint: d.editor.fontSystemHint,
-                      preview: <FontPreview familia="ui-sans-serif, system-ui, sans-serif" />,
+                      preview: (
+                        <FontPreview familia="ui-sans-serif, system-ui, sans-serif" />
+                      ),
                     },
                     {
                       id: 'inter',
@@ -1251,7 +1312,9 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
               max={180}
               step={5}
               format={(v) => `${v}°`}
-              onChange={(v) => setConfig((c) => ({ ...c, motion: { ...c.motion, angle: v } }))}
+              onChange={(v) =>
+                setConfig((c) => ({ ...c, motion: { ...c.motion, angle: v } }))
+              }
             />
 
             {/* Un medidor no gira: el hueco de abajo es el cero de la escala y
@@ -1337,7 +1400,6 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
           />
           <p className="nota">{d.editor.aspectNote}</p>
         </Group>
-
 
         {/* Nivel 3 — avanzado. Cerrado por defecto: quien lo necesita lo abre. */}
         <details className="group" style={{ padding: 'var(--p-space-4)' }}>
@@ -1482,11 +1544,7 @@ function InkControl({
 /** Con y sin sombra proyectada. La diferencia se ve de un vistazo. */
 function ShadowPreview({ on }: { on: boolean }) {
   return (
-    <span
-      aria-hidden
-      className="thumb"
-      style={{ background: 'var(--surface-sunken)' }}
-    >
+    <span aria-hidden className="thumb" style={{ background: 'var(--surface-sunken)' }}>
       <i
         style={{
           width: '34%',

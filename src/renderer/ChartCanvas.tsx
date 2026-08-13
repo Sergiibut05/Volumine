@@ -41,7 +41,9 @@ export function ChartCanvas({
   style,
   captureRef,
 }: ChartCanvasProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  /* El contenedor, no el canvas: el canvas lo crea y lo destruye el efecto de
+     montaje. Ver la nota larga que hay ahí abajo. */
+  const hostRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<ChartRendererHandle | null>(null);
   /* Los callbacks viven en refs para que cambiar de manejador no desmonte el
      renderer, que costaría recrear el contexto WebGL entero.
@@ -57,10 +59,43 @@ export function ChartCanvas({
     onFrameRef.current = onFrame;
   }, [onHover, onFrame]);
 
-  // Montaje: una sola vez. El config posterior entra por update().
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    EL CANVAS LO CREA EL EFECTO, NO EL JSX. Y ES OBLIGATORIO.
+    ══════════════════════════════════════════════════════════════════════════
+
+    Un `<canvas>` solo entrega UN contexto en toda su vida: `getContext()`
+    devuelve siempre el mismo objeto, y si ese contexto se pierde, lo sigue
+    devolviendo —perdido— para siempre. No hay forma de resucitarlo.
+
+    `dispose()` termina en `forceContextLoss()`, que es justo lo que hay que
+    hacer para soltar la GPU en el acto en vez de esperar al recolector: un
+    navegador aguanta del orden de dieciséis contextos vivos y al diecisiete
+    empieza a matar los viejos.
+
+    Juntando las dos cosas: si el canvas lo pone el JSX, React REUTILIZA el
+    mismo nodo entre desmontaje y montaje —que es exactamente lo que hace Strict
+    Mode en desarrollo, y lo que puede hacer en producción al remontar— y el
+    segundo montaje recibe un contexto ya muerto. three.js pregunta entonces por
+    `getShaderPrecisionFormat(...)`, que en un contexto perdido devuelve `null`,
+    y revienta con un «Cannot read properties of null (reading 'precision')»
+    que no dice absolutamente nada sobre la causa.
+
+    Creándolo aquí, cada montaje estrena canvas y el de antes se va con su
+    contexto muerto a cuestas. No es un rodeo: es la única forma de conservar
+    `forceContextLoss()` —que hace falta— sin envenenar el siguiente montaje.
+  */
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const host = hostRef.current;
+    if (!host) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.style.display = 'block';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    /* Antes de crear el renderer: mide y observa a `parentElement`, así que
+       tiene que estar ya colgado del contenedor. */
+    host.appendChild(canvas);
 
     const handle = createChartRenderer(canvas, config);
     handle.onHover((info) => onHoverRef.current?.(info));
@@ -70,6 +105,7 @@ export function ChartCanvas({
 
     return () => {
       handle.dispose();
+      canvas.remove();
       handleRef.current = null;
       if (captureRef) captureRef.current = null;
     };
@@ -87,6 +123,7 @@ export function ChartCanvas({
        min-height:auto, la celda mide 0 en el primer paint y el canvas se queda
        en 300×150 sin dar ningún error. */
     <div
+      ref={hostRef}
       className={className}
       style={{
         position: 'relative',
@@ -95,8 +132,6 @@ export function ChartCanvas({
         minHeight: 0,
         ...style,
       }}
-    >
-      <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
-    </div>
+    ></div>
   );
 }

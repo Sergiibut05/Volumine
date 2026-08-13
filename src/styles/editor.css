@@ -126,7 +126,6 @@
   gap: var(--p-space-2);
 }
 
-
 /*
   Automático o personalizado, y que se vea cuál manda.
 
@@ -551,6 +550,50 @@
 
 .sharebar button:hover {
   background: var(--accent-hover);
+}
+
+/*
+  ── EL IFRAME, AL LADO Y EN VOZ BAJA ──────────────────────────────────────
+
+  Copiar el link es lo que hace casi todo el mundo; el `<iframe>` solo hace
+  falta en una web propia o donde no haya oEmbed. Darles el mismo peso visual
+  obligaría a leer y a elegir cada vez entre dos cosas que no son igual de
+  probables — y la más probable con diferencia es la primera.
+
+  Así que este no tiene fondo: es texto con un borde que solo aparece al
+  acercarse. Se ve si lo buscas y desaparece si no.
+*/
+
+.sharebar-acciones {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.sharebar button.discreto {
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+  box-shadow: inset 0 0 0 1px transparent;
+  transition:
+    color var(--p-dur-2) var(--p-ease-out),
+    box-shadow var(--p-dur-2) var(--p-ease-out);
+}
+
+.sharebar button.discreto:hover,
+.sharebar button.discreto:focus-visible {
+  background: transparent;
+  color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px var(--edge-subtle);
+}
+
+/* Cuando la URL no cabe, ninguno de los dos hace nada: que se note. */
+.sharebar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .warn {
@@ -1183,7 +1226,6 @@
   flex: none;
   opacity: 0.62;
 }
-
 
 /*
   ══════════════════════════════════════════════════════════════════════════

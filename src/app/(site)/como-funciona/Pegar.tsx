@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { buildEmbedIframe } from '@/lib/config/url';
 
 /*
   El bloque de «pega esto», con su botón de copiar.
@@ -15,14 +16,13 @@ import { useState } from 'react';
   funcionando, que es lo que convence.
 */
 
-const EJEMPLO = `<iframe
-  src="https://volumine.app/embed/ejemplo"
-  width="100%"
-  height="420"
-  style="border:0"
-  loading="lazy"
-  title="Reparto de ingresos"
-></iframe>`;
+/* Lo genera la MISMA función que el botón «iframe» del editor, a propósito: si
+   la documentación enseña un snippet y el editor copia otro, uno de los dos
+   está mintiendo y no hay forma de saber cuál. */
+const EJEMPLO = buildEmbedIframe(
+  'https://volumine.app/embed/ejemplo',
+  'Reparto de ingresos',
+);
 
 export function Pegar({
   titulo,

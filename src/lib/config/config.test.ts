@@ -4,6 +4,7 @@ import { defaults } from './defaults';
 import {
   encodeConfig,
   decodeConfig,
+  buildEmbedIframe,
   buildEmbedUrl,
   applyQueryOverrides,
   MAX_URL_LENGTH,
@@ -382,5 +383,30 @@ describe('medidor', () => {
     });
     expect(result.ok).toBe(true);
     expect(result.config!.style.gauge.max).toBe(100);
+  });
+});
+
+describe('buildEmbedIframe', () => {
+  const url = 'https://volumine.app/embed?c=abc';
+
+  it('lleva title siempre: un iframe sin nombre es un hueco para un lector de pantalla', () => {
+    expect(buildEmbedIframe(url, 'Ventas 2026')).toContain('title="Ventas 2026"');
+  });
+
+  it('escapa el nombre para que no se pueda salir del atributo', () => {
+    const salida = buildEmbedIframe(url, '"><script>alert(1)</script>');
+    expect(salida).not.toContain('<script>');
+    expect(salida).toContain('&quot;&gt;&lt;script&gt;');
+  });
+
+  it('escapa la URL: los & del query romperían el atributo en HTML', () => {
+    expect(buildEmbedIframe('https://v.app/embed?c=a&theme=b', 'X')).toContain(
+      'c=a&amp;theme=b',
+    );
+  });
+
+  it('el alto es lo unico ajustable, porque un iframe no crece con su contenido', () => {
+    expect(buildEmbedIframe(url, 'X')).toContain('height="420"');
+    expect(buildEmbedIframe(url, 'X', 900)).toContain('height="900"');
   });
 });

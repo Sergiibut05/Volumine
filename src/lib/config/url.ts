@@ -54,6 +54,56 @@ export function buildEmbedUrl(config: ChartConfig, origin: string): EmbedUrlResu
   return { ok: true, url, length: url.length };
 }
 
+/*
+  ── EL IFRAME, PARA CUANDO PEGAR EL LINK NO BASTA ──────────────────────────
+
+  Notion, Confluence y la mayoría despliegan la URL a secas. Pero en una web
+  propia, en un WordPress o en cualquier sitio sin oEmbed, hace falta el
+  `<iframe>` — y quien está ahí no tiene por qué saber escribirlo de memoria.
+
+  Vive aquí, junto a `buildEmbedUrl`, y NO en el componente que lo enseña,
+  porque hay dos sitios que lo emiten: el editor y la página de «cómo
+  funciona». Escrito dos veces, un día dirán cosas distintas y la
+  documentación pasará a mentir sobre el producto.
+
+  El alto es lo único con un número fijo: el ancho se resuelve solo, pero
+  ningún iframe puede crecer con su contenido, así que hay que dar una cifra
+  de partida. 420 es un alto cómodo para una gráfica en un artículo.
+*/
+
+const IFRAME_HEIGHT = 420;
+
+/** Escapa lo que va DENTRO de un atributo HTML entre comillas dobles. */
+const attr = (s: string) =>
+  s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+/**
+ * El `<iframe>` listo para pegar. `title` es obligatorio de verdad —un iframe
+ * sin título es un agujero sin nombre para quien navega con lector de
+ * pantalla—, así que si la gráfica no tiene nombre se usa el que se pase de
+ * reserva en lugar de omitir el atributo.
+ */
+export function buildEmbedIframe(
+  url: string,
+  title: string,
+  height: number = IFRAME_HEIGHT,
+): string {
+  return [
+    '<iframe',
+    `  src="${attr(url)}"`,
+    '  width="100%"',
+    `  height="${height}"`,
+    '  style="border:0"',
+    '  loading="lazy"',
+    `  title="${attr(title)}"`,
+    '></iframe>',
+  ].join('\n');
+}
+
 /**
  * Aplica los overrides de query sobre un config ya decodificado.
  *
