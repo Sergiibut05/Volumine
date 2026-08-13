@@ -222,6 +222,7 @@ export default async function HomePage() {
         <div className="foot-fila">
           <span>Volumine</span>
           <nav className="foot-legal">
+            <Link href="/como-funciona">{d.nav.howItWorks}</Link>
             <Link href="/precios">Precios</Link>
             <Link href="/legal/aviso-legal">Aviso legal</Link>
             <Link href="/legal/privacidad">Privacidad</Link>
@@ -229,7 +230,7 @@ export default async function HomePage() {
             <Link href="/legal/terminos">Condiciones</Link>
             {TITULAR.email && <a href={`mailto:${TITULAR.email}`}>Contacto</a>}
           </nav>
-          <Link href="/dev/embed">{d.landing.seeRealEmbed}</Link>
+          <Link href="/como-funciona">{d.nav.howItWorks}</Link>
         </div>
       </footer>
     </div>

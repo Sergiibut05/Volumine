@@ -51,6 +51,7 @@ export const en = {
   nav: {
     openEditor: 'Open the editor',
     pricing: 'Pricing',
+    howItWorks: 'How it works',
     upgrade: 'Remove the watermark',
     myCharts: 'My charts',
     newChart: 'New chart',
@@ -521,6 +522,7 @@ export const es: Dictionary = {
   nav: {
     openEditor: 'Abrir el editor',
     pricing: 'Precios',
+    howItWorks: 'Cómo funciona',
     upgrade: 'Quitar la marca de agua',
     myCharts: 'Mis gráficas',
     newChart: 'Nueva gráfica',
