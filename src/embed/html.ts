@@ -240,12 +240,28 @@ function socialTags(
           `<meta name="twitter:image" content="${escapeHtml(poster)}">`,
         ]
       : []),
-    /* `summary_large_image`: una gráfica en miniatura no se lee. Si va a salir
-       una imagen, que salga a tamaño de leerla. */
-    /* `player` cuando se puede incrustar, `summary_large_image` si solo hay
-       foto. Con `summary_large_image` Twitter enseña la imagen aunque haya
-       reproductor, así que el orden importa. */
-    `<meta name="twitter:card" content="${canonical ? 'player' : 'summary_large_image'}">`,
+    /*
+      SIEMPRE `summary_large_image`. NUNCA `player`.
+
+      Aquí ponía `player` cuando la gráfica tenía URL estable, con el argumento
+      de que si se puede incrustar, que se incruste. El argumento es bueno y la
+      etiqueta no sirve: la tarjeta de reproductor de X exige APROBACIÓN PREVIA
+      por formulario, y sin ella X no pinta nada. Ni reproductor ni imagen.
+
+      O sea que las gráficas guardadas —las que tienen póster, las que mejor se
+      ven— eran justo las que salían como un link pelado al compartirlas en X,
+      mientras que las de sin cuenta sí enseñaban su tarjeta. Al revés de lo que
+      tenía que pasar, y en el sitio donde más duele: un producto cuyo producto
+      es el link no puede fallar al pegar el link.
+
+      `summary_large_image` no pide permiso a nadie y enseña el póster a tamaño
+      de leerlo. Las etiquetas de reproductor de aquí abajo se quedan: no las
+      lee X con esta tarjeta, pero sí otros consumidores, y cuestan 300 bytes.
+
+      Si algún día se pide y se consigue la aprobación de la player card, esto
+      se puede revisar. Mientras tanto, lo que no está aprobado no existe.
+    */
+    `<meta name="twitter:card" content="summary_large_image">`,
 
     /*
       ETIQUETAS DE REPRODUCTOR.
@@ -439,7 +455,10 @@ function readoutHtml(config: ResolvedChartConfig): string {
  * nuestra y detrás la del sistema: si el fichero no llega, o no se ha generado,
  * la etiqueta se ve igual de bien con lo que haya.
  */
-function fontFaceCss(config: ResolvedChartConfig, fonts: Record<string, EmbedFont>): string {
+function fontFaceCss(
+  config: ResolvedChartConfig,
+  fonts: Record<string, EmbedFont>,
+): string {
   const voz = fonts[config.labels.font];
   if (!voz) return '';
 
