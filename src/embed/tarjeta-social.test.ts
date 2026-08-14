@@ -70,6 +70,24 @@ describe('la tarjeta social del embed', () => {
     expect(s).not.toContain('twitter:image');
   });
 
+  /*
+    La descripción es la mitad de la tarjeta. Sin ella, X pinta el título y un
+    hueco: la imagen enseña la forma y no dice ni un número. El texto ya se
+    generaba para `og:image:alt` y se estaba tirando.
+  */
+  it('describe la gráfica con datos, no solo con el título', () => {
+    const s = html({ canonical: 'https://volumine.app/embed/abc' });
+    const desc = s.match(/<meta property="og:description" content="([^"]*)">/)?.[1];
+    expect(desc).toContain('Gráfica de anillo');
+    expect(desc).toContain('A');
+    expect(s).toContain(`<meta name="twitter:description" content="${desc}">`);
+  });
+
+  it('lleva twitter:title, que X prefiere sobre el de Open Graph', () => {
+    const s = html({ canonical: 'https://volumine.app/embed/abc' });
+    expect(s).toContain('<meta name="twitter:title" content="Ventas">');
+  });
+
   /* Las de reproductor se quedan aunque X ya no las mire con esta tarjeta:
      las leen otros consumidores para montar el iframe sin pedir permiso. */
   it('mantiene las etiquetas de reproductor para quien sí las usa', () => {

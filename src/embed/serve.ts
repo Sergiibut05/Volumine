@@ -54,9 +54,7 @@ export async function embedAssets(): Promise<Assets> {
     Los comentarios se quedan en el fuente: explican decisiones que no se ven en
     el código y son justo lo que hace falta dentro de seis meses.
   */
-  const css = minifyCss(
-    await readFile(path.join(root, 'src/styles/embed.css'), 'utf8'),
-  );
+  const css = minifyCss(await readFile(path.join(root, 'src/styles/embed.css'), 'utf8'));
 
   let scriptSrc = '/embed-bundle/volumine.js';
   try {
@@ -93,6 +91,32 @@ const BASE_HEADERS = {
   // El embed tiene que poder cargarse dentro de CUALQUIER página (ADR 0005).
   'Content-Security-Policy': 'frame-ancestors *',
   'X-Content-Type-Options': 'nosniff',
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    FUERA DEL ÍNDICE, PERO LEGIBLE. NO ES LO MISMO.
+    ══════════════════════════════════════════════════════════════════════════
+
+    Un embed indexado es un mal resultado de búsqueda —una gráfica suelta, sin
+    cabecera y sin vuelta atrás—, y como la config viaja en la URL, la misma
+    gráfica genera direcciones infinitas: contenido duplicado que se come el
+    presupuesto de rastreo. Eso sigue siendo verdad y por eso está el `noindex`.
+
+    Lo que estaba mal era el MECANISMO. Se hacía con `Disallow: /embed` en
+    robots.txt, y robots.txt no prohíbe indexar: prohíbe DESCARGAR. Al prohibir
+    la descarga se llevaba por delante a los rastreadores sociales —Twitterbot,
+    facebookexternalhit, Slackbot—, que ni indexan ni quieren: sólo leen cuatro
+    etiquetas para pintar una tarjeta. Pedían permiso, se les decía que no, y
+    todo link de gráfica salía como texto pelado en X, en WhatsApp y en Slack.
+
+    En un producto cuyo producto ES EL LINK, ese era el peor sitio donde fallar.
+    Se descubrió el día del lanzamiento, pegando el primer link en X.
+
+    La cabecera consigue las dos cosas: quien indexa la lee y se abstiene, quien
+    sólo quiere la tarjeta la ignora y sigue. Y sólo funciona si robots.txt
+    DEJA descargar la página — si no, nadie llega a leer esto. Las dos mitades
+    de la misma decisión: ver `src/app/robots.ts`.
+  */
+  'X-Robots-Tag': 'noindex',
 };
 
 /**

@@ -232,6 +232,24 @@ function socialTags(
     `<meta property="og:title" content="${titulo}">`,
     canonical ? `<meta property="og:url" content="${escapeHtml(canonical)}">` : '',
 
+    /*
+      LA DESCRIPCIÓN, QUE ES EL RESUMEN QUE YA ESTÁBAMOS GENERANDO.
+
+      Una tarjeta lleva imagen, título y descripción. Sin descripción, debajo
+      del título queda un hueco y la tarjeta se lee a medias: la imagen enseña
+      la forma y no dice ni un número.
+
+      El texto es el mismo de `og:image:alt` —el resumen legible que ya se
+      construye para los lectores de pantalla—, así que no hay que inventar
+      nada: «Gráfica de anillo — Ingresos: Suscripciones 42,0%, …». La imagen
+      pone el objeto, esto pone los datos.
+
+      Y `twitter:` además de `og:` porque X prefiere las suyas cuando existen.
+    */
+    `<meta property="og:description" content="${alt}">`,
+    `<meta name="twitter:description" content="${alt}">`,
+    `<meta name="twitter:title" content="${titulo}">`,
+
     // Solo con póster: apuntar a una imagen que no existe enseña un hueco roto.
     ...(poster
       ? [
