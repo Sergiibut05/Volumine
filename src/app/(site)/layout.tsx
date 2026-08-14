@@ -1,10 +1,11 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Bricolage_Grotesque, Instrument_Sans, JetBrains_Mono } from 'next/font/google';
 import '@/styles/site.css';
 import { Analytics } from '@vercel/analytics/next';
 import { getDictionary } from '@/lib/i18n/server';
 import { I18nProvider } from '@/lib/i18n/client';
 import { TITULAR } from '@/lib/legal';
+import { MARCA, OG } from '@/lib/marca';
 
 /*
   Root layout de la app y el marketing.
@@ -36,11 +37,26 @@ const mono = JetBrains_Mono({
   display: 'swap',
 });
 
+/*
+  El color de la barra del navegador en el móvil.
+
+  Dos entradas con `media` y no una: la landing es clara y el editor es oscuro a
+  la fuerza, así que un color único acertaría en una pantalla y desentonaría en
+  la otra. Sin esto, Chrome en Android pinta la barra de un gris de sistema y la
+  página parece empezar dos centímetros más abajo de donde empieza.
+*/
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: MARCA.colorTemaClaro },
+    { media: '(prefers-color-scheme: dark)', color: MARCA.colorTemaOscuro },
+  ],
+};
+
 /* El título y la descripción también van en el idioma de quien mira: son lo que
    sale en la pestaña, en el buscador y en la tarjeta cuando alguien comparte la
    página. Por eso es `generateMetadata` y no una constante. */
 export async function generateMetadata(): Promise<Metadata> {
-  const { d } = await getDictionary();
+  const { d, locale } = await getDictionary();
 
   return {
     /*
@@ -66,7 +82,13 @@ export async function generateMetadata(): Promise<Metadata> {
       /* La imagen la genera `scripts/og-image.mjs` capturando el héroe de
          verdad, así que lleva la gráfica 3D con su canto y su sombra en vez de
          una composición de texto. Hay que relanzarlo cuando cambie el héroe. */
-      images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Volumine' }],
+      images: [{ url: OG.ruta, width: OG.ancho, height: OG.alto, alt: 'Volumine' }],
+      /*
+        El idioma de ESTA versión de la página, en el formato de Facebook
+        (guion bajo, región incluida). Es lo que evita que una tarjeta en inglés
+        se anuncie como española por venir del mismo dominio.
+      */
+      locale: locale === 'es' ? 'es_ES' : 'en_US',
     },
     /*
       `summary_large_image` y no `summary`. La tarjeta pequeña recorta la imagen
@@ -78,7 +100,10 @@ export async function generateMetadata(): Promise<Metadata> {
       card: 'summary_large_image',
       title: d.meta.siteTitle,
       description: d.meta.siteDescription,
-      images: ['/og.png'],
+      images: [OG.ruta],
+      /* Sin cuenta todavía: `MARCA.x` manda y, si es `null`, no se emite la
+         etiqueta. Una atribución a una cuenta inexistente no atribuye nada. */
+      ...(MARCA.x ? { site: `@${MARCA.x}`, creator: `@${MARCA.x}` } : {}),
     },
   };
 }

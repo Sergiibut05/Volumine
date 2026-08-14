@@ -7,6 +7,7 @@ import { supabaseConfigured } from '@/lib/supabase/env';
 import { currentUser } from '@/lib/charts/queries';
 import { getDictionary } from '@/lib/i18n/server';
 import { fill } from '@/lib/i18n/dictionaries';
+import { DatosEstructurados } from '../DatosEstructurados';
 
 export async function generateMetadata(): Promise<Metadata> {
   const { d } = await getDictionary();
@@ -78,6 +79,16 @@ export default async function PreciosPage() {
 
   return (
     <div className="studio" data-theme="light">
+      {/* Los datos estructurados CON el importe van aquí y no en la portada:
+          el plan ya está cargado en esta página —se usa para pintar la cifra—,
+          así que no cuesta ninguna consulta extra, y una oferta declarada en la
+          página donde se compra es lo que espera un buscador. */}
+      <DatosEstructurados
+        descripcion={d.pricing.lead}
+        precioCentimos={pro?.price_cents ?? null}
+        moneda={pro?.currency ?? null}
+      />
+
       <header className="shell" style={{ paddingBlock: '1.75rem' }}>
         <Link href="/" className="nav-link">
           ← Volumine

@@ -1,8 +1,8 @@
 import { chromium } from 'playwright';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 
 /*
-  Genera la imagen de las tarjetas de enlace — `public/og.png`, 1200×630.
+  Genera la imagen de las tarjetas de enlace — `public/og.jpg`, 1200×630.
 
   ── POR QUÉ UNA CAPTURA Y NO UNA IMAGEN COMPUESTA ────────────────────────
 
@@ -25,6 +25,26 @@ import { mkdir } from 'node:fs/promises';
 
   1200×630 es la proporción que piden Open Graph y Twitter. Con otra, LinkedIn y
   Slack recortan por su cuenta y casi siempre por donde no toca.
+
+  ── POR QUÉ 1200×630 DE VERDAD, Y EN JPEG ────────────────────────────────
+
+  Esto capturaba a doble densidad y guardaba el PNG tal cual: 2400×1260 y 678 KB.
+  Se veía muy bien y rompía WhatsApp, que por encima de 500 KB no enseña vista
+  previa y deja el enlace pelado — justo donde más se comparte un link a mano.
+
+  Y sobraba de largo: una tarjeta se pinta a unos 500-600 px en casi todos los
+  clientes, así que 2400 era cuatro veces el tamaño útil.
+
+  Se sigue capturando al doble y se REDUCE después a 1200. No es lo mismo que
+  capturar a 1x: al promediar cuatro píxeles en uno, el canto de la gráfica sale
+  mejor resuelto que rasterizándolo directamente pequeño. Supermuestreo de toda
+  la vida.
+
+  El JPEG es porque esto es un render con degradados, que es exactamente donde
+  un PNG pesa varias veces más sin verse mejor.
+
+  Las medidas y la ruta tienen que cuadrar con `OG` en `src/lib/marca.ts`: son
+  las que se anuncian en `og:image:width` y `og:image:height`.
 */
 
 const URL_BASE = process.env.OG_URL ?? 'http://localhost:3100';
@@ -54,8 +74,45 @@ await pagina.addStyleTag({
 });
 await pagina.waitForTimeout(200);
 
+/*
+  Reducir a 1200×630 y comprimir, dentro del propio navegador.
+
+  Podría hacerlo `sharp`, pero eso es una dependencia nativa entera —con su
+  binario por plataforma— para dos llamadas de canvas que el navegador que ya
+  está abierto sabe hacer. `imageSmoothingQuality: 'high'` es lo que activa el
+  filtrado bueno al reducir; sin eso el canto sale con dientes.
+
+  El 0.9 no es un número redondo elegido a ojo: por debajo se empieza a notar
+  banding en el degradado del fondo, que ocupa media imagen.
+*/
+const grande = await pagina.screenshot();
+
+const dataUrl = await pagina.evaluate(
+  async ([base64, ancho, alto]) => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${base64}`;
+    await img.decode();
+
+    const lienzo = document.createElement('canvas');
+    lienzo.width = ancho;
+    lienzo.height = alto;
+    const ctx = lienzo.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, ancho, alto);
+    return lienzo.toDataURL('image/jpeg', 0.9);
+  },
+  [grande.toString('base64'), ANCHO, ALTO],
+);
+
 await mkdir('public', { recursive: true });
-await pagina.screenshot({ path: 'public/og.png' });
+const jpeg = Buffer.from(dataUrl.split(',')[1], 'base64');
+await writeFile('public/og.jpg', jpeg);
 await navegador.close();
 
-console.log(`public/og.png · ${ANCHO}×${ALTO} @2x`);
+const kb = (jpeg.length / 1024).toFixed(0);
+console.log(`public/og.jpg  ${ANCHO}×${ALTO}  ${kb} KB`);
+if (jpeg.length > 500 * 1024) {
+  console.error('  ⚠ pasa de 500 KB: WhatsApp no enseñará la vista previa.');
+  process.exitCode = 1;
+}

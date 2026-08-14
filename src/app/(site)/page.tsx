@@ -10,6 +10,7 @@ import { TITULAR } from '@/lib/legal';
 import { chartTypes } from '@/lib/chart-types';
 import { getDictionary } from '@/lib/i18n/server';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
+import { DatosEstructurados } from './DatosEstructurados';
 
 /*
   Landing.
@@ -41,6 +42,14 @@ export default async function HomePage() {
 
   return (
     <div className="studio" data-theme="light">
+      {/* Lo que le dice a un buscador —y a un asistente— qué es esto. No pinta
+          nada en pantalla.
+
+          SIN precio a propósito: aquí sería una consulta más a la base en la
+          página que peor tiempo de respuesta tiene, y para un dato que la de
+          precios ya carga. El importe va allí, que además es donde un buscador
+          espera encontrar una oferta. Ver el componente. */}
+      <DatosEstructurados descripcion={d.meta.siteDescription} precioCentimos={null} moneda={null} />
       <header className="shell" style={{ paddingBlock: '1.75rem' }}>
         <nav style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
           <Wordmark size={1.25} />
