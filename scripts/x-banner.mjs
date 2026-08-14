@@ -32,16 +32,75 @@ const URL_BASE = process.env.OG_URL ?? 'http://localhost:3100';
 const ANCHO = 1500;
 const ALTO = 500;
 
-/* La misma gráfica del héroe: donut, tema aurora, fondo transparente para que
-   se apoye en el papel de la cabecera en vez de traer su propia caja. */
-const CONFIG = {
-  v: 1,
-  type: 'donut',
-  theme: 'aurora',
-  data: {
-    labels: ['Subscriptions', 'Services', 'Licences', 'Training'],
-    series: [{ values: [46, 27, 18, 9] }],
+/*
+  ── DOS CABECERAS, NO UNA ────────────────────────────────────────────────
+
+  La de MARCA presenta el producto: dice lo que hace y enseña el objeto.
+
+  La PERSONAL presenta a quien lo hizo, y no es la misma con otro texto. En X se
+  sigue a personas: una cuenta personal con la cabecera de la empresa se lee
+  como una cuenta corporativa disfrazada, que es lo peor de los dos mundos. Ahí
+  el nombre manda y el producto es la prueba, no el titular.
+
+  Y llevan gráficas DISTINTAS a propósito. Con la misma, quien mire los dos
+  perfiles seguidos ve la misma imagen dos veces y entiende que una de las dos
+  cuentas sobra. Además, dos tipos de gráfica enseñan más producto que uno.
+
+      npm run x:banner              -> la de marca
+      npm run x:banner -- personal  -> la personal
+*/
+
+const VARIANTES = {
+  marca: {
+    salida: 'x-banner.jpg',
+    ojal: 'Volumine',
+    conLogo: true,
+    titulo: 'Your data,<br>with volume.',
+    pie: '3D charts you embed with a link. No plugin, no account.',
+    config: {
+      v: 1,
+      type: 'donut',
+      theme: 'aurora',
+      data: {
+        labels: ['Subscriptions', 'Services', 'Licences', 'Training'],
+        series: [{ values: [46, 27, 18, 9] }],
+      },
+    },
   },
+
+  personal: {
+    salida: 'x-banner-personal.jpg',
+    ojal: 'Sergii Butrii',
+    /* Sin el disco de la marca: es una cuenta de una persona, y el logotipo
+       junto al nombre la convertiría otra vez en una cuenta de empresa. */
+    conLogo: false,
+    titulo: 'I build<br>Volumine.',
+    pie: '3D charts you embed with a link. Made solo, in public.',
+    /* Barras y no anillo: la otra cabecera ya lleva el anillo. */
+    config: {
+      v: 1,
+      type: 'bar',
+      theme: 'aurora',
+      data: {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+        series: [{ values: [18, 27, 22, 38, 46] }],
+      },
+    },
+  },
+};
+
+const cual = process.argv[2] ?? 'marca';
+const V = VARIANTES[cual];
+if (!V) {
+  console.error(`No existe la variante «${cual}». Hay: ${Object.keys(VARIANTES).join(', ')}`);
+  process.exit(1);
+}
+
+/* Fondo transparente y sin marca de agua para las dos: la gráfica se apoya en
+   el papel de la cabecera en vez de traer su propia caja. Y quieta — una
+   captura de algo girando coge la pose que le toque, y aquí la pose importa. */
+const CONFIG = {
+  ...V.config,
   scene: { background: { kind: 'transparent' } },
   layout: { watermark: false },
   motion: { autoRotate: false },
@@ -88,9 +147,9 @@ const pagina = `<!doctype html>
 </style></head>
 <body>
   <div class="texto">
-    <div class="ojal">${marca}<span>Volumine</span></div>
-    <h1>Your data,<br>with volume.</h1>
-    <p>3D charts you embed with a link. No plugin, no account.</p>
+    <div class="ojal">${V.conLogo ? marca : ''}<span>${V.ojal}</span></div>
+    <h1>${V.titulo}</h1>
+    <p>${V.pie}</p>
   </div>
   <iframe src="${src}"></iframe>
 </body></html>`;
@@ -150,10 +209,10 @@ const dataUrl = await p.evaluate(
 
 await mkdir('public/_shots', { recursive: true });
 const jpeg = Buffer.from(dataUrl.split(',')[1], 'base64');
-await writeFile('public/_shots/x-banner.jpg', jpeg);
+await writeFile(`public/_shots/${V.salida}`, jpeg);
 await navegador.close();
 anfitrion.close();
 
 console.log(
-  `public/_shots/x-banner.jpg  ${ANCHO}×${ALTO}  ${(jpeg.length / 1024).toFixed(0)} KB`,
+  `public/_shots/${V.salida}  ${ANCHO}×${ALTO}  ${(jpeg.length / 1024).toFixed(0)} KB`,
 );
