@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { TITULAR } from '@/lib/legal';
+import { integracionesPublicadas } from '@/lib/integraciones';
 
 /*
   El mapa del sitio.
@@ -32,6 +33,23 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.7,
     },
+    {
+      url: `${base}/integrations`,
+      lastModified: hoy,
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    },
+    /*
+      Las de integración salen de `lib/integraciones.ts` y sólo las publicadas.
+      Una página a medio escribir en el sitemap es peor que no tenerla: se
+      rastrea, se juzga y se recuerda flaca.
+    */
+    ...integracionesPublicadas().map((i) => ({
+      url: `${base}/integrations/${i.slug}`,
+      lastModified: hoy,
+      changeFrequency: 'monthly' as const,
+      priority: 0.6,
+    })),
     {
       url: `${base}/legal/aviso-legal`,
       lastModified: hoy,

@@ -1584,3 +1584,79 @@ footer.studio-foot {
   color: var(--ink-faint);
   font-size: 0.8125rem;
 }
+
+/* ── demo viva de una página de integración ─────────────────────────────── */
+
+/*
+  La gráfica va arriba del todo, antes de las instrucciones, y ocupa sitio de
+  verdad. Es lo que separa esta página de una plantilla rellenada: quien llega
+  buscando «gráfica 3D para X» quiere ver una, no leer sobre una.
+
+  Fondo oscuro y no el papel de la página: el canto y la sombra de la geometría
+  —que es el argumento entero del producto— se pierden sobre claro.
+*/
+.integracion-demo {
+  margin-block: var(--p-space-8) var(--p-space-12);
+}
+
+.integracion-demo iframe {
+  display: block;
+  width: 100%;
+  /* Alto por proporción y no fijo: en móvil un alto de escritorio deja la
+     gráfica minúscula en medio de una franja negra. */
+  aspect-ratio: 16 / 9;
+  min-height: 260px;
+  border: 0;
+  border-radius: var(--p-radius-lg);
+  background: #101017;
+}
+
+.integracion-demo .nota {
+  margin-top: var(--p-space-3);
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .integracion-demo iframe {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+/*
+  La lista de límites de una página de integración.
+
+  Con viñeta de verdad y no como párrafos sueltos: aquí cada punto es una cosa
+  que NO se puede hacer, y leídos de corrido se confunden con la prosa de
+  alrededor — que es justo el sitio donde alguien se salta la advertencia y
+  luego se lleva la sorpresa.
+*/
+.limites {
+  display: grid;
+  gap: var(--p-space-3);
+  margin: 0;
+  padding-left: 1.15rem;
+  list-style: disc;
+  color: var(--text-secondary);
+}
+
+.limites li {
+  display: list-item;
+  line-height: 1.6;
+}
+
+.limites li::marker {
+  color: var(--text-muted);
+}
+
+/* El índice: cada entrada es un enlace con su frase, no una fila de una tabla. */
+.lista-integraciones {
+  display: grid;
+  gap: var(--p-space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lista-integraciones a {
+  font-size: 1.0625rem;
+}

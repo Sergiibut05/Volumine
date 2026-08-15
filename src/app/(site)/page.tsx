@@ -232,6 +232,10 @@ export default async function HomePage() {
           <span>Volumine</span>
           <nav className="foot-legal">
             <Link href="/como-funciona">{d.nav.howItWorks}</Link>
+            {/* Enlazadas desde aquí a propósito: una página que sólo aparece en
+                el sitemap es una página huérfana, y un rastreador la trata como
+                tal. */}
+            <Link href="/integrations">Integraciones</Link>
             <Link href="/precios">Precios</Link>
             <Link href="/legal/aviso-legal">Aviso legal</Link>
             <Link href="/legal/privacidad">Privacidad</Link>

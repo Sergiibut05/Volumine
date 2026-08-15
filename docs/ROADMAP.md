@@ -135,10 +135,16 @@ editor. Añadir uno nuevo es una función en el registro `BUILDERS`.
 - [ ] Galería de ejemplos, cada uno con su link de embed
 - [ ] Docs de la API de config-en-URL
 - [ ] Guías de Notion / Confluence / Webflow / Framer
-- [ ] Alta en Iframely. **El endpoint oEmbed ya está** (`/api/oembed` + el
-      `<link rel="alternate">` en el HTML del embed), que es lo que Iframely,
-      Notion, Canva y WordPress buscan para convertir una URL en un iframe.
-      Falta que Iframely apruebe el dominio.
+- [x] Alta en Iframely — **aprobada**. El endpoint oEmbed (`/api/oembed` + el
+      `<link rel="alternate">` en el HTML del embed) es lo que Iframely, Notion,
+      Canva y WordPress buscan para convertir una URL en un iframe.
+      La casilla se quedó sin marcar meses y llegó a usarse como fuente para
+      decidir qué se podía prometer en las páginas de integración. Si algo de
+      aquí cambia de estado, se marca el mismo día.
+- [ ] Confirmar plataforma por plataforma cuál despliega la URL a secas. Está
+      aprobado el proveedor, pero cada sitio decide cómo lo usa. Mientras no se
+      pruebe en una, su página explica el bloque de incrustar y no promete el
+      atajo (`desplegado` en `src/lib/integraciones.ts`).
 - [ ] Lanzamiento
 
 ---
