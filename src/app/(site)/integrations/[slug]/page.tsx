@@ -9,7 +9,7 @@ import {
   integracionesPublicadas,
   type Integracion,
 } from '@/lib/integraciones';
-import { buildEmbedUrl } from '@/lib/config/url';
+import { buildEmbedUrl, encodeConfig } from '@/lib/config/url';
 import { Pegar } from './Pegar';
 
 /*
@@ -104,6 +104,19 @@ export default async function IntegracionPage({
   const sitio = `https://${TITULAR.dominio}`;
   const url = buildEmbedUrl(item.ejemplo.config, sitio);
 
+  /*
+    EL EJEMPLO SE ABRE EN EL EDITOR, y esto es lo que separa esta página de un
+    tutorial.
+
+    La primera versión explicaba muy bien cómo se hace y no llevaba a ninguna
+    parte: quien llegaba convencido tenía que irse a buscar el editor por su
+    cuenta. Con esto, el botón de debajo de la gráfica abre `/crear` con ESA
+    gráfica dentro — se cambian los datos y ya se tiene el link.
+
+    No es un «Empezar gratis» genérico: es continuar con lo que se está mirando.
+  */
+  const editar = `/crear?c=${encodeConfig(item.ejemplo.config)}`;
+
   /* Las demás plataformas, al pie. No es relleno: son las páginas hermanas y
      sin este enlace cada una quedaría huérfana, que es la forma más segura de
      que no las rastree nadie. */
@@ -146,6 +159,15 @@ export default async function IntegracionPage({
             <p className="nota">
               Live, running in {item.plataforma} the same way it runs here. Drag it.
             </p>
+
+            {/* La acción va PEGADA al ejemplo, no al final de la página: es
+                donde está la intención, mirando la gráfica que quiere. */}
+            <div className="demo-cta">
+              <Link className="precio-cta" href={editar}>
+                Open this chart in the editor
+              </Link>
+              <span>Change the numbers, copy your link. No account needed.</span>
+            </div>
           </section>
         )}
 
@@ -253,11 +275,23 @@ export default async function IntegracionPage({
           </nav>
         </section>
 
-        <p className="precios-nota">
-          <Link href="/crear">Open the editor</Link> ·{' '}
-          <Link href="/como-funciona">How it works</Link> ·{' '}
-          <Link href="/precios">Pricing</Link>
-        </p>
+        {/* Y otra vez al final, para quien ha leído hasta abajo: esa persona
+            ya está decidida y no debería tener que subir a buscarlo. */}
+        <section className="cierre-integracion">
+          <h2>Make yours</h2>
+          <p>
+            Paste your own numbers, pick a theme, copy the link. It takes about a
+            minute and you do not need an account for any of it.
+          </p>
+          <Link className="precio-cta" href={editar}>
+            Open the editor
+          </Link>
+          <p className="precios-nota">
+            <Link href="/como-funciona">How it works</Link> ·{' '}
+            <Link href="/integrations">All integrations</Link> ·{' '}
+            <Link href="/precios">Pricing</Link>
+          </p>
+        </section>
       </main>
     </div>
   );

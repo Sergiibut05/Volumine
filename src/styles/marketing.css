@@ -1660,3 +1660,44 @@ footer.studio-foot {
 .lista-integraciones a {
   font-size: 1.0625rem;
 }
+
+/* ── la acción, pegada al ejemplo ───────────────────────────────────────── */
+
+/*
+  Debajo de la gráfica viva y no al final de la página.
+
+  La primera versión de estas páginas explicaba muy bien cómo se hace y no
+  llevaba a ninguna parte: un enlace de texto en el pie no es una llamada a la
+  acción. Quien llega aquí está mirando una gráfica que le gusta; el sitio donde
+  hay que ofrecerle continuar es justo ahí, no seiscientos píxeles más abajo.
+*/
+.demo-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--p-space-4);
+  margin-top: var(--p-space-6);
+}
+
+.demo-cta span {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.cierre-integracion {
+  margin-top: var(--p-space-12);
+  padding-top: var(--p-space-8);
+  border-top: 1px solid var(--edge-subtle);
+  text-align: center;
+}
+
+.cierre-integracion p {
+  margin-inline: auto;
+  max-width: 46ch;
+  color: var(--text-secondary);
+}
+
+.cierre-integracion .precio-cta {
+  margin-top: var(--p-space-6);
+}
