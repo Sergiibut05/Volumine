@@ -16,6 +16,7 @@
     "icons": "node scripts/icons.mjs",
     "x:banner": "node scripts/x-banner.mjs",
     "x:gif": "node scripts/x-gif.mjs",
+    "x:video": "node scripts/x-video.mjs",
     "perf:embed": "node scripts/perf-embed.mjs",
     "build:embed": "node scripts/build-embed.mjs",
     "build:fonts": "node scripts/build-embed-fonts.mjs",
