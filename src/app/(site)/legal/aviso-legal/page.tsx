@@ -1,7 +1,29 @@
 import type { Metadata } from 'next';
 import { dato, TITULAR } from '@/lib/legal';
 
-export const metadata: Metadata = { title: 'Aviso legal · Volumine' };
+/*
+  ── FUERA DEL ÍNDICE, Y CON DESCRIPCIÓN PROPIA ───────────────────────────
+
+  `noindex` porque una página legal no compite por nada: nadie busca esto en
+  Google, y estando indexada SÍ compite — con la marca. Buscando «volumine»,
+  el aviso legal salía por delante de la portada, porque el aviso legal repite
+  «Volumine» en cada párrafo y el titular de la portada no lo dice ni una vez.
+  `follow` se queda: los enlaces del pie siguen valiendo.
+
+  Sigue siendo accesible para cualquiera que entre, que es lo que exige la ley.
+  Estar en el índice de Google no es un requisito legal en ninguna parte.
+
+  Y descripción PROPIA. Las cuatro heredaban la de la portada —«Make a
+  beautiful 3D chart…»—, o sea que le decían a Google que el aviso legal iba
+  del producto. Era la mitad del problema.
+*/
+export const metadata: Metadata = {
+  /* Sin «· Volumine»: la plantilla del layout ya lo añade, y escribirlo aquí
+     producía «Aviso legal · Volumine · Volumine». */
+  title: 'Aviso legal',
+  description: 'Datos identificativos del titular de Volumine y condiciones de acceso al sitio, conforme al artículo 10 de la LSSI.',
+  robots: { index: false, follow: true },
+};
 
 /*
   Aviso legal — artículo 10 de la LSSI-CE.

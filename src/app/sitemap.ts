@@ -15,6 +15,12 @@ import { integracionesPublicadas } from '@/lib/integraciones';
     llenaría el buscador de resultados sin cabecera, sin contexto y sin forma de
     volver a ninguna parte.
   · `/dev/*` — herramientas de desarrollo.
+  · `/legal/*` — accesibles siempre, como exige la ley, pero con `noindex`.
+    Nadie las busca en Google, y estando indexadas SÍ competían: buscando
+    «volumine» el aviso legal salía por delante de la portada, porque repite la
+    marca en cada párrafo y el titular del héroe no la nombraba ni una vez.
+    Listar aquí una página que se marca `noindex` es contradecirse en dos
+    ficheros, así que se van las dos cosas juntas o ninguna.
 
   Un sitemap que lista todo lo que existe no ayuda: reparte la atención del
   rastreador entre páginas que no quieres posicionar.
@@ -26,7 +32,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: base, lastModified: hoy, changeFrequency: 'weekly', priority: 1 },
     { url: `${base}/crear`, lastModified: hoy, changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${base}/precios`, lastModified: hoy, changeFrequency: 'monthly', priority: 0.7 },
+    {
+      url: `${base}/precios`,
+      lastModified: hoy,
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
     {
       url: `${base}/como-funciona`,
       lastModified: hoy,
@@ -50,29 +61,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly' as const,
       priority: 0.6,
     })),
-    {
-      url: `${base}/legal/aviso-legal`,
-      lastModified: hoy,
-      changeFrequency: 'yearly',
-      priority: 0.2,
-    },
-    {
-      url: `${base}/legal/privacidad`,
-      lastModified: hoy,
-      changeFrequency: 'yearly',
-      priority: 0.2,
-    },
-    {
-      url: `${base}/legal/cookies`,
-      lastModified: hoy,
-      changeFrequency: 'yearly',
-      priority: 0.2,
-    },
-    {
-      url: `${base}/legal/terminos`,
-      lastModified: hoy,
-      changeFrequency: 'yearly',
-      priority: 0.2,
-    },
   ];
 }

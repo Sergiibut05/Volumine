@@ -40,42 +40,72 @@ export function DatosEstructurados({
 }) {
   const sitio = `https://${TITULAR.dominio}`;
 
+  /*
+    ── `WebSite` ADEMÁS DE `SoftwareApplication` ─────────────────────────
+
+    Son dos cosas distintas y hacían falta las dos. `SoftwareApplication`
+    describe el PRODUCTO; `WebSite` con `url` en la raíz es la señal con la que
+    Google decide qué página representa a un sitio cuando alguien busca su
+    nombre.
+
+    Sin ella, buscando «volumine» salía primero el AVISO LEGAL: ese documento
+    repite «Volumine» en cada párrafo —es literalmente sobre la titularidad de
+    Volumine— mientras que el titular de la portada, «Your data, with volume»,
+    no la nombra ni una vez. Con pocas señales externas todavía, el algoritmo
+    hacía lo razonable con lo que tenía.
+
+    Se arregló por los tres lados: la marca en el antetítulo del héroe, las
+    páginas legales fuera del índice, y esto.
+  */
   const datos = {
     '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
-    name: MARCA.nombre,
-    url: sitio,
-    description: descripcion,
-    applicationCategory: 'BusinessApplication',
-    /* Corre en el navegador y en ningún sitio más. Declarar «Windows, macOS,
-       Linux» sería declarar tres instaladores que no existen. */
-    operatingSystem: 'Web',
-    image: `${sitio}${OG.ruta}`,
-    author: TITULAR.nombre ? { '@type': 'Person', name: TITULAR.nombre } : undefined,
-    /*
-      Dos ofertas de verdad, que es lo que hay: el plan gratuito y el pago
-      único. Se declara `price: 0` explícito para el gratuito —omitirlo dejaría
-      entender que hay que pagar para empezar, que es justo lo contrario de lo
-      que pasa aquí.
-    */
-    offers: [
+    '@graph': [
       {
-        '@type': 'Offer',
-        name: 'Free',
-        price: 0,
-        priceCurrency: (moneda ?? 'eur').toUpperCase(),
+        '@type': 'WebSite',
+        '@id': `${sitio}#website`,
+        name: MARCA.nombre,
+        url: sitio,
+        description: descripcion,
+        publisher: TITULAR.nombre ? { '@type': 'Person', name: TITULAR.nombre } : undefined,
       },
-      ...(precioCentimos
-        ? [
-            {
-              '@type': 'Offer',
-              name: 'Pro',
-              price: precioCentimos / 100,
-              priceCurrency: (moneda ?? 'eur').toUpperCase(),
-              url: `${sitio}/precios`,
-            },
-          ]
-        : []),
+      {
+        '@type': 'SoftwareApplication',
+        '@id': `${sitio}#app`,
+        name: MARCA.nombre,
+        url: sitio,
+        description: descripcion,
+        applicationCategory: 'BusinessApplication',
+        /* Corre en el navegador y en ningún sitio más. Declarar «Windows,
+           macOS, Linux» sería declarar tres instaladores que no existen. */
+        operatingSystem: 'Web',
+        image: `${sitio}${OG.ruta}`,
+        author: TITULAR.nombre ? { '@type': 'Person', name: TITULAR.nombre } : undefined,
+        /*
+          Dos ofertas de verdad, que es lo que hay: el plan gratuito y el pago
+          único. Se declara `price: 0` explícito para el gratuito —omitirlo
+          dejaría entender que hay que pagar para empezar, que es justo lo
+          contrario de lo que pasa aquí.
+        */
+        offers: [
+          {
+            '@type': 'Offer',
+            name: 'Free',
+            price: 0,
+            priceCurrency: (moneda ?? 'eur').toUpperCase(),
+          },
+          ...(precioCentimos
+            ? [
+                {
+                  '@type': 'Offer',
+                  name: 'Pro',
+                  price: precioCentimos / 100,
+                  priceCurrency: (moneda ?? 'eur').toUpperCase(),
+                  url: `${sitio}/precios`,
+                },
+              ]
+            : []),
+        ],
+      },
     ],
   };
 

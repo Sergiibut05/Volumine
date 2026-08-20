@@ -341,7 +341,7 @@ export const en = {
     cameraAngle: 'Camera angle',
   },
   landing: {
-    tagline: 'Embeddable 3D charts',
+    tagline: 'Volumine — embeddable 3D charts',
     heroTitle1: 'Your data,',
     heroTitle2: 'with volume.',
     heroBody:
@@ -879,7 +879,7 @@ export const es: Dictionary = {
     cameraAngle: 'Ángulo de cámara',
   },
   landing: {
-    tagline: 'Gráficas 3D incrustables',
+    tagline: 'Volumine — gráficas 3D incrustables',
     heroTitle1: 'Tus datos,',
     heroTitle2: 'con volumen.',
     heroBody:
