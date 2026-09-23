@@ -280,10 +280,19 @@ export function applyTheme(config: ChartConfig, themeId: string): ChartConfig {
   const theme = themeById(themeId);
   if (!theme) return config;
 
+  /* `globe` va anidado, así que se fusiona a dos niveles. Con la mezcla plana,
+     tocar CUALQUIER ajuste del globo (el marcador, la densidad) creaba un
+     `style.globe` que sustituía entero al del tema, y el planeta perdía los
+     colores del tema y caía a los de por defecto. */
+  const globe =
+    theme.config.style?.globe || config.style?.globe
+      ? { ...theme.config.style?.globe, ...config.style?.globe }
+      : undefined;
+
   return {
     ...config,
     theme: themeId,
-    style: { ...theme.config.style, ...config.style },
+    style: { ...theme.config.style, ...config.style, ...(globe && { globe }) },
     scene: { ...theme.config.scene, ...config.scene },
   };
 }

@@ -221,6 +221,24 @@ describe('tema: preset que rellena, no que bloquea', () => {
     expect(r.config.scene.background.from).toBe('#000000');
   });
 
+  it('tocar un ajuste del globo no borra los colores del planeta del tema', () => {
+    // Regresión: cambiar el marcador a `pin` creaba un `style.globe` que
+    // sustituía entero al del tema y el planeta volvía a los colores por defecto.
+    const r = parseConfig({
+      ...minimal,
+      type: 'globe',
+      theme: 'estudio',
+      style: { globe: { marker: 'pin', land: '#ff0000' } },
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    expect(r.config.style.globe.marker).toBe('pin');
+    expect(r.config.style.globe.land).toBe('#ff0000');
+    expect(r.config.style.globe.base).toBe('#e8e8ee');
+    expect(r.config.style.globe.glow).toBe('#a8a8b8');
+  });
+
   it('un tema que no existe no rompe nada', () => {
     const r = parseConfig({ ...minimal, theme: 'no-existe' });
     expect(r.ok).toBe(true);
