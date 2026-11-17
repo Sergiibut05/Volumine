@@ -23,6 +23,12 @@ export type ChartTypeEntry = {
   status: ChartTypeStatus;
   /** Config de muestra para la miniatura en vivo. */
   sample?: ChartConfig;
+  /**
+   * Ocupa dos columnas en la galería. Los tipos que cuentan una evolución son
+   * anchos por naturaleza —el tiempo va de izquierda a derecha—, y con siete
+   * tipos dos tarjetas dobles llenan la rejilla de tres sin dejar una huérfana.
+   */
+  wide?: boolean;
 };
 
 const sampleData = (labels: string[], values: number[]) => ({
@@ -72,8 +78,21 @@ export function chartTypes(locale: Locale): ChartTypeEntry[] {
       sample: { v: 1, type: 'bar', data: sampleData(m.bar, [42, 26, 34, 19, 48]) },
     },
     {
+      id: 'area',
+      status: 'listo',
+      wide: true,
+      /* Ocho meses con una caída y una recuperación: una línea recta no
+         enseñaría para qué sirve la forma. */
+      sample: {
+        v: 1,
+        type: 'area',
+        data: sampleData(m.area, [32, 41, 38, 52, 47, 61, 58, 72]),
+      },
+    },
+    {
       id: 'bar-race',
       status: 'listo',
+      wide: true,
       sample: {
         v: 1,
         type: 'bar-race',

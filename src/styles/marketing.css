@@ -997,6 +997,8 @@
 /* Tres columnas como máximo: con cinco tipos, cuatro columnas dejan una tarjeta
    huérfana en la segunda fila. 3 + 2 se lee mucho mejor. */
 .gallery {
+  /* Contenedor de consulta: el alto de los escenarios se mide contra él. */
+  container-type: inline-size;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
   gap: 1.25rem;
@@ -1006,6 +1008,27 @@
 @media (min-width: 1000px) {
   .gallery {
     grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Los tipos que cuentan una evolución ocupan dos columnas (ver `wide` en
+     lib/chart-types.ts). */
+  .card[data-wide] {
+    grid-column: span 2;
+  }
+
+  /*
+    El alto del escenario sale del ancho de UNA columna, en todas las tarjetas.
+
+    Con `aspect-ratio`, la doble salía unos píxeles más alta que su vecina —su
+    ancho incluye el hueco entre columnas— y los títulos de la fila quedaban a
+    dos alturas. Midiendo contra la galería (`cqw`), las tres columnas y las
+    tarjetas dobles comparten exactamente el mismo alto.
+  */
+  /* `.gallery` delante: la regla base de `.card-stage` va más abajo en el
+     archivo y, con la misma especificidad, pisaría a esta. */
+  .gallery .card-stage {
+    aspect-ratio: auto;
+    height: calc((100cqw - 2 * 1.25rem) / 3 * 11 / 16);
   }
 }
 

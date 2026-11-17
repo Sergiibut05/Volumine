@@ -70,9 +70,11 @@ export const en = {
     each: '{price} each',
     button: 'Support with {amount}',
     note: 'Secure payment with Stripe. No account needed — you can leave a message and change the amount at checkout.',
-    noUnlock: 'It is a tip, not a purchase: it does not unlock anything, because nothing is locked.',
+    noUnlock:
+      'It is a tip, not a purchase: it does not unlock anything, because nothing is locked.',
     thanksTitle: 'Thank you!',
-    thanksBody: 'Your coffee arrived. It genuinely helps keep the servers on and the next chart type coming.',
+    thanksBody:
+      'Your coffee arrived. It genuinely helps keep the servers on and the next chart type coming.',
     error: 'The payment page could not be opened. Please try again in a moment.',
     off: 'Tips are not set up on this deployment. Everything else works the same.',
     whereTitle: 'Where it goes',
@@ -80,7 +82,8 @@ export const en = {
     where2: 'The domain, so your embeds never change address.',
     where3: 'Hours for new chart types, themes and fixes.',
     otherTitle: 'No coffee? No problem.',
-    otherBody: 'Using it is the best support. Every embed carries a small «Volumine» mark in the corner — that is how other people find it.',
+    otherBody:
+      'Using it is the best support. Every embed carries a small «Volumine» mark in the corner — that is how other people find it.',
     foot: 'Voluntary one-off payment, no subscription. Details in the',
     footLink: 'terms of use',
   },
@@ -94,14 +97,18 @@ export const en = {
     s3t: 'Paste it anywhere',
     s3b: 'Into Notion, Confluence or your own site. Most places unfurl it on their own; if not, use the iframe below.',
     iframeTitle: 'If the site does not unfurl it',
-    iframeBody: 'Notion, Confluence and most tools expand it from the bare URL. On your own site, or anywhere without oEmbed, use this:',
+    iframeBody:
+      'Notion, Confluence and most tools expand it from the bare URL. On your own site, or anywhere without oEmbed, use this:',
     copy: 'Copy',
     copied: 'Copied',
-    iframeNote: 'Height is the only thing worth changing: the chart fits the width on its own, but it cannot guess how tall you want it.',
+    iframeNote:
+      'Height is the only thing worth changing: the chart fits the width on its own, but it cannot guess how tall you want it.',
     whereTitle: 'Where it works',
-    whereBody: 'Anywhere that accepts a link or an <iframe>. Where oEmbed is supported, pasting the URL is enough.',
+    whereBody:
+      'Anywhere that accepts a link or an <iframe>. Where oEmbed is supported, pasting the URL is enough.',
     loadTitle: 'What it loads on the page of whoever sees it',
-    loadBody: 'This is usually what decides whether you are allowed to embed something on a corporate site, so here are the numbers instead of adjectives:',
+    loadBody:
+      'This is usually what decides whether you are allowed to embed something on a corporate site, so here are the numbers instead of adjectives:',
     specWeight: 'Weight',
     specWeightNote: 'The whole 3D viewer, compressed.',
     specReq: 'Requests',
@@ -112,7 +119,8 @@ export const en = {
     specThirdNote: 'It calls no external server.',
     loadFoot1: 'That is why an embedded chart',
     loadFoot2: 'adds no obligations',
-    loadFoot3: 'to the privacy policy of the site you put it on. It is a constraint of the design itself, not a marketing promise: it is measured on every build.',
+    loadFoot3:
+      'to the privacy policy of the site you put it on. It is a constraint of the design itself, not a marketing promise: it is measured on every build.',
     faqTitle: 'Questions that always come up',
     q1: 'Does it look right on mobile?',
     a1: 'It adapts to whatever room the page gives it. On a narrow site the chart shrinks and the labels shrink with it.',
@@ -140,10 +148,12 @@ export const en = {
     forgotTitle: 'Reset your password',
     forgotBody: 'Enter your email and we will send you a link to set a new one.',
     forgotSend: 'Send link',
-    forgotSent: 'If that address has an account, a link is on its way. It expires and works once.',
+    forgotSent:
+      'If that address has an account, a link is on its way. It expires and works once.',
     backToSignIn: 'Back to sign in',
     confirmTitle: 'One last step',
-    confirmBody: 'We sent a message to {email}. Open it to confirm your address and you are in.',
+    confirmBody:
+      'We sent a message to {email}. Open it to confirm your address and you are in.',
     newPasswordTitle: 'New password',
     newPasswordBody: 'Choose a new password for your account.',
     newPasswordSave: 'Save password',
@@ -151,7 +161,8 @@ export const en = {
     errCredentials: 'That email and password do not match. Check both.',
     errWeak: 'That password is too short. Use at least 8 characters.',
     errUnconfirmed: 'You have not confirmed your address yet. Check your inbox.',
-    errLinkNeeded: 'Open the link from your email first — this page needs it to know who you are.',
+    errLinkNeeded:
+      'Open the link from your email first — this page needs it to know who you are.',
     sendLink: 'Send me a link',
     sending: 'Sending…',
     checkTitle: 'Check your email',
@@ -200,7 +211,8 @@ export const en = {
     published: 'Published',
     tooLong: 'Over {max} characters',
     copyEmbed: 'iframe',
-    copyIframeHint: 'Copy the <iframe> tag — for your own site, or anywhere the plain link is not unfurled',
+    copyIframeHint:
+      'Copy the <iframe> tag — for your own site, or anywhere the plain link is not unfurled',
     untitledEmbed: 'Chart',
     tooLongChars: '{n} characters — too long',
     groupTheme: 'Theme',
@@ -306,7 +318,8 @@ export const en = {
     fontSansHint: 'The neutral one. Same on every screen.',
     fontSerif: 'Serif',
     fontSerifHint: 'Editorial voice, next to running text.',
-    fontCost: '«System» downloads nothing. The other three travel with the chart: one request, 17-27 KB.',
+    fontCost:
+      '«System» downloads nothing. The other three travel with the chart: one request, 17-27 KB.',
     fontMono: 'Mono',
     fontMonoHint: 'Figures line up in a column.',
     labelInk: 'Text colour',
@@ -430,6 +443,11 @@ export const en = {
       name: 'Bars',
       answers: 'How much does each category have, and which one wins?',
       avoid: 'For parts of a total. There the comparison is against the whole.',
+    },
+    area: {
+      name: 'Area',
+      answers: 'How did a figure evolve over time?',
+      avoid: 'For categories that are not a sequence. Use bars for those.',
     },
     'bar-race': {
       name: 'Bar race',
@@ -605,9 +623,11 @@ export const es: Dictionary = {
     each: '{price} cada uno',
     button: 'Invitar con {amount}',
     note: 'Pago seguro con Stripe. Sin cuenta: en la pasarela puedes dejar un mensaje y cambiar la cantidad.',
-    noUnlock: 'Es una invitación, no una compra: no desbloquea nada, porque no hay nada bloqueado.',
+    noUnlock:
+      'Es una invitación, no una compra: no desbloquea nada, porque no hay nada bloqueado.',
     thanksTitle: '¡Gracias!',
-    thanksBody: 'Tu café ha llegado. De verdad ayuda a mantener los servidores encendidos y a que llegue el siguiente tipo de gráfica.',
+    thanksBody:
+      'Tu café ha llegado. De verdad ayuda a mantener los servidores encendidos y a que llegue el siguiente tipo de gráfica.',
     error: 'No se pudo abrir la pasarela de pago. Prueba otra vez en un momento.',
     off: 'Las invitaciones no están activadas en este despliegue. Todo lo demás funciona igual.',
     whereTitle: 'A dónde va',
@@ -615,7 +635,8 @@ export const es: Dictionary = {
     where2: 'El dominio, para que tus gráficas incrustadas no cambien nunca de dirección.',
     where3: 'Horas para tipos de gráfica nuevos, temas y arreglos.',
     otherTitle: '¿Sin café? Ningún problema.',
-    otherBody: 'Usarlo ya es la mejor ayuda. Cada gráfica incrustada lleva una marca pequeña de «Volumine» en la esquina: así es como la descubre más gente.',
+    otherBody:
+      'Usarlo ya es la mejor ayuda. Cada gráfica incrustada lleva una marca pequeña de «Volumine» en la esquina: así es como la descubre más gente.',
     foot: 'Pago voluntario y puntual, sin suscripción. Los detalles están en las',
     footLink: 'condiciones de uso',
   },
@@ -629,14 +650,18 @@ export const es: Dictionary = {
     s3t: 'Pégalo donde sea',
     s3b: 'En Notion, en Confluence o en tu web. La mayoría de sitios lo reconocen solos; si no, va el iframe de abajo.',
     iframeTitle: 'Si el sitio no lo reconoce solo',
-    iframeBody: 'Notion, Confluence y la mayoría lo despliegan pegando la URL a secas. En una web propia, o donde no haya oEmbed, va así:',
+    iframeBody:
+      'Notion, Confluence y la mayoría lo despliegan pegando la URL a secas. En una web propia, o donde no haya oEmbed, va así:',
     copy: 'Copiar',
     copied: 'Copiado',
-    iframeNote: 'La altura es lo único que conviene tocar: la gráfica se adapta al ancho sola, pero no puede adivinar cuánto alto quieres darle.',
+    iframeNote:
+      'La altura es lo único que conviene tocar: la gráfica se adapta al ancho sola, pero no puede adivinar cuánto alto quieres darle.',
     whereTitle: 'Dónde funciona',
-    whereBody: 'Cualquier sitio que acepte un enlace o un <iframe>. En los que entienden oEmbed basta con pegar la URL.',
+    whereBody:
+      'Cualquier sitio que acepte un enlace o un <iframe>. En los que entienden oEmbed basta con pegar la URL.',
     loadTitle: 'Qué carga en la página de quien lo ve',
-    loadBody: 'Esto es lo que suele decidir si te dejan incrustar algo en un sitio corporativo, así que va con cifras y no con adjetivos:',
+    loadBody:
+      'Esto es lo que suele decidir si te dejan incrustar algo en un sitio corporativo, así que va con cifras y no con adjetivos:',
     specWeight: 'Peso',
     specWeightNote: 'Todo el visor 3D, comprimido.',
     specReq: 'Peticiones',
@@ -647,7 +672,8 @@ export const es: Dictionary = {
     specThirdNote: 'No llama a ningún servidor ajeno.',
     loadFoot1: 'Por eso una gráfica incrustada',
     loadFoot2: 'no añade obligaciones',
-    loadFoot3: 'a la política de privacidad de la web donde la pongas. Es una restricción del propio diseño, no una promesa comercial: está medida en cada compilación.',
+    loadFoot3:
+      'a la política de privacidad de la web donde la pongas. Es una restricción del propio diseño, no una promesa comercial: está medida en cada compilación.',
     faqTitle: 'Preguntas que salen siempre',
     q1: '¿Se ve bien en el móvil?',
     a1: 'Se adapta al hueco que le dé la página. Si el sitio es estrecho, la gráfica encoge y las etiquetas con ella.',
@@ -739,7 +765,8 @@ export const es: Dictionary = {
     published: 'Publicada',
     tooLong: 'Pasa de {max} caracteres',
     copyEmbed: 'iframe',
-    copyIframeHint: 'Copia la etiqueta <iframe> — para tu propia web, o donde el link a secas no se despliegue',
+    copyIframeHint:
+      'Copia la etiqueta <iframe> — para tu propia web, o donde el link a secas no se despliegue',
     untitledEmbed: 'Gráfica',
     tooLongChars: '{n} caracteres — demasiado largo',
     groupTheme: 'Tema',
@@ -768,7 +795,8 @@ export const es: Dictionary = {
     aspectSquareHint: '1:1. Para un feed o una tarjeta.',
     aspectAuto: 'Libre',
     aspectAutoHint: 'Ocupa el hueco que le den.',
-    aspectNote: 'Hay editores que bloquean la proporción a esto — Canva lo hace. Elígela aquí.',
+    aspectNote:
+      'Hay editores que bloquean la proporción a esto — Canva lo hace. Elígela aquí.',
     groupBackground: 'Fondo',
     groupMotion: 'Movimiento',
     advanced: 'Avanzado',
@@ -845,7 +873,8 @@ export const es: Dictionary = {
     fontSansHint: 'La neutra. Igual en todas las pantallas.',
     fontSerif: 'Serifa',
     fontSerifHint: 'Voz editorial, junto a un texto largo.',
-    fontCost: '«Del sistema» no descarga nada. Las otras tres viajan con la gráfica: una petición, 17-27 KB.',
+    fontCost:
+      '«Del sistema» no descarga nada. Las otras tres viajan con la gráfica: una petición, 17-27 KB.',
     fontMono: 'Mono',
     fontMonoHint: 'Monoespaciada: las cifras cuadran en columna.',
     labelInk: 'Color del texto',
@@ -967,6 +996,11 @@ export const es: Dictionary = {
       name: 'Barras',
       answers: '¿Cuánto tiene cada categoría, y cuál gana?',
       avoid: 'Para partes de un total. Ahí la comparación es contra el todo.',
+    },
+    area: {
+      name: 'Área',
+      answers: '¿Cómo ha evolucionado una cifra a lo largo del tiempo?',
+      avoid: 'Para categorías que no son una secuencia. Para eso, barras.',
     },
     'bar-race': {
       name: 'Barras animadas',

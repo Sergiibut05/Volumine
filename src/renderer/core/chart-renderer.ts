@@ -1,6 +1,7 @@
 import {
   ACESFilmicToneMapping,
   Box3,
+  BoxGeometry,
   CircleGeometry,
   Color,
   CylinderGeometry,
@@ -58,6 +59,7 @@ import {
   valuesAt,
 } from '../geometry/bar-race';
 import { GLOBE_RADIUS, computeMarkers, landPointsGeometry } from '../geometry/globe';
+import { AREA_DEPTH, areaGeometry, computeArea } from '../geometry/area';
 import { globeBodyMaterial, globeGlowMaterial, globeLandMaterial } from './globe-materials';
 import { colorForSegment, createMaterial } from './materials';
 import { createLabelLayer, type LabelAnchor } from './label-layer';
@@ -178,6 +180,19 @@ function makeMarkerEasyToHit(mesh: Mesh, radius: number) {
       object: mesh,
     });
   };
+}
+
+/**
+ * Gráficas DE PIE sobre el suelo: barras, carrera y área.
+ *
+ * Comparten encuadre casi frontal, se miden para encuadrar, se apoyan en el
+ * suelo sin separarse y con `autoRotate` hacen vaivén en vez de dar la vuelta
+ * —una vuelta entera las pondría del revés, con el principio a la derecha—.
+ * Antes la condición estaba escrita a mano en cinco sitios; un tipo nuevo de
+ * pie se habría olvidado alguno.
+ */
+function isStanding(type: ResolvedChartConfig['type']): boolean {
+  return type === 'bar' || type === 'bar-race' || type === 'area';
 }
 
 /** Caja que ocupa lo dibujado, centrada en el eje Y. Para encuadrar. */
@@ -377,8 +392,7 @@ function cameraPlacement(config: ResolvedChartConfig): CameraPlacement {
     };
   }
 
-  const bars =
-    config.type === 'bar' || config.type === 'bar-race' ? BAR_CAMERA_PRESETS : null;
+  const bars = isStanding(config.type) ? BAR_CAMERA_PRESETS : null;
   const byType = bars ? bars[config.camera.preset] : undefined;
 
   return byType ?? CAMERA_PRESETS[config.camera.preset] ?? CAMERA_PRESETS.hero;
@@ -660,16 +674,21 @@ export function createChartRenderer(
       inert?: boolean;
       anchor?: Vector3;
       labelGroup?: Piece['labelGroup'];
+      /**
+       * Una zona que responde al ratón pero no se dibuja. Las del área: la
+       * losa es UNA malla, y para saber qué dato se señala hace falta una
+       * zona por punto. Material barato, sin sombra.
+       */
+      hidden?: boolean;
     } = {},
   ) {
-    const material = createMaterial(
-      config,
-      options.color ?? colorForSegment(config, colorIndex),
-    );
+    const material = options.hidden
+      ? new MeshBasicMaterial({ visible: false })
+      : createMaterial(config, options.color ?? colorForSegment(config, colorIndex));
     const mesh = new Mesh(geometry, material);
     mesh.position.copy(base);
-    mesh.castShadow = config.style.shadow;
-    mesh.receiveShadow = config.style.shadow;
+    mesh.castShadow = !options.hidden && config.style.shadow;
+    mesh.receiveShadow = !options.hidden && config.style.shadow;
     if (options.inert) mesh.raycast = () => {};
 
     group.add(mesh);
@@ -914,6 +933,78 @@ export function createChartRenderer(
               )
             : undefined,
           labelGroup: multi && etiquetaAqui ? grupoDe(bar.index) : undefined,
+        },
+      );
+    }
+  }
+
+  /*
+    ÁREA
+    ----
+    La losa es UNA malla —no es un dato, es la forma de todos— y encima hay una
+    zona invisible por punto, que es la que responde al ratón y lleva la
+    etiqueta. Así el tooltip y el realce de etiqueta funcionan igual que en las
+    barras sin partir la losa en trozos, que dejaría juntas visibles.
+  */
+  let areaSlab: Mesh | null = null;
+
+  function disposeArea() {
+    if (!areaSlab) return;
+    group.remove(areaSlab);
+    areaSlab.geometry.dispose();
+    (areaSlab.material as Material).dispose();
+    areaSlab = null;
+  }
+
+  function buildArea() {
+    const { height, bevel } = config.style;
+    const values = config.data.series[0]?.values ?? [];
+    const layout = computeArea(values, { height, bevel });
+    plotBox = { width: PLOT_WIDTH, height: layout.totalHeight, depth: AREA_DEPTH };
+    if (layout.points.length === 0) return;
+
+    /* Con negativos, la línea de cero queda por encima del zócalo, igual que en
+       las barras. */
+    zeroPlane.visible = layout.baseline > layout.plinth + 1e-6;
+    zeroPlane.scale.set(PLOT_WIDTH * 1.08, AREA_DEPTH * 1.12, 1);
+    zeroPlane.position.y = layout.baseline + 0.004;
+
+    areaSlab = new Mesh(
+      areaGeometry(layout),
+      createMaterial(config, colorForSegment(config, 0)),
+    );
+    areaSlab.castShadow = config.style.shadow;
+    areaSlab.receiveShadow = config.style.shadow;
+    areaSlab.raycast = () => {};
+    group.add(areaSlab);
+
+    const n = layout.points.length;
+    const cell = n === 1 ? PLOT_WIDTH : PLOT_WIDTH / (n - 1);
+    const total = layout.points.reduce((sum, p) => sum + Math.abs(p.value), 0);
+
+    for (const point of layout.points) {
+      const x0 = Math.max(-PLOT_WIDTH / 2, point.x - cell / 2);
+      const x1 = Math.min(PLOT_WIDTH / 2, point.x + cell / 2);
+      const zona = new BoxGeometry(Math.max(x1 - x0, 1e-3), point.y, AREA_DEPTH);
+      zona.translate(0, point.y / 2, 0);
+
+      addPiece(
+        zona,
+        0,
+        {
+          index: point.index,
+          label: config.data.labels[point.index] ?? '',
+          value: point.value,
+          fraction: total > 0 ? Math.abs(point.value) / total : null,
+          series: null,
+        },
+        new Vector3((x0 + x1) / 2, 0, 0),
+        new Vector3(0, 0, 0),
+        {
+          hidden: true,
+          /* Bajo su punto, en la cara delantera de la base: el mismo eje que
+             las barras. */
+          anchor: new Vector3(point.x, 0, AREA_DEPTH / 2),
         },
       );
     }
@@ -1299,11 +1390,13 @@ export function createChartRenderer(
     'bar-race': buildRace,
     globe: buildGlobe,
     gauge: buildGauge,
+    area: buildArea,
   };
 
   function build() {
     disposePieces();
     disposeGlobe();
+    disposeArea();
     raceLanes = [];
     zeroPlane.visible = false;
     (BUILDERS[config.type] ?? buildRing)();
@@ -1423,7 +1516,7 @@ export function createChartRenderer(
 
        Las barras no se separan. Una barra flotando deja de leerse como barra, y
        su sombra se ve de todas formas porque son altas. */
-    const standing = config.type === 'bar' || config.type === 'bar-race';
+    const standing = isStanding(config.type);
     /* El globo flota: es una esfera, apoyarla en el suelo la haría rodar en la
        cabeza de quien la mira. Se centra a la altura de su propio radio. */
     group.position.y =
@@ -1548,7 +1641,7 @@ export function createChartRenderer(
     ventana se siente como perder el trabajo.
   */
   function placeCamera() {
-    const standing = config.type === 'bar' || config.type === 'bar-race';
+    const standing = isStanding(config.type);
 
     /*
       QUIÉN SE MIDE Y QUIÉN VA A DISTANCIA FIJA.
@@ -1665,10 +1758,9 @@ export function createChartRenderer(
   */
   const aplicarGiro = () => {
     const base = MathUtils.degToRad(config.motion.angle);
-    const animado =
-      config.type === 'bar' || config.type === 'bar-race'
-        ? Math.sin(swayPhase) * MathUtils.degToRad(BAR_SWAY_DEGREES)
-        : giroAuto;
+    const animado = isStanding(config.type)
+      ? Math.sin(swayPhase) * MathUtils.degToRad(BAR_SWAY_DEGREES)
+      : giroAuto;
     group.rotation.y = base + animado;
   };
   let pulseTime = 0;
@@ -1768,7 +1860,7 @@ export function createChartRenderer(
     if (motionEnabled() && config.motion.autoRotate && config.type !== 'gauge') {
       const rate = (config.motion.speed / 60) * Math.PI * 2 * delta;
 
-      if (config.type === 'bar' || config.type === 'bar-race') {
+      if (isStanding(config.type)) {
         /* Las barras NO dan la vuelta.
            Media vuelta pone la fila de canto —cinco barras convertidas en una— y
            una vuelta entera la deja del revés, con la primera categoría a la
@@ -1907,6 +1999,7 @@ export function createChartRenderer(
 
       disposePieces();
       disposeGlobe();
+      disposeArea();
       labelLayer.dispose();
       controls.dispose();
 

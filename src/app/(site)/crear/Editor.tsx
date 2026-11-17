@@ -18,6 +18,7 @@ import { computeGauge } from '@/renderer/geometry/gauge';
 import { gaugeReadout } from '@/lib/gauge';
 import { computeBars, barRadii } from '@/renderer/geometry/bar';
 import { DEFAULT_FRAME_MS } from '@/renderer/geometry/bar-race';
+import { areaEdgeRadius } from '@/renderer/geometry/area';
 import type { ChartConfig } from '@/lib/config/schema';
 import type { ResolvedChartConfig } from '@/lib/config/defaults';
 import { Group, Slider, Choices, type Choice } from './controls';
@@ -68,6 +69,9 @@ const SINGLE_SERIES: ReadonlySet<ChartConfig['type']> = new Set([
   'pie',
   'globe',
   'gauge',
+  /* El área dibuja una evolución, no varias: con dos series una tapaba a la
+     otra. Cuando haya áreas apiladas, saldrá de aquí. */
+  'area',
 ]);
 
 /**
@@ -197,6 +201,10 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
   const isGlobe = config.type === 'globe';
   const isRace = config.type === 'bar-race';
   const isGauge = config.type === 'gauge';
+  const isArea = config.type === 'area';
+  /* Barras y carrera comparten los controles de una barra: punta, separación.
+     El área y los tipos redondos tienen los suyos. */
+  const barLike = isBar || isRace;
   /*
     El anillo y la tarta llevan líneas guía a los lados; las barras, el nombre
     bajo cada barra.
@@ -213,6 +221,9 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
   const bevelCeiling = useMemo(() => {
     if (!parsed.ok) return 0;
     const c = parsed.config;
+
+    // El área tiene un canto fijo en proporción a su fondo: ver geometry/area.ts.
+    if (c.type === 'area') return areaEdgeRadius(1);
 
     if (c.type === 'bar') {
       // En barras el techo lo pone el ancho de la barra, no el arco del sector.
@@ -826,14 +837,17 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
               onChange={(v) => patchStyle({ bevel: v })}
             />
             <Slider
-              label={isBar ? d.editor.barHeight : d.editor.thickness}
+              label={barLike || isArea ? d.editor.barHeight : d.editor.thickness}
               value={style?.height ?? 0.34}
               min={0.05}
               max={1}
               step={0.01}
               onChange={(v) => patchStyle({ height: v })}
             />
-            {isBar ? (
+            {/* Antes, todo lo que no era `bar` caía en la rama del anillo, así
+                que la carrera enseñaba «radio interior» y «separar trozos»:
+                dos sliders que no movían nada. */}
+            {barLike && (
               <Slider
                 label={d.editor.roundedTip}
                 value={style?.cornerRadius ?? 0.2}
@@ -842,7 +856,8 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
                 step={0.01}
                 onChange={(v) => patchStyle({ cornerRadius: v })}
               />
-            ) : (
+            )}
+            {!barLike && !isArea && (
               <Slider
                 label={d.editor.innerRadius}
                 value={style?.innerRadius ?? 0.55}
@@ -852,16 +867,18 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
                 onChange={(v) => patchStyle({ innerRadius: v })}
               />
             )}
-            <Slider
-              label={d.editor.gap}
-              value={style?.gap ?? 0.012}
-              min={0}
-              max={0.05}
-              step={0.001}
-              format={(v) => v.toFixed(3)}
-              onChange={(v) => patchStyle({ gap: v })}
-            />
-            {!isBar && (
+            {!isArea && (
+              <Slider
+                label={d.editor.gap}
+                value={style?.gap ?? 0.012}
+                min={0}
+                max={0.05}
+                step={0.001}
+                format={(v) => v.toFixed(3)}
+                onChange={(v) => patchStyle({ gap: v })}
+              />
+            )}
+            {!barLike && !isArea && (
               <Slider
                 label={d.editor.explode}
                 value={style?.explode ?? 0}
@@ -976,13 +993,13 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
                   id: 'none',
                   label: d.editor.labelsOnHover,
                   hint: d.editor.labelsOnHoverHint,
-                  preview: <LabelPreview leaders={false} bars={isBar || isRace} />,
+                  preview: <LabelPreview leaders={false} bars={barLike || isArea} />,
                 },
                 {
                   id: 'outside',
                   label: d.editor.labelsAlways,
                   hint: d.editor.labelsAlwaysHint,
-                  preview: <LabelPreview leaders bars={isBar || isRace} />,
+                  preview: <LabelPreview leaders bars={barLike || isArea} />,
                 },
                 {
                   id: 'legend',
@@ -1789,6 +1806,25 @@ function TypePreview({ id, ready }: { id: string; ready: boolean }) {
           }}
         />
       </span>
+    );
+  }
+
+  /* El área: un perfil que sube con un bache, relleno. Es la silueta de la losa
+     vista de frente, que es lo que la separa de las barras de un vistazo. */
+  if (id === 'area') {
+    return (
+      <span
+        aria-hidden
+        style={{
+          display: 'block',
+          aspectRatio: '1',
+          background: 'linear-gradient(180deg, #7c5cff 0%, #5a3fd6 100%)',
+          clipPath:
+            'polygon(6% 92%, 6% 62%, 22% 50%, 38% 56%, 56% 34%, 72% 40%, 94% 16%, 94% 92%)',
+          borderRadius: 3,
+          opacity: ready ? 1 : 0.55,
+        }}
+      />
     );
   }
 

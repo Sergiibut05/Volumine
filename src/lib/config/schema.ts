@@ -274,7 +274,10 @@ export const layoutSchema = z.object({
 
 export const chartConfigSchema = z.object({
   v: z.literal(CURRENT_VERSION),
-  type: z.enum(['donut', 'pie', 'bar', 'bar-race', 'globe', 'gauge']),
+  /* Solo se AÑADEN tipos: un link publicado con un tipo que desaparece dejaría
+     de validar. `area` llegó en noviembre de 2026 dentro de la v1, porque un
+     valor más en el enum no cambia el significado de ningún link existente. */
+  type: z.enum(['donut', 'pie', 'bar', 'bar-race', 'globe', 'gauge', 'area']),
   title: z.string().max(200).optional(),
   data: dataSchema,
   theme: z.string().max(48).optional(),

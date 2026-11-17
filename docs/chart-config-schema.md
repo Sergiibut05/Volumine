@@ -24,7 +24,7 @@ a mano. **Un link publicado debe seguir funcionando para siempre.**
 ```jsonc
 {
   "v": 1,
-  "type": "donut",           // donut | pie | bar | bar-race | globe | gauge  (v1)
+  "type": "donut",           // donut | pie | bar | bar-race | globe | gauge | area  (v1)
   "title": "Reparto de ingresos",   // opcional
   "data": { ... },
   "theme": "aurora",         // preset; lo de abajo lo sobreescribe punto a punto
@@ -82,6 +82,22 @@ a mano. **Un link publicado debe seguir funcionando para siempre.**
   anillo sin nada que repartir no se puede dibujar; un medidor a cero vale «0 de
   100», que es una lectura buena y frecuente. Es la diferencia de fondo entre los
   dos: el total del anillo lo pone la suma, y el del medidor lo pone `max`.
+- **`area`** (noviembre de 2026, dentro de la v1: añadir un valor al enum no
+  cambia ningún link existente) dibuja **solo `series[0]`** como una losa cuyo
+  perfil sigue los datos de izquierda a derecha, en el orden de `labels`.
+  - Usa los campos de siempre: `style.height` es el alto del dato mayor (la
+    misma escala que las barras) y `style.bevel` el canto. Los demás de `style`
+    que son de anillo o de barra (`innerRadius`, `gap`, `explode`,
+    `cornerRadius`) no hacen nada aquí.
+  - La curva es **monótona** (Fritsch–Carlson): entre dos datos no sale nunca
+    del rango de esos dos. Nada de barrigas ni picos que no estén en los datos.
+  - Los **negativos se dibujan**: el suelo de la escala baja hasta el mínimo y
+    sale la línea de cero, como en las barras. No finitos → 0.
+  - Un solo dato es una losa plana de lado a lado; todo a cero, nada.
+  - La losa arranca sobre un **zócalo** fino y el mínimo de los datos está en lo
+    alto del zócalo. Es lo que mantiene la geometría válida con cualquier dato
+    (los cantos redondeados se comen arriba y abajo); como desplaza todos los
+    valores igual, no cambia ninguna comparación.
 
 ### `style` — la piel
 
@@ -107,14 +123,14 @@ a mano. **Un link publicado debe seguir funcionando para siempre.**
     "density": 0.72, // cuántos puntos
     "dotSize": 0.7,
     "markerSize": 0.62,
-    "marker": "dot"    // "dot" | "pin" (chincheta) | "pulse" (late)
+    "marker": "dot", // "dot" | "pin" (chincheta) | "pulse" (late)
   },
   // Solo `gauge`. Agrupado por lo mismo que `globe`.
   "gauge": {
-    "max": 100,          // tope de la escala. El arco se llena al llegar aquí
-    "sweep": 270,        // grados que abarca el arco, centrado abajo. 360 = anillo
-    "track": true,       // pintar lo que falta para llegar al tope
-    "trackColor": "auto" // "auto" = derivado del fondo
+    "max": 100, // tope de la escala. El arco se llena al llegar aquí
+    "sweep": 270, // grados que abarca el arco, centrado abajo. 360 = anillo
+    "track": true, // pintar lo que falta para llegar al tope
+    "trackColor": "auto", // "auto" = derivado del fondo
   },
 }
 ```
@@ -223,12 +239,12 @@ se lee la fila de barras. Con `autoRotate` es el punto de partida del giro; sin
 Las etiquetas se dibujan en HTML sobre el canvas, así que la fuente la elige
 CSS. Hay dos formas de resolverla y **no cuestan lo mismo**:
 
-| valor | qué usa | qué cuesta |
-|-----------|-----------------------------------|-----------------------------|
-| `system` | lo que haya en ese ordenador | nada. **El de por defecto.** |
-| `inter` | Inter, servida por nosotros | 1 petición, 26,8 KB |
-| `display` | Source Serif 4, servida por nosotros | 1 petición, 25,6 KB |
-| `mono` | JetBrains Mono, servida por nosotros | 1 petición, 16,4 KB |
+| valor     | qué usa                              | qué cuesta                   |
+| --------- | ------------------------------------ | ---------------------------- |
+| `system`  | lo que haya en ese ordenador         | nada. **El de por defecto.** |
+| `inter`   | Inter, servida por nosotros          | 1 petición, 26,8 KB          |
+| `display` | Source Serif 4, servida por nosotros | 1 petición, 25,6 KB          |
+| `mono`    | JetBrains Mono, servida por nosotros | 1 petición, 16,4 KB          |
 
 **Por qué existen las tres de pago.** `system` no descarga nada y a cambio la
 misma config se ve DISTINTA en cada ordenador: `ui-serif` resuelve a Georgia en
@@ -266,11 +282,11 @@ encima de cualquier página.
 Añadido después de la v1, **opcional y con default `glass`**: una config vieja
 sin este campo se ve exactamente igual que antes.
 
-| valor | qué es | cuándo |
-|---------|--------------------------------------|--------------------------------|
-| `glass` | píldora translúcida con desenfoque | por defecto. Se lee sobre cualquier fondo |
-| `solid` | píldora opaca, sin desenfoque | cuando el desenfoque distrae o el equipo es flojo |
-| `plain` | sin caja: texto con halo de contraste | cuando la caja compite con el dibujo |
+| valor   | qué es                                | cuándo                                            |
+| ------- | ------------------------------------- | ------------------------------------------------- |
+| `glass` | píldora translúcida con desenfoque    | por defecto. Se lee sobre cualquier fondo         |
+| `solid` | píldora opaca, sin desenfoque         | cuando el desenfoque distrae o el equipo es flojo |
+| `plain` | sin caja: texto con halo de contraste | cuando la caja compite con el dibujo              |
 
 Los tres son legibles sobre blanco, sobre negro y sobre una foto, y eso no es
 casualidad: **el embed corre dentro de la página de otra persona y no sabemos
@@ -324,7 +340,6 @@ llevan enlace de oEmbed (`/api/oembed`) y etiquetas de reproductor, así que
 pegar el link en Notion o Canva enseña la gráfica viva. Es la promesa de «no
 hace falta cuenta» llevada hasta el final. Lo único que no tienen es póster —
 nadie ha capturado nunca esa gráfica— así que no dan tarjeta con imagen.
-
 
 ```
 /embed?c=<lz-string compressed base64url del JSON>

@@ -52,14 +52,20 @@ export function dataTableHtml(config: ResolvedChartConfig): string {
   /* La carrera se tabula igual que las barras agrupadas: sus series SON los
      periodos, así que una columna por periodo da la tabla completa, que es
      justamente lo que un lector de pantalla no puede sacar de la animación. */
-  if (config.type === 'bar' || config.type === 'bar-race') {
-    const head = config.data.series
+  /* El área es una serie a lo largo de un eje, igual que unas barras de una
+     sola serie: sin porcentaje, que en una evolución no significa nada. */
+  if (config.type === 'bar' || config.type === 'bar-race' || config.type === 'area') {
+    /* El área dibuja solo la primera serie, y la tabla no puede contar más de
+       lo que enseña la pantalla. */
+    const series =
+      config.type === 'area' ? config.data.series.slice(0, 1) : config.data.series;
+    const head = series
       .map((_, s) => `<th scope="col">${escapeHtml(seriesName(config, s))}</th>`)
       .join('');
 
     const rows = config.data.labels
       .map((label, i) => {
-        const cells = config.data.series
+        const cells = series
           .map((serie) => `<td>${escapeHtml(format(serie.values[i] ?? 0))}</td>`)
           .join('');
         return `<tr><th scope="row">${escapeHtml(label)}</th>${cells}</tr>`;
@@ -98,6 +104,7 @@ const KIND: Record<ResolvedChartConfig['type'], string> = {
   'bar-race': 'Gráfica de barras animadas',
   globe: 'Globo con datos por país',
   gauge: 'Medidor',
+  area: 'Gráfica de área',
 };
 
 /** Resumen para el `aria-label`, generado desde los datos. */
@@ -161,9 +168,11 @@ export function describeChart(config: ResolvedChartConfig): string {
     return `${kind}${title}: ${format(total)} de ${format(max)}${percent}${parts}`;
   }
 
-  if (config.type === 'bar') {
+  if (config.type === 'bar' || config.type === 'area') {
     const format = formatter(config);
-    const multi = config.data.series.length > 1;
+    /* El área solo dibuja la primera serie: describir las demás sería contar
+       algo que la pantalla no enseña. */
+    const multi = config.type === 'bar' && config.data.series.length > 1;
 
     /* Con varias series el nombre se dice UNA vez por grupo. Repetirlo en cada
        valor ("Web, Ene 42, Web, Feb 26") es lo que un lector de pantalla lee

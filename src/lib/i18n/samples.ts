@@ -36,6 +36,8 @@ export type Muestras = {
   pie: string[];
   gauge: string[];
   bar: string[];
+  /** Una evolución: meses de un año, que es lo que la gente tiene en su Excel. */
+  area: string[];
   globe: string[];
 };
 
@@ -51,6 +53,7 @@ export const SAMPLES: Record<Locale, Muestras> = {
     pie: ['Mobile', 'Desktop', 'Tablet'],
     gauge: ['Quarter target'],
     bar: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+    area: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
     globe: ['Madrid', 'London', 'New York', 'Tokyo', 'São Paulo', 'Sydney'],
   },
   es: {
@@ -63,6 +66,7 @@ export const SAMPLES: Record<Locale, Muestras> = {
     pie: ['Móvil', 'Escritorio', 'Tablet'],
     gauge: ['Objetivo del trimestre'],
     bar: ['Ene', 'Feb', 'Mar', 'Abr', 'May'],
+    area: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago'],
     globe: ['Madrid', 'Londres', 'Nueva York', 'Tokio', 'São Paulo', 'Sídney'],
   },
 };

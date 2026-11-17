@@ -88,6 +88,45 @@ const PRESETS: Record<string, Partial<ChartConfig>> = {
     type: 'bar',
     data: { labels: MESES, series: [{ values: [100, 0.4, 50, 0.1, 80] }] },
   },
+
+  // ── área ──────────────────────────────────────────────────────────────────
+  // Los casos que rompían la geometría mientras se escribía: esquinas agudas
+  // donde la cresta cae a la pared, valles en V, negativos y muchos datos.
+  área: {
+    type: 'area',
+    data: {
+      labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago'],
+      series: [{ values: [32, 41, 38, 52, 47, 61, 58, 72] }],
+    },
+  },
+  'área: dientes de sierra': {
+    type: 'area',
+    data: {
+      labels: Array.from({ length: 9 }, (_, i) => `${i + 1}`),
+      series: [{ values: [0, 100, 0, 100, 0, 100, 0, 100, 0] }],
+    },
+  },
+  'área: negativos': {
+    type: 'area',
+    data: { labels: MESES, series: [{ values: [12, -8, 20, -3, 15] }] },
+  },
+  'área: un solo dato': {
+    type: 'area',
+    data: { labels: ['Total'], series: [{ values: [42] }] },
+  },
+  'área: muchos datos': {
+    type: 'area',
+    data: {
+      labels: Array.from({ length: 60 }, (_, i) => `D${i + 1}`),
+      series: [
+        {
+          values: Array.from({ length: 60 }, (_, i) =>
+            Math.round(50 + 40 * Math.sin(i / 3)),
+          ),
+        },
+      ],
+    },
+  },
 };
 
 export default function RendererDevPage() {
@@ -122,7 +161,18 @@ export default function RendererDevPage() {
       scene: { background: { kind: bgKind, from: '#0b0b12', to: '#3d1f7a', angle: 135 } },
       labels: { show: true, mode: 'outside', finish, font: labelFont },
     });
-  }, [preset, type, bevel, height, innerRadius, gap, cornerRadius, bgKind, finish, labelFont]);
+  }, [
+    preset,
+    type,
+    bevel,
+    height,
+    innerRadius,
+    gap,
+    cornerRadius,
+    bgKind,
+    finish,
+    labelFont,
+  ]);
 
   /*
     El PÓSTER tal y como se va a guardar.
@@ -319,7 +369,9 @@ export default function RendererDevPage() {
               cursor: 'zoom-out',
             }}
           >
-            <div style={{ display: 'grid', gap: 'var(--p-space-2)', justifyItems: 'center' }}>
+            <div
+              style={{ display: 'grid', gap: 'var(--p-space-2)', justifyItems: 'center' }}
+            >
               <img
                 src={poster.url}
                 alt="Póster"
@@ -336,8 +388,8 @@ export default function RendererDevPage() {
                 }}
               />
               <span style={{ color: '#fff', fontSize: 'var(--p-text-xs)' }}>
-                {poster.fmt.toUpperCase()} · {poster.peso} · tal cual se sube · pulsa
-                para cerrar
+                {poster.fmt.toUpperCase()} · {poster.peso} · tal cual se sube · pulsa para
+                cerrar
               </span>
             </div>
           </div>

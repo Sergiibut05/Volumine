@@ -15,7 +15,7 @@ What shows up isn't a screenshot: it's the chart itself, alive, turning, in abou
 ![three.js](https://img.shields.io/badge/three.js-r180-000?logo=threedotjs&logoColor=fff)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=fff)
 ![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20RLS-3ecf8e?logo=supabase&logoColor=fff)
-![Embed size](https://img.shields.io/badge/embed-151%20KB%20gz-5b3ce6)
+![Embed size](https://img.shields.io/badge/embed-153%20KB%20gz-5b3ce6)
 ![Third-party requests](https://img.shields.io/badge/third--party%20requests-0-5b3ce6)
 
 <img src="docs/readme/donut-spin.gif" width="720" alt="A 3D donut chart rotating slowly, with labels for each slice" />
@@ -52,10 +52,10 @@ third parties. It is built to disappear into whatever page it lives in.
    live chart; anywhere else, use the `<iframe>` snippet. No account needed for
    any of it.
 
-## Six chart types
+## Seven chart types
 
 <p align="center">
-  <img src="docs/readme/chart-types.png" alt="Gallery of the six chart types: donut, pie, gauge, bars, bar race and globe" />
+  <img src="docs/readme/chart-types.png" alt="Gallery of the seven chart types: donut, pie, gauge, bars, area, bar race and globe" />
 </p>
 
 | Type         | Answers                                           | Avoid it when…                        |
@@ -64,11 +64,14 @@ third parties. It is built to disappear into whatever page it lives in.
 | **Pie**      | Same, when you want the visual weight of the disc | You need a figure in the middle       |
 | **Gauge**    | How far along am I towards a target?              | You want to compare categories        |
 | **Bars**     | How much does each category have, and who wins?   | You are showing parts of a whole      |
+| **Area**     | How did a figure evolve over time?                | The categories are not a sequence     |
 | **Bar race** | How did the ranking change over time?             | The order never changes               |
 | **Globe**    | Where is it happening, geographically?            | You need to compare figures precisely |
 
 Every card in the gallery says _when not to use it_. A 3D chart only earns its
-place when the shape still tells the truth.
+place when the shape still tells the truth — which is why the area's curve is
+monotone (it never draws a peak or a dip that isn't in the data) and why bars
+with several series stand side by side instead of hiding behind each other.
 
 ## The editor
 
@@ -140,7 +143,7 @@ build by `npm run perf:embed`, and **the build fails if it goes over**.
 
 |                               | Now      | Limit  |
 | ----------------------------- | -------- | ------ |
-| JavaScript (gzip)             | 150.6 KB | 180 KB |
+| JavaScript (gzip)             | 153.1 KB | 180 KB |
 | CSS (inlined in the HTML)     | 6.0 KB   | 8 KB   |
 | Font (only if the chart asks) | 26.8 KB  | 32 KB  |
 | Requests to third parties     | 0        | 0      |
@@ -152,7 +155,7 @@ strictest sandboxes.
 To get there, the embed doesn't use React at all: `/embed` is a route handler
 that returns hand-written HTML, and the renderer is plain three.js
 ([ADR 0006](docs/adr/0006-el-embed-usa-three-en-plano-sin-react.md)). The 3D
-geometry — bevelled sectors, rounded bars, the dot-cloud globe — is written from
+geometry — bevelled sectors, rounded bars, the area slab, the dot-cloud globe — is written from
 scratch: no chart library, no echarts-gl, no plotly
 ([ADR 0004](docs/adr/0004-geometria-propia-sin-libreria-de-graficas.md)).
 

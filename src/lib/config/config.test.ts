@@ -191,6 +191,55 @@ describe('contrato de barras', () => {
   });
 });
 
+describe('contrato del área', () => {
+  const area: ChartConfig = {
+    v: 1,
+    type: 'area',
+    data: { labels: ['Ene', 'Feb', 'Mar'], series: [{ values: [32, 41, 38] }] },
+  };
+
+  it('un config mínimo valida sin avisos y con los defaults de siempre', () => {
+    const r = parseConfig(area);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.issues).toEqual([]);
+    expect(r.config.type).toBe('area');
+    expect(r.config.style.height).toBe(defaults.style.height);
+  });
+
+  it('los negativos se conservan: el área cuelga por debajo del cero', () => {
+    const r = parseConfig({
+      ...area,
+      data: { labels: ['A', 'B'], series: [{ values: [10, -4] }] },
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.config.data.series[0].values).toEqual([10, -4]);
+  });
+
+  it('un valor no numérico se avisa y cuenta como cero, sin reventar', () => {
+    const r = parseConfig({
+      ...area,
+      data: {
+        labels: ['A', 'B'],
+        series: [{ values: [10, 'mucho' as unknown as number] }],
+      },
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.config.data.series[0].values).toEqual([10, 0]);
+    expect(r.issues.some((i) => i.level === 'warning')).toBe(true);
+  });
+
+  it('añadirlo no ha tocado la versión: los tipos de antes validan igual', () => {
+    for (const type of ['donut', 'pie', 'bar', 'bar-race', 'globe', 'gauge'] as const) {
+      const r = parseConfig({ ...minimal, type });
+      expect(r.ok, type).toBe(true);
+      if (r.ok) expect(r.config.v).toBe(1);
+    }
+  });
+});
+
 describe('tema: preset que rellena, no que bloquea', () => {
   it('un config con solo el nombre del tema se renderiza con el tema', () => {
     // Es el caso de un link corto escrito a mano y el de una gráfica publicada

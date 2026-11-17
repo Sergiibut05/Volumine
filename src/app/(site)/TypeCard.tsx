@@ -36,7 +36,7 @@ export function TypeCard({ type }: { type: ChartTypeEntry }) {
   const parsed = type.sample ? parseConfig(type.sample) : null;
 
   return (
-    <article className="card" ref={ref}>
+    <article className="card" ref={ref} data-wide={type.wide ? '' : undefined}>
       <div className="card-stage">
         {parsed?.ok && visible ? (
           <ChartCanvas
