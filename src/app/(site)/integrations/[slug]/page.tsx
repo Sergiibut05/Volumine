@@ -289,7 +289,7 @@ export default async function IntegracionPage({
           <p className="precios-nota">
             <Link href="/como-funciona">How it works</Link> ·{' '}
             <Link href="/integrations">All integrations</Link> ·{' '}
-            <Link href="/precios">Pricing</Link>
+            <Link href="/cafe">Buy me a coffee</Link>
           </p>
         </section>
       </main>

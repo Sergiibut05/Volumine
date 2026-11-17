@@ -70,7 +70,7 @@ export default function IntegracionesPage() {
         )}
 
         <p className="precios-nota">
-          <Link href="/crear">Open the editor</Link> · <Link href="/precios">Pricing</Link>
+          <Link href="/crear">Open the editor</Link> · <Link href="/cafe">Buy me a coffee</Link>
         </p>
       </main>
     </div>

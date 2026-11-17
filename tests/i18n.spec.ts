@@ -116,7 +116,7 @@ for (const caso of [
     */
     test.use({ locale: caso.locale });
 
-    for (const ruta of ['/', '/entrar', '/crear']) {
+    for (const ruta of ['/', '/entrar', '/crear', '/cafe']) {
       test(`${ruta} no tiene restos en ${caso.otro}`, async ({ page }) => {
         await page.goto(ruta, { waitUntil: 'networkidle' });
         if (ruta === '/crear') await desplegarEditor(page);

@@ -18,7 +18,8 @@ import { MARCA, OG } from '@/lib/marca';
   Google penaliza los datos estructurados que prometen cosas que la página no
   enseña, y con razón. Por eso:
 
-  · el precio sale del plan de verdad y se pasa desde fuera, no escrito a mano;
+  · la oferta es la que hay: gratis. Los cafés NO son una oferta —no se compra
+    nada con ellos—, así que declararlos como `Offer` sería mentir al buscador;
   · no hay `aggregateRating` ni `review`. Es lo más goloso —las estrellitas en
     el resultado de búsqueda— y sería inventado: no hay ni una sola valoración
     real todavía. Inventarlas es motivo de sanción manual, además de mentira;
@@ -28,16 +29,7 @@ import { MARCA, OG } from '@/lib/marca';
   que recomienda Google y porque así viaja con la página que describe.
 */
 
-export function DatosEstructurados({
-  descripcion,
-  precioCentimos,
-  moneda,
-}: {
-  descripcion: string;
-  /** Del plan de pago, tal cual está en `plan_limits`. `null` si no hay. */
-  precioCentimos: number | null;
-  moneda: string | null;
-}) {
+export function DatosEstructurados({ descripcion }: { descripcion: string }) {
   const sitio = `https://${TITULAR.dominio}`;
 
   /*
@@ -81,30 +73,16 @@ export function DatosEstructurados({
         image: `${sitio}${OG.ruta}`,
         author: TITULAR.nombre ? { '@type': 'Person', name: TITULAR.nombre } : undefined,
         /*
-          Dos ofertas de verdad, que es lo que hay: el plan gratuito y el pago
-          único. Se declara `price: 0` explícito para el gratuito —omitirlo
-          dejaría entender que hay que pagar para empezar, que es justo lo
-          contrario de lo que pasa aquí.
+          Una sola oferta, que es lo que hay: gratis. Se declara `price: 0`
+          explícito —omitirlo dejaría entender que hay que pagar para empezar,
+          que es justo lo contrario de lo que pasa aquí.
         */
-        offers: [
-          {
-            '@type': 'Offer',
-            name: 'Free',
-            price: 0,
-            priceCurrency: (moneda ?? 'eur').toUpperCase(),
-          },
-          ...(precioCentimos
-            ? [
-                {
-                  '@type': 'Offer',
-                  name: 'Pro',
-                  price: precioCentimos / 100,
-                  priceCurrency: (moneda ?? 'eur').toUpperCase(),
-                  url: `${sitio}/precios`,
-                },
-              ]
-            : []),
-        ],
+        offers: {
+          '@type': 'Offer',
+          name: 'Free',
+          price: 0,
+          priceCurrency: 'EUR',
+        },
       },
     ],
   };

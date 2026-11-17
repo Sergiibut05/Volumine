@@ -21,7 +21,8 @@ export const metadata: Metadata = {
   /* Sin «· Volumine»: la plantilla del layout ya lo añade, y escribirlo aquí
      producía «Condiciones de uso · Volumine · Volumine». */
   title: 'Condiciones de uso',
-  description: 'Condiciones de contratación y uso de Volumine: qué incluye el pago único, qué pasa con las gráficas publicadas y el derecho de desistimiento.',
+  description:
+    'Condiciones de uso de Volumine: qué es el servicio, de quién es lo que creas, qué pasa con las gráficas publicadas y cómo funcionan las invitaciones voluntarias.',
   robots: { index: false, follow: true },
 };
 
@@ -34,11 +35,15 @@ export const metadata: Metadata = {
   pago pasan a ser obligatorias de verdad, porque entran las normas de
   contratación a distancia y de consumo.
 
-  El apartado de pagos está escrito EN FUTURO a propósito: hoy no se cobra. En
-  cuanto se cobre hay que repasarlo entero, y muy en particular el derecho de
-  desistimiento, que en contenido digital tiene una excepción con requisitos
-  concretos —hay que recabar el consentimiento previo y expreso a empezar antes
-  de los catorce días— que se implementa EN LA PASARELA, no aquí.
+  El servicio es gratuito y no hay plan de pago (ADR 0008). Lo único que se
+  cobra es la invitación voluntaria de `/cafe`, que NO es una compra: no da
+  acceso a nada que no tuvieras ya. Por eso aquí no hay desistimiento de
+  contenido digital que regular; sí se dice qué es y que no compra nada, para
+  que nadie pague creyendo que se lleva algo.
+
+  Si algún día vuelve un plan de pago, este archivo hay que repasarlo entero, y
+  muy en particular el derecho de desistimiento, que en contenido digital tiene
+  una excepción con requisitos concretos que se implementa EN LA PASARELA.
 */
 export default function Terminos() {
   return (
@@ -112,10 +117,27 @@ export default function Terminos() {
 
       <h2>Precio</h2>
       <p>
-        Hoy el servicio es gratuito. Si en el futuro se añaden planes de pago, sus precios,
-        impuestos y condiciones se mostrarán antes de contratar, y lo que ya estuviera
-        publicado seguirá funcionando: el compromiso es que activar el cobro no rompa un
-        enlace que ya existía.
+        El servicio es gratuito y no tiene planes de pago. Si en el futuro se añadiera
+        alguno, sus precios, impuestos y condiciones se mostrarán antes de contratar, y lo
+        que ya estuviera publicado seguirá funcionando: el compromiso es que activar un
+        cobro no rompa un enlace que ya existía.
+      </p>
+
+      <h2>Invitaciones voluntarias («invítame a un café»)</h2>
+      <p>
+        Desde la página <a href="/cafe">Invítame a un café</a> puedes hacer un pago
+        voluntario y puntual para apoyar el proyecto. Es una aportación, no una compra:{' '}
+        <strong>
+          no desbloquea funciones, no crea una suscripción y no da derecho a ningún servicio
+          adicional
+        </strong>
+        , porque todo el servicio es ya gratuito para todo el mundo.
+      </p>
+      <p>
+        El pago lo procesa Stripe, que es quien recoge los datos de la tarjeta; aquí no
+        llegan nunca. El importe se muestra antes de pagar y no se cobra nada más. Si
+        hiciste una invitación por error, escribe a <strong>{dato('email')}</strong> en los
+        catorce días siguientes y se devolverá.
       </p>
 
       <h2>Cambios en estas condiciones</h2>

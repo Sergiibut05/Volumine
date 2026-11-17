@@ -50,23 +50,17 @@ export default async function MisGraficasPage() {
             <h1 className="display">{d.charts.title}</h1>
             {cupo && (
               <p className="charts-quota">
-                {fill(d.charts.quota, { used: cupo.used, max: cupo.max, plan: cupo.plan })}
+                {fill(d.charts.quota, { used: cupo.used, max: cupo.max })}
               </p>
             )}
           </div>
 
           <div className="charts-head-actions">
-            {/*
-              El enlace a mejorar va AQUÍ y no solo en la landing, porque este es
-              el sitio donde el plan gratuito se nota: al lado del contador de
-              cuota y de las miniaturas con marca de agua. Un enlace a precios en
-              una página de marketing lo ve quien todavía no tiene el problema.
-            */}
-            {cupo?.plan === 'free' && (
-              <Link className="nav-link" href="/precios">
-                {d.nav.upgrade}
-              </Link>
-            )}
+            {/* El café también aquí: quien ya tiene gráficas guardadas es
+                quien más motivos tiene para invitar a uno. */}
+            <Link className="nav-link" href="/cafe">
+              {d.nav.coffee}
+            </Link>
             <Link className="cta" href="/crear">
               {d.nav.newChart}
             </Link>

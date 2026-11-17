@@ -1,68 +1,36 @@
 import 'server-only';
 
 /*
-  Facturación: PREPARADA Y APAGADA.
+  Stripe: SOLO para los cafés.
 
-  Todo el camino de cobro está escrito, pero no se enciende hasta que existan
-  las variables de entorno. Sin ellas la aplicación se comporta exactamente como
-  hoy — gratis, sin botones de pago y sin rutas que respondan.
+  Hubo un plan Pro de pago único (ver `docs/PAGOS.md` y la ADR 0008, que cuenta
+  por qué se quitó). Lo que queda es la invitación voluntaria, y para eso basta
+  con la clave secreta: el importe va en línea en la sesión y no hace falta ni
+  webhook, ni `service_role`, ni ningún precio dado de alta en el panel.
 
-  POR QUÉ ESCRIBIRLO AHORA SI NO SE VA A USAR: porque lo caro no es el código,
-  es el esquema. Añadir `plan` y cuotas con mil usuarios dentro obliga a una
-  migración con datos en producción; añadirlo hoy es una línea. El resto es
-  fontanería que se prueba mejor con calma que con prisa.
+  Sin la clave, la página del café sigue existiendo pero no enseña el botón de
+  pagar: el producto funciona entero sin Stripe.
 
   ── LA REGLA QUE NO SE PUEDE ROMPER ────────────────────────────────────────
-  La `service_role` NO aparece nunca en código que llegue al navegador. Solo la
-  usa el webhook, que corre en servidor. Este archivo lleva `server-only` para
-  que importarlo desde un componente de cliente rompa el build en vez de filtrar
-  la clave (ADR 0007).
+  La `sk_` no aparece nunca en código que llegue al navegador. Este archivo
+  lleva `server-only` para que importarlo desde un componente de cliente rompa
+  el build en vez de filtrar la clave.
 */
 
-/** ¿Hay facturación configurada? Si no, el producto es gratis y punto. */
-export function billingEnabled(): boolean {
-  return Boolean(
-    process.env.STRIPE_SECRET_KEY &&
-    process.env.STRIPE_WEBHOOK_SECRET &&
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-  );
+/** La clave secreta de Stripe, o `null` si este despliegue no cobra cafés. */
+export function stripeSecretKey(): string | null {
+  return process.env.STRIPE_SECRET_KEY || null;
 }
 
-export type BillingEnv = {
-  secretKey: string;
-  webhookSecret: string;
-  serviceRoleKey: string;
-};
-
-/**
- * Las claves, o un error claro.
- *
- * Se leen aquí y no se esparcen por el código: si mañana hay que rotarlas o
- * renombrarlas, hay un solo sitio donde mirar.
- */
-export function billingEnv(): BillingEnv {
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!secretKey || !webhookSecret || !serviceRoleKey) {
-    throw new Error(
-      'Facturación sin configurar. Hacen falta STRIPE_SECRET_KEY, ' +
-        'STRIPE_WEBHOOK_SECRET y SUPABASE_SERVICE_ROLE_KEY. Ver .env.example.',
-    );
-  }
-
-  return { secretKey, webhookSecret, serviceRoleKey };
+/** ¿Se puede invitar a un café desde este despliegue? */
+export function cafeEnabled(): boolean {
+  return stripeSecretKey() !== null;
 }
 
 /**
- * De un precio de Stripe al plan que da.
- *
- * El mapa vive en `plan_limits.stripe_price_id`, en la base de datos: cambiar
- * un precio tiene que ser un UPDATE y no un despliegue. Esta función solo lo
- * consulta.
+ * El secreto del webhook, si existe. Solo lo usa la ruta que acusa recibo de
+ * los eventos — ver `api/stripe/webhook/route.ts`.
  */
-export type Plan = 'free' | 'pro' | 'team';
-
-/** Lo que se degrada cuando una suscripción muere. */
-export const PLAN_POR_DEFECTO: Plan = 'free';
+export function stripeWebhookSecret(): string | null {
+  return process.env.STRIPE_WEBHOOK_SECRET || null;
+}

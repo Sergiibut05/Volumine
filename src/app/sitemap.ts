@@ -33,10 +33,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: base, lastModified: hoy, changeFrequency: 'weekly', priority: 1 },
     { url: `${base}/crear`, lastModified: hoy, changeFrequency: 'monthly', priority: 0.8 },
     {
-      url: `${base}/precios`,
+      url: `${base}/cafe`,
       lastModified: hoy,
-      changeFrequency: 'monthly',
-      priority: 0.7,
+      changeFrequency: 'yearly',
+      priority: 0.4,
     },
     {
       url: `${base}/como-funciona`,

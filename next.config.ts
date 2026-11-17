@@ -3,6 +3,16 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 
+  /*
+    `/precios` existió y está enlazada desde fuera (buscadores, la tarjeta de X,
+    quien la guardase). Con el plan de pago quitado (ADR 0008) lo que queda en
+    su sitio es el café: redirección PERMANENTE, para que los buscadores
+    trasladen la página en vez de dejar un 404.
+  */
+  async redirects() {
+    return [{ source: '/precios', destination: '/cafe', permanent: true }];
+  },
+
   async headers() {
     return [
       {

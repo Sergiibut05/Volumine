@@ -43,13 +43,8 @@ export default async function HomePage() {
   return (
     <div className="studio" data-theme="light">
       {/* Lo que le dice a un buscador —y a un asistente— qué es esto. No pinta
-          nada en pantalla.
-
-          SIN precio a propósito: aquí sería una consulta más a la base en la
-          página que peor tiempo de respuesta tiene, y para un dato que la de
-          precios ya carga. El importe va allí, que además es donde un buscador
-          espera encontrar una oferta. Ver el componente. */}
-      <DatosEstructurados descripcion={d.meta.siteDescription} precioCentimos={null} moneda={null} />
+          nada en pantalla. */}
+      <DatosEstructurados descripcion={d.meta.siteDescription} />
       <header className="shell" style={{ paddingBlock: '1.75rem' }}>
         <nav style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
           <Wordmark size={1.25} />
@@ -59,12 +54,24 @@ export default async function HomePage() {
               {d.nav.myCharts}
             </Link>
           )}
-          {/* Sin esto no había NINGUNA forma de llegar a la página de pago
-              salvo escribiendo la URL: el único enlace estaba en el pie. Se
-              puede construir la pasarela entera y no cobrar un euro por no
-              tener un enlace en la cabecera. */}
-          <Link className="nav-link" href="/precios">
-            {d.nav.pricing}
+          {/* El café en la cabecera y no solo en el pie: una invitación que solo
+              se encuentra buscándola no la hace nadie. */}
+          <Link className="nav-link nav-cafe" href="/cafe" aria-label={d.nav.coffee}>
+            <svg viewBox="0 0 16 16" width="16" height="16" fill="none" aria-hidden>
+              <path
+                d="M2.5 6h8.5v3.5a3.5 3.5 0 0 1-3.5 3.5h-1.5a3.5 3.5 0 0 1-3.5-3.5V6Z"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M11 7.25h1a1.75 1.75 0 0 1 0 3.5h-1.25M5.5 2.5v1.5M8 2v2"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="nav-cafe-texto">{d.nav.coffee}</span>
           </Link>
 
           {/*
@@ -236,7 +243,7 @@ export default async function HomePage() {
                 el sitemap es una página huérfana, y un rastreador la trata como
                 tal. */}
             <Link href="/integrations">Integraciones</Link>
-            <Link href="/precios">Precios</Link>
+            <Link href="/cafe">{d.nav.coffee}</Link>
             <Link href="/legal/aviso-legal">Aviso legal</Link>
             <Link href="/legal/privacidad">Privacidad</Link>
             <Link href="/legal/cookies">Cookies</Link>

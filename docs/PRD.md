@@ -54,8 +54,10 @@ equipos, exportación a vídeo, más de 2 tipos de gráfica.
 
 ## Monetización — no ahora, pero preparada
 
-Hoy todo es gratis. El esquema de datos incluye plan y cuotas desde el día 1
-para no migrar nada cuando toque. Si llega tracción, el corte natural es:
+Hoy todo es gratis, y lo único que se cobra es una invitación voluntaria en
+`/cafe` (ADR 0008; hubo un plan Pro de pago único y se quitó). El esquema de
+datos incluye plan y cuotas desde el día 1 para no migrar nada cuando toque. Si
+llega tracción, el corte natural es:
 
 - **Free**: gráficas públicas, marca de agua discreta en el embed.
 - **Pro**: sin marca de agua, gráficas privadas/no listadas, más tipos, temas

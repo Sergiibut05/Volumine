@@ -120,7 +120,7 @@ export const ENCARGADOS: Encargado[] = [
   },
   {
     nombre: 'Stripe',
-    para: 'Cobros y facturación de los planes de pago',
+    para: 'Procesar las invitaciones voluntarias («invítame a un café»)',
     donde: 'Estados Unidos e Irlanda, con cláusulas contractuales tipo',
     dpa: 'https://stripe.com/legal/dpa',
   },

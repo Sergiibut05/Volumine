@@ -49,7 +49,7 @@ activamente** en cada panel. Sin eso, la cesión de datos no está amparada.
 
 - [ ] **Supabase** — DPA en el panel de la organización · <https://supabase.com/legal/dpa>
 - [ ] **Vercel** — DPA en Settings → Legal · <https://vercel.com/legal/dpa>
-- [ ] **Stripe** — al activar los pagos · <https://stripe.com/legal/dpa>
+- [ ] **Stripe** — procesa los cafés de `/cafe` · <https://stripe.com/legal/dpa>
 
 Cada servicio nuevo que llegue a ver datos de usuarios entra en `ENCARGADOS`
 (en `src/lib/legal.ts`) **antes** de entrar en producción, y aparece solo en la
@@ -107,9 +107,22 @@ tenga que incrustar en un sitio con política estricta.
 
 ---
 
-## 5. Cuando se empiece a cobrar
+## 5. Los cafés, y si algún día vuelve un plan de pago
 
-Nada de esto aplica hoy, pero conviene tenerlo escrito antes de tocar Stripe.
+**Hoy solo hay invitaciones voluntarias** (ADR 0008): un pago sin
+contraprestación, que no desbloquea nada. Por eso no aplica el desistimiento de
+contenido digital ni la información precontractual de una venta. Lo que sí está
+hecho:
+
+- [x] `/legal/terminos` explica qué es una invitación, que no compra nada, y
+      ofrece devolverla si se hizo por error en los catorce días siguientes.
+- [x] La política de privacidad declara los datos que deja una invitación
+      (nombre, correo, importe y mensaje) y Stripe está en `ENCARGADOS`.
+- [ ] Fiscalmente siguen siendo **ingresos**: hay que declararlos. Las facturas
+      de Stripe (comisiones) y el listado de pagos salen del panel.
+
+Lo de abajo es lo que había preparado para el plan Pro, que se quitó. Se deja
+escrito para el día que vuelva a haber algo a la venta.
 
 - [x] **Derecho de desistimiento** — lo recoge **Stripe** con
       `consent_collection` dentro de su checkout, no nuestra página.

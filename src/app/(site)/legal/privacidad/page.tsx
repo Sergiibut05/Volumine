@@ -21,7 +21,8 @@ export const metadata: Metadata = {
   /* Sin «· Volumine»: la plantilla del layout ya lo añade, y escribirlo aquí
      producía «Privacidad · Volumine · Volumine». */
   title: 'Privacidad',
-  description: 'Qué datos personales trata Volumine, con qué base legal, con qué encargados y cómo ejercer tus derechos.',
+  description:
+    'Qué datos personales trata Volumine, con qué base legal, con qué encargados y cómo ejercer tus derechos.',
   robots: { index: false, follow: true },
 };
 
@@ -77,8 +78,11 @@ export default function Privacidad() {
             <td>Interés legítimo (art. 6.1.f)</td>
           </tr>
           <tr>
-            <td>Datos de facturación, cuando existan planes de pago</td>
-            <td>Cobrar y emitir la factura</td>
+            <td>
+              Si invitas a un café: nombre, correo, importe y el mensaje que dejes (la
+              tarjeta la trata Stripe y no llega aquí)
+            </td>
+            <td>Procesar la invitación y cumplir las obligaciones contables</td>
             <td>Contrato y obligación legal (arts. 6.1.b y 6.1.c)</td>
           </tr>
         </tbody>

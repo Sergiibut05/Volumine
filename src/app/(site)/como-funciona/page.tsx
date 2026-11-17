@@ -147,8 +147,8 @@ export default async function ComoFunciona() {
         </section>
 
         <p className="precios-nota">
-          <Link href="/crear">{d.pricing.openEditor}</Link> ·{' '}
-          <Link href="/precios">{d.nav.pricing}</Link>
+          <Link href="/crear">{d.nav.openEditor}</Link> ·{' '}
+          <Link href="/cafe">{d.nav.coffee}</Link>
         </p>
       </main>
     </div>

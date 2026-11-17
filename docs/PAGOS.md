@@ -1,111 +1,64 @@
-# Activar los pagos
+# Pagos: solo «invítame a un café»
 
-El código está entero: `/precios`, `/api/stripe/checkout`, `/api/stripe/portal` y
-el webhook. Lo que queda es configuración, y va aquí porque no vive en el
-repositorio.
+Volumine es gratis y no tiene plan de pago (ADR 0008). Lo único que se cobra es
+la invitación voluntaria de `/cafe`. Este archivo dice qué hace falta para que
+funcione y qué quedó del plan Pro que hubo antes.
 
-## 0. El modelo: PAGO ÚNICO, no suscripción
+## Cómo funciona
 
-La suscripción no encajaba con el producto, y el argumento que la tumbó es una
-pregunta que no tenía buena respuesta: **¿qué pasa con las gráficas ya
-publicadas cuando alguien cancela?**
+- `/cafe` — la página. Elige 1, 3 o 5 cafés de 3 € (`src/lib/cafe.ts`).
+- `POST /api/stripe/cafe` — crea una sesión de Stripe Checkout con el importe
+  **en línea** (`price_data`) y redirige con un 303. En la pasarela se puede
+  cambiar la cantidad (hasta 20) y dejar un mensaje, que se lee en el panel de
+  Stripe, en el detalle del pago.
+- Vuelve a `/cafe?gracias=1`, que solo enseña un mensaje. No hay nada que
+  conceder, así que no hay webhook que escuchar ni cuenta que pedir.
 
-- Si vuelve la marca de agua, le rompes la web a un cliente retroactivamente.
-- Si no vuelve, pagar un mes equivale a pagar para siempre y nadie renueva.
+## Lo que hace falta
 
-No hay tercera opción. El valor de Volumine es un EVENTO —haces una gráfica, la
-publicas y ya está—, no un servicio que se consume cada mes. Con pago único la
-pregunta desaparece.
+Solo una variable de entorno, en Vercel y en `.env.local`:
 
-El código ya lo contempla: `mode: 'payment'` en el checkout y, en el webhook,
-`expiresAt: null` — que es lo que hace que sea para siempre. La rama de
-suscripción sigue ahí por si algún día vuelve a haber un plan recurrente, y
-entonces tendrá sentido: cuando exista un valor CONTINUO de verdad, como poder
-actualizar los datos de una gráfica publicada sin cambiar el link.
-
----
-
-## 1. El precio, en la base de datos
-
-El `price_id` **no se versiona en una migración**: es de una cuenta de Stripe
-concreta y cambia entre el modo de prueba y el real. Va como dato, que es donde
-lo dejó preparado la migración 0005.
-
-```sql
--- El plan de pago: 19 EUR, una sola vez.
-update public.plan_limits
-set stripe_price_id = 'price_1U3lnNJa0WaKbpo4SdRPvEiD',
-    price_cents     = 1900,
-    currency        = 'eur'
-where plan = 'pro';
-
--- Y el gratuito baja de 20 a 5. Veinte gráficas gratis son tantas que quien las
--- agota ya no va a pagar nunca, y sobre todo: un plan gratuito muy generoso
--- señala que el producto vale poco.
-update public.plan_limits
-set max_charts = 5
-where plan = 'free';
+```
+STRIPE_SECRET_KEY
 ```
 
-> El `price_id` de arriba es el del pago único de 19 €. El anterior
-> (`price_1U3cFu…`) era la suscripción de 9 €/mes y **ya no sirve**: al pasar de
-> recurrente a puntual hay que crear un precio nuevo, porque un mismo precio no
-> puede cambiar de modo. Conviene archivarlo en Stripe para no confundirse.
->
-> Y ojo con la distinción que se cuela sola: `prod_…` es el PRODUCTO —«Volumine
-> Pro» como concepto— y `price_…` es lo que de verdad se cobra. El checkout y el
-> webhook solo miran el segundo.
+Sin ella `/cafe` se ve igual pero sin botón de pagar. **Ya está puesta**: la de
+producción es una clave real (`sk_live_`), comprobado el 2026-11-17 creando una
+sesión desde la ruta.
+
+No hay que crear productos ni precios en el panel: el café se describe en cada
+sesión. Cambiar el importe es cambiar `PRECIO_CAFE_CENTIMOS` y desplegar.
+
+## Limpieza opcional en el panel de Stripe
+
+Nada de esto es necesario para que funcione:
+
+- **Archivar el producto «Volumine Pro»** y su precio
+  `price_1U3lnNJa0WaKbpo4SdRPvEiD` (19 € pago único). La migración 0007 ya lo
+  quitó de `plan_limits`, así que ninguna ruta puede venderlo.
+- **El webhook** (`/api/stripe/webhook`): se puede dejar como está — la ruta
+  verifica la firma y responde 200 — o borrarlo del panel. Si se borra, se puede
+  borrar también la ruta y `STRIPE_WEBHOOK_SECRET`.
+- `SUPABASE_SERVICE_ROLE_KEY` ya no la usa nada. Se puede quitar de Vercel.
+
+## La base de datos
+
+La migración `0007_sin_plan_de_pago.sql` sube el límite gratuito de 5 a 100
+gráficas y quita el `stripe_price_id` del Pro. Se aplica en el SQL Editor de
+Supabase o con el MCP de Supabase (`apply_migration`).
 
 Para comprobar que entró:
 
 ```sql
-select plan, price_cents, currency, stripe_price_id, max_charts, watermark
-from public.plan_limits order by price_cents;
+select plan, max_charts, watermark, stripe_price_id, price_cents
+from public.plan_limits order by plan;
 ```
 
-> ⚠️ **Los IDs de prueba y los reales son distintos.** Si ese precio se creó en
-> modo prueba, solo funciona con una `sk_test_`. Mezclar una clave real con un
-> precio de prueba da un error de «no such price» al abrir la pasarela, y es el
-> fallo más común al activar Stripe. Al pasar a producción hay que rehacer el
-> producto en modo real y volver a lanzar este `update`.
+## Si algún día vuelve un plan de pago
 
-## 2. En el panel de Stripe
-
-- [ ] **Impuestos automáticos** — Configuración → Impuestos. Sin esto el
-      `automatic_tax` del checkout falla y la pasarela no abre.
-- [ ] **Portal de clientes** — Configuración → Portal. Activar *cancelar
-      suscripción* y *ver facturas*: es lo que hace útil `/api/stripe/portal` y
-      lo que cumple que darse de baja sea tan fácil como suscribirse.
-- [ ] **Webhook** — Desarrolladores → Webhooks → `https://volumine.app/api/stripe/webhook`
-      con `checkout.session.completed`, `customer.subscription.created`,
-      `customer.subscription.updated` y `customer.subscription.deleted`.
-- [ ] **Radar**: plan Lite. Ver el razonamiento en la conversación — en Europa,
-      3D Secure ya traslada la responsabilidad del fraude al banco emisor.
-- [ ] **Descriptor de extracto**: `VOLUMINE.APP`, abreviado `VOLUMINE`. Un nombre
-      personal en el extracto es la primera causa de contracargo.
-
-## 3. Variables de entorno
-
-En Vercel y en `.env.local`. **Ninguna lleva `NEXT_PUBLIC_`**: con la `sk_` se
-puede hacer cualquier cosa en la cuenta de Stripe, y la `service_role` se salta
-RLS entera.
-
-```
-STRIPE_SECRET_KEY
-STRIPE_WEBHOOK_SECRET
-SUPABASE_SERVICE_ROLE_KEY
-```
-
-Mientras falte cualquiera de las tres, `billingEnabled()` devuelve `false`: las
-rutas de pago responden 404 y `/precios` enseña solo el plan gratuito. Es a
-propósito — el producto sigue funcionando entero sin cobrar.
-
-## 4. Probar antes de abrir
-
-- [ ] Con claves de **prueba**, comprar con la tarjeta `4242 4242 4242 4242`.
-- [ ] Comprobar en `profiles` que el plan pasó a `pro` y que se guardaron
-      `stripe_customer_id` y `stripe_subscription_id`.
-- [ ] Comprobar que la marca de agua desaparece de una gráfica publicada.
-- [ ] Cancelar desde el portal y ver que vuelve a `free` al expirar.
-- [ ] **Rotar la `service_role`** antes de desplegar: se pegó en un chat y hasta
-      ahora no la usaba nadie, pero el webhook sí la usa.
+El esquema sigue entero (`plan`, `plan_limits`, cuota y marca de agua por
+trigger). El código del checkout, el portal, el webhook que concedía el plan y
+la página de precios está en el historial: el último commit que lo tiene es
+`b0c1e9c`. Y antes de cobrar hay que repasar `/legal/terminos` y
+`docs/LEGAL.md` (desistimiento, IVA con `automatic_tax`, información
+precontractual).
