@@ -128,9 +128,13 @@ conecta y el magic link llega al servidor de auth.
 - [x] Globo de puntos, con el planteamiento de cobe: la tierra es una nube de
       puntos y **sí se reconocen los continentes**. La máscara de tierra se
       rasteriza en build y cuesta 6,5 KB comprimidos.
+- [x] Medidor (gauge).
+- [x] Área (noviembre de 2026): losa con perfil monótono, una serie.
+- [ ] Área con varias series apiladas.
 
-Los cinco tipos de v1 están disponibles en el renderer, en la galería y en el
-editor. Añadir uno nuevo es una función en el registro `BUILDERS`.
+Los siete tipos de v1 están disponibles en el renderer, en la galería y en el
+editor. Añadir uno nuevo es una función en el registro `BUILDERS` (y la skill
+`add-chart-type`, que lista todo lo demás que toca).
 
 ## Fase 7 — Marketing y lanzamiento
 

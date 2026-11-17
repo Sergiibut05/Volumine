@@ -6,9 +6,57 @@
 >
 > Sé concreto. "Avanzando en el renderer" no vale.
 
-**Última actualización:** 2026-11-17
+**Última actualización:** 2026-11-18
 **Fase actual:** 7 — Marketing y lanzamiento, en pausa. En producción en
 `volumine.app`; producto **gratis** con «invítame a un café» (ADR 0008).
+**Siete tipos** desde el 18: se añadió `area`.
+
+> ⚠️ **Nada de las dos últimas sesiones está desplegado.** Todo está en commits
+> locales sobre `main` sin push, y la migración 0007 sin aplicar. Ver abajo.
+
+## Sesión 2026-11-18: el globo, las barras de varias series y el área
+
+Salió de capturar cada tipo en grande con el embed real y compararlos
+(`/embed?c=…` en Playwright). Anillo, tarta y barras de una serie estaban bien.
+
+- **Globo rehecho visualmente** (`renderer/core/globe-materials.ts`). Era un
+  disco plano casi negro con un aro duro. El planeta era `MeshBasicMaterial`
+  (sin luz); el halo estaba AL REVÉS (máximo lejos del planeta) y con mezcla
+  aditiva, que se lava sobre fondo claro; y los puntos salían de ~1 px y
+  cuadrados porque `PointsMaterial` con atenuación no divide por `tan(fov/2)`.
+  Corregido con `projectionMatrix[1][1]` en el shader. Los marcadores abren un
+  claro en el mapa (antes Madrid, violeta, desaparecía sobre puntos violetas).
+  Un test avisa si una subida de three cambia las líneas de shader que se
+  sustituyen.
+- **Barras con varias series AGRUPADAS lado a lado** (`geometry/bar.ts`), en vez
+  de filas hacia el fondo. Una etiqueta por categoría («Q1 · 42 · 48») y una
+  **clave de series** arriba a la izquierda que se ve aunque las etiquetas estén
+  apagadas (`labelLayer.setKey`). Se quitó `BAR_CAMERA_MULTI`. La carrera llama
+  a `computeBars` con `grouped: false`: sus series son periodos.
+- **Carrera**: el año era invisible sobre fondo claro (gris fijo; mismo fallo
+  que tuvo la cifra del medidor) y el editor no lo enseñaba en ningún sitio.
+- **Tipo nuevo `area`** (`geometry/area.ts`): losa con canto redondeado cuyo
+  perfil sigue los datos con interpolación MONÓTONA. Solo `series[0]`. Zócalo
+  de 2,4× el canto para que la geometría sea válida con cualquier dato.
+  Triangulación propia «en cremallera» en vez del earcut de three (2,8 KB menos
+  de bundle). 22 tests de geometría, incluida estanqueidad y solapes.
+  `isStanding()` agrupa barras, carrera y área en el renderer.
+- Editor: la carrera enseñaba «radio interior» y «separar trozos», que no hacían
+  nada. Arreglado al ordenar los controles por tipo.
+- Galería: con siete tipos, área y carrera son tarjetas dobles (`wide` en
+  `lib/chart-types.ts`) y queda un 3×3.
+- Verificado: 286 unitarios, 15 e2e, tsc, 0 errores de lint, embed
+  **153,1 / 180 KB** (+4,1 KB en la sesión). README y capturas actualizados.
+
+**Pendiente de esta sesión:**
+
+- La skill `add-chart-type` pide revisión del subagente `design-critic`: no se
+  lanzó (solo se lanzan agentes si lo pide Manuel). La revisión fue a ojo sobre
+  capturas de los cinco casos de `/dev/renderer` → «área: …».
+- Áreas con VARIAS series (apiladas): no existen. `area` está en
+  `SINGLE_SERIES` del editor y el embed solo dibuja `series[0]`.
+- Sigue sin haber regresión visual con `toHaveScreenshot`: todo lo de esta
+  sesión se comprobó con capturas mirando, no con un test que lo fije.
 
 ## Sesión 2026-11-17: fuera el plan de pago, dentro el café
 
