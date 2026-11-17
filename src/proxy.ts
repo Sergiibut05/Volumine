@@ -18,7 +18,9 @@ import { NextResponse, type NextRequest } from 'next/server';
   ══════════════════════════════════════════════════════════════════════════
 */
 
-export async function middleware(request: NextRequest) {
+/* `proxy` y no `middleware`: Next 16 renombró la convención y la antigua está
+   obsoleta. Hace exactamente lo mismo; solo cambian el archivo y el nombre. */
+export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
