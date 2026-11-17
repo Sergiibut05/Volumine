@@ -8,6 +8,7 @@ import '@/styles/editor.css';
 import { ChartCanvas } from '@/renderer/ChartCanvas';
 import type { HoverInfo } from '@/renderer/core/chart-renderer';
 import { formatter } from '@/lib/format';
+import { isLight } from '@/lib/color';
 import { parseConfig } from '@/lib/config/parse';
 import { buildEmbedIframe, buildEmbedUrl, MAX_URL_LENGTH } from '@/lib/config/url';
 import { THEMES } from '@/lib/themes';
@@ -162,6 +163,10 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
      el acuse tiene que salir en el control que se ha pulsado. */
   const [copied, setCopied] = useState<Copiado>(null);
   const [hovered, setHovered] = useState<HoverInfo>(null);
+  /* El periodo que enseña una carrera. El embed lo pintaba y la vista previa
+     no, así que en el editor una carrera era una animación sin decir de qué
+     año era cada instante. El renderer solo avisa cuando CAMBIA, no por frame. */
+  const [periodo, setPeriodo] = useState<string | null>(null);
   /* Se enciende al intentar guardar sin nombre y se apaga en cuanto se escribe
      algo. No se enciende al cargar: avisar de un campo vacío que nadie ha
      intentado usar todavía es regañar por adelantado. */
@@ -494,7 +499,30 @@ export function Editor({ initial, chartId, visibility, signedIn, userId }: Edito
 
       <div className="canvas-pane">
         {parsed.ok && (
-          <ChartCanvas config={parsed.config} onHover={setHovered} captureRef={capture} />
+          <ChartCanvas
+            config={parsed.config}
+            onHover={setHovered}
+            onFrame={setPeriodo}
+            captureRef={capture}
+          />
+        )}
+
+        {parsed.ok && parsed.config.type === 'bar-race' && periodo && (
+          <div
+            className="preview-period"
+            aria-hidden
+            /* Sobre el fondo propio de la gráfica, si es claro, la cifra va en
+               oscuro; si es transparente, la vista previa enseña el panel
+               oscuro del editor y va en claro. Mismo criterio que el embed. */
+            data-tinta={
+              parsed.config.scene.background.kind !== 'transparent' &&
+              isLight(parsed.config.scene.background.from)
+                ? 'oscura'
+                : 'clara'
+            }
+          >
+            {periodo}
+          </div>
         )}
 
         {/* El tooltip existía en el embed y NO en el editor, así que la vista

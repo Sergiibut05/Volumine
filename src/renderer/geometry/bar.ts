@@ -11,9 +11,32 @@ import { roundedBoxGeometry } from './rounded-box';
   2 unidades de ancho, centrado en el origen, base en y=0. Así los presets de
   cámara, el suelo y las sombras sirven igual para los dos tipos sin tocar nada.
 
-  Categorías en X, series en Z, valor en Y — lo que fija el contrato
-  (docs/chart-config-schema.md: "bar admite N series (eje Z)").
+  Categorías en X y valor en Y. Con varias series, las barras de una categoría
+  van AGRUPADAS, una al lado de otra dentro de su celda.
+
+  Antes iban en filas hacia el fondo (eje Z), que es la gráfica 3D de columnas
+  de toda la vida y se lee fatal: la fila de delante tapa la de detrás, las
+  etiquetas de las dos filas caen unas encima de otras, y comparar la serie A
+  con la B obliga a mirar una barra a medias. Agrupadas, las dos barras de una
+  categoría están a la misma distancia, a la misma altura de base y de frente.
 */
+
+/**
+ * Aire entre barras HERMANAS de un grupo, en fracción del ancho de una barra.
+ *
+ * Mucho menos que entre categorías a propósito: es lo que hace que el ojo lea
+ * «estas dos van juntas» antes que «aquí hay ocho barras».
+ */
+export const SIBLING_GAP = 0.14;
+
+/**
+ * Fondo de una barra agrupada, en anchos de barra.
+ *
+ * Cuadradas, como las de una sola serie, quedaban como lápices en cuanto había
+ * tres series. Un poco más de fondo les devuelve cuerpo sin que el grupo se
+ * coma el aire de la celda.
+ */
+const GROUPED_DEPTH = 1.4;
 
 /** Ancho total de la parrilla. El anillo mide 2 de diámetro: mismo hueco. */
 export const PLOT_WIDTH = 2;
@@ -103,7 +126,17 @@ const EMPTY: BarLayout = {
  */
 export function computeBars(
   series: number[][],
-  options: { gap: number; height: number },
+  options: {
+    gap: number;
+    height: number;
+    /**
+     * `false` superpone las series en la misma celda en vez de agruparlas. Lo
+     * usa la carrera: sus series son PERIODOS que se ven de uno en uno, así
+     * que cada uno ocupa la celda entera. Agrupados, el ancho de la barra se
+     * dividía entre el número de años y la carrera salía en palillos.
+     */
+    grouped?: boolean;
+  },
 ): BarLayout {
   const categories = series.reduce((most, values) => Math.max(most, values.length), 0);
   if (categories === 0) return EMPTY;
@@ -133,15 +166,24 @@ export function computeBars(
 
   const cell = PLOT_WIDTH / categories;
   const air = clamp01(options.gap / GAP_FIELD_MAX) * BAR_GAP_AT_MAX;
-  const width = cell * (1 - air);
-  /* Celdas cuadradas: la barra no se estira ni se estrecha al añadir series, así
-     que añadir una serie no cambia la lectura de las que ya estaban. */
-  const depth = width;
+  /* Lo que ocupa el grupo de una categoría. Con una serie, el grupo ES la barra. */
+  const group = cell * (1 - air);
+  const n = clean.length;
+  /* «Una barra por celda»: con una serie, o cuando las series no se agrupan. */
+  const single = n === 1 || options.grouped === false;
+
+  /* n barras y n−1 huecos de hermanas caben justo en el grupo. */
+  const width = single ? group : group / (n + (n - 1) * SIBLING_GAP);
+  /* Con una serie, celdas cuadradas. Con varias, algo de fondo extra, sin pasar
+     nunca del ancho del grupo. */
+  const depth = single ? width : Math.min(group, width * GROUPED_DEPTH);
 
   const bars: Bar[] = [];
-  const single = clean.length === 1;
 
   clean.forEach((values, s) => {
+    /* Desplazamiento de la serie dentro de su grupo, desde el centro. */
+    const offset = single ? 0 : -group / 2 + width / 2 + s * width * (1 + SIBLING_GAP);
+
     const total = values.reduce((sum, v) => sum + Math.abs(v), 0);
 
     values.forEach((value, index) => {
@@ -153,18 +195,24 @@ export function computeBars(
         series: s,
         /* Con una sola serie el color distingue categorías, como en el anillo.
            Con varias, lo que hay que distinguir es la serie. */
-        colorIndex: single ? index : s,
+        colorIndex: n === 1 ? index : s,
         value,
         fraction: total > 0 ? Math.abs(value) / total : 0,
-        x: -PLOT_WIDTH / 2 + cell * (index + 0.5),
-        z: -(clean.length * cell) / 2 + cell * (s + 0.5),
+        x: -PLOT_WIDTH / 2 + cell * (index + 0.5) + offset,
+        z: 0,
         y: value >= 0 ? baseline : baseline - height,
         height,
       });
     });
   });
 
-  return { bars, width, depth, totalHeight, totalDepth: clean.length * cell, baseline };
+  return { bars, width, depth, totalHeight, totalDepth: depth, baseline };
+}
+
+/** Centro en X de la celda de una categoría. Para anclar su etiqueta. */
+export function categoryX(index: number, categories: number): number {
+  const cell = PLOT_WIDTH / Math.max(1, categories);
+  return -PLOT_WIDTH / 2 + cell * (index + 0.5);
 }
 
 export type BarRadii = {

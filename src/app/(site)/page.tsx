@@ -25,7 +25,7 @@ import { DatosEstructurados } from './DatosEstructurados';
 /* La cifra de peso se mantiene A MANO y `npm run perf:embed` es quien dice la
    verdad. Es el argumento de venta de la página: si sube, esto se actualiza. */
 const specs = (d: Dictionary) => [
-  { label: d.landing.specWeight, value: '148 KB', note: d.landing.specWeightNote },
+  { label: d.landing.specWeight, value: '151 KB', note: d.landing.specWeightNote },
   { label: d.landing.specRequests, value: '1', note: d.landing.specRequestsNote },
   { label: d.landing.specThirdParty, value: '0', note: d.landing.specThirdPartyNote },
   {

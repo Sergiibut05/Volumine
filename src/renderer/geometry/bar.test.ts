@@ -3,6 +3,7 @@ import {
   computeBars,
   barGeometry,
   barRadii,
+  categoryX,
   cornerSegmentsFor,
   BAR_HEIGHT_SCALE,
   PLOT_WIDTH,
@@ -42,8 +43,8 @@ describe('computeBars', () => {
     expect(bars[0].height).toBeCloseTo(bars[1].height / 2, 6);
   });
 
-  it('las series se separan en Z y comparten la escala', () => {
-    const { bars, depth } = computeBars(
+  it('las series van agrupadas lado a lado, en la misma fila, y comparten la escala', () => {
+    const { bars, width, depth, totalDepth } = computeBars(
       [
         [10, 20],
         [20, 40],
@@ -52,14 +53,39 @@ describe('computeBars', () => {
     );
 
     expect(bars).toHaveLength(4);
-    const zs = [...new Set(bars.map((b) => b.z))];
-    expect(zs).toHaveLength(2);
-    expect(zs[0] + zs[1]).toBeCloseTo(0, 6);
-    expect(depth).toBeGreaterThan(0);
+    // Todas en la misma fila: ninguna tapa a otra desde delante.
+    expect(new Set(bars.map((b) => b.z))).toEqual(new Set([0]));
+    expect(totalDepth).toBeCloseTo(depth, 6);
+
+    // Las dos barras de una categoría, una al lado de otra y centradas en su
+    // celda, sin solaparse.
+    const cell = PLOT_WIDTH / 2;
+    const q1 = bars.filter((b) => b.index === 0).sort((a, b) => a.series - b.series);
+    expect(q1[0].x).toBeLessThan(q1[1].x);
+    expect(q1[1].x - q1[0].x).toBeGreaterThanOrEqual(width);
+    expect((q1[0].x + q1[1].x) / 2).toBeCloseTo(categoryX(0, 2), 6);
+    // Y el grupo entero cabe en la celda.
+    expect(q1[1].x + width / 2 - (q1[0].x - width / 2)).toBeLessThanOrEqual(cell + 1e-9);
 
     // Misma escala para las dos series: 40 es el máximo y se lleva el alto entero.
     const alto = new Map(bars.map((b) => [`${b.series}:${b.index}`, b.height]));
     expect(alto.get('0:1')).toBeCloseTo(alto.get('1:1')! / 2, 6);
+  });
+
+  it('sin agrupar, cada serie ocupa la celda entera (la carrera)', () => {
+    const una = computeBars([[10, 20]], { gap: 0.012, height: 0.34 });
+    const superpuestas = computeBars(
+      [
+        [10, 20],
+        [15, 25],
+        [20, 30],
+      ],
+      { gap: 0.012, height: 0.34, grouped: false },
+    );
+    // El mismo ancho que con una sola serie: no palillos por tener tres años.
+    expect(superpuestas.width).toBeCloseTo(una.width, 6);
+    const q1 = superpuestas.bars.filter((b) => b.index === 0);
+    expect(new Set(q1.map((b) => b.x)).size).toBe(1);
   });
 
   it('con una serie el color va por categoría; con varias, por serie', () => {
@@ -112,8 +138,11 @@ describe('computeBars', () => {
     const segunda = bars.filter((b) => b.series === 1);
     expect(segunda).toHaveLength(1);
     expect(segunda[0].index).toBe(0);
-    // La primera categoría de cada serie cae en la misma X.
-    expect(segunda[0].x).toBeCloseTo(bars.find((b) => b.series === 0)!.x, 6);
+    // La primera categoría de cada serie cae en la MISMA celda: el grupo de la
+    // categoría 0, a la derecha de su hermana.
+    const primera = bars.find((b) => b.series === 0 && b.index === 0)!;
+    expect(segunda[0].x).toBeGreaterThan(primera.x);
+    expect(segunda[0].x).toBeLessThan(categoryX(1, 3));
   });
 
   it('sin datos útiles no hay barras', () => {

@@ -73,7 +73,16 @@ export type LabelAnchor = {
    * centro se puede saber si el punto mira a la cámara o no.
    */
   occludeAround?: Vector3;
+  /**
+   * Las cifras de varias series bajo una sola etiqueta, en orden. Si está, el
+   * detalle de la etiqueta son estas cifras unidas por « · » en vez de
+   * `value`/`fraction`. Solo las barras agrupadas.
+   */
+  group?: { value: number; fraction: number | null }[];
 };
+
+/** Una entrada de la clave de series: nombre y color de su barra. */
+export type KeyEntry = { name: string; color: string };
 
 /**
  * Cuánto se separa la etiqueta del borde del contenedor, en píxeles.
@@ -142,6 +151,13 @@ export type LabelLayer = {
   setValue(index: number, value: number): void;
   /** Esconde la etiqueta de un dato. Los carriles que salen de la carrera. */
   setVisible(index: number, visible: boolean): void;
+  /**
+   * La clave de series —qué color es cada una— o `null` para quitarla.
+   *
+   * Va FUERA de la capa de etiquetas a propósito: las etiquetas se pueden
+   * apagar, y la clave no, porque sin ella dos colores no dicen nada.
+   */
+  setKey(entries: KeyEntry[] | null): void;
   dispose(): void;
 };
 
@@ -173,6 +189,8 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
   container.appendChild(root);
 
   let items: Item[] = [];
+  /** La clave de series. Hermana de `root`, no hija: ver `setKey`. */
+  let clave: HTMLDivElement | null = null;
   const tmp = new Vector3();
   // Reutilizados: se tocan en cada frame y crear vectores ahí es presión de GC.
   const centro = new Vector3();
@@ -376,9 +394,22 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
            en un reparto muchas veces interesa el porcentaje y el valor absoluto
            estorba, y en una serie temporal justo al revés. */
         const partes: string[] = [];
-        if (config.labels.showValues) partes.push(fmt.value(anchor.value));
-        if (config.labels.showPercent && anchor.fraction !== null) {
-          partes.push(fmt.percent(anchor.fraction));
+        if (anchor.group) {
+          /* Varias series bajo una etiqueta: una cifra por barra, en su orden.
+             Valor si se pide valor; si no, porcentaje. Las dos a la vez por
+             cada serie serían «42 · 30% · 48 · 35%», que ya no se lee. */
+          const f = fmt;
+          const cifras = config.labels.showValues
+            ? anchor.group.map((g) => f.value(g.value))
+            : config.labels.showPercent
+              ? anchor.group.map((g) => (g.fraction === null ? '' : f.percent(g.fraction)))
+              : [];
+          if (cifras.some(Boolean)) partes.push(cifras.join(' · '));
+        } else {
+          if (config.labels.showValues) partes.push(fmt.value(anchor.value));
+          if (config.labels.showPercent && anchor.fraction !== null) {
+            partes.push(fmt.percent(anchor.fraction));
+          }
         }
         let detalle: HTMLSpanElement | null = null;
         if (partes.length > 0) {
@@ -660,8 +691,32 @@ export function createLabelLayer(container: HTMLElement): LabelLayer {
       }
     },
 
+    setKey(entries) {
+      clave?.remove();
+      clave = null;
+      if (!entries || entries.length < 2) return;
+
+      clave = document.createElement('div');
+      clave.className = 'volumine-key';
+      /* La tabla de datos ya nombra las series para un lector de pantalla. */
+      clave.setAttribute('aria-hidden', 'true');
+      Object.assign(clave.style, { position: 'absolute', pointerEvents: 'none' });
+
+      for (const entry of entries) {
+        const fila = document.createElement('span');
+        const muestra = document.createElement('i');
+        muestra.style.background = entry.color;
+        fila.appendChild(muestra);
+        fila.appendChild(document.createTextNode(entry.name));
+        clave.appendChild(fila);
+      }
+      container.appendChild(clave);
+    },
+
     dispose() {
       clear();
+      clave?.remove();
+      clave = null;
       root.remove();
     },
   };

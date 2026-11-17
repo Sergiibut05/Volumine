@@ -59,7 +59,11 @@ a mano. **Un link publicado debe seguir funcionando para siempre.**
 }
 ```
 
-- `donut`/`pie`/`globe`/`gauge` usan **solo `series[0]`**. `bar` admite N series (eje Z).
+- `donut`/`pie`/`globe`/`gauge` usan **solo `series[0]`**. `bar` admite N series,
+  **agrupadas lado a lado** dentro de cada categoría, con una clave de colores
+  arriba a la izquierda. (Hasta noviembre de 2026 iban en filas hacia el fondo,
+  en el eje Z; el contrato no cambia, solo el dibujo: la fila de delante tapaba
+  la de detrás.)
 - **`bar-race` lee las series como PERIODOS**, no como filas: cada serie es un
   instante y su `name` es la etiqueta que se muestra ("2021", "Ene"). Es la
   misma forma leída en otro eje, y por eso el tiempo no obligó a subir de

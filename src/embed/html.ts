@@ -451,6 +451,23 @@ function readoutHtml(config: ResolvedChartConfig): string {
 }
 
 /**
+ * El hueco del periodo de una carrera. Lo rellena `main.ts` en cada cambio.
+ *
+ * Mismo criterio de color que la cifra del medidor, y por el mismo motivo:
+ * tenía un gris claro FIJO, pensado para el escenario oscuro, y sobre un fondo
+ * claro el año de la carrera era invisible — justo la pista que dice qué
+ * instante se está viendo.
+ */
+function periodHtml(config: ResolvedChartConfig): string {
+  const tone = backgroundTone(config);
+  const tinta =
+    tone === null
+      ? ''
+      : ` style="--tinta: ${tone === 'light' ? '20 20 26' : '233 233 242'}"`;
+  return `<div id="volumine-period" class="period" aria-hidden="true"${tinta} hidden></div>`;
+}
+
+/**
  * La declaración de la tipografía, si la gráfica pide una nuestra.
  *
  * Devuelve cadena vacía con `system`, que es el valor por defecto: un embed que
@@ -565,7 +582,7 @@ ${dataTableHtml(config)}
 ${posterImgHtml(config, poster)}
 <canvas id="volumine-canvas"></canvas>
 <div id="volumine-tooltip" class="tooltip" hidden></div>
-<div id="volumine-period" class="period" aria-hidden="true" hidden></div>
+${periodHtml(config)}
 ${readoutHtml(config)}
 ${watermark}
 </div>

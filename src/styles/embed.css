@@ -132,6 +132,10 @@ canvas {
   cambia solo cada segundo en un lector de pantalla es ruido.
 */
 .period {
+  /* Claro por defecto; con fondo propio lo fija el servidor inline (ver
+     periodHtml en embed/html.ts), y con fondo transparente decide la regla
+     `prefers-color-scheme` de más abajo, igual que la cifra del medidor. */
+  --tinta: 233 233 242;
   position: absolute;
   right: 14px;
   top: 12px;
@@ -140,7 +144,7 @@ canvas {
   line-height: 1;
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
-  color: rgb(233 233 242 / 0.16);
+  color: rgb(var(--tinta) / 0.2);
   pointer-events: none;
 }
 
@@ -320,6 +324,9 @@ canvas {
 @media (prefers-color-scheme: light) {
   .readout {
     --readout: 17 17 24;
+  }
+  .period {
+    --tinta: 20 20 26;
   }
 }
 
@@ -550,6 +557,46 @@ canvas {
   padding-left: 0.75em;
   font-size: 0.9em;
   opacity: 0.68;
+}
+
+/*
+  Clave de series: qué color es cada una en unas barras agrupadas.
+
+  Arriba a la izquierda, como la leyenda —no coinciden nunca: en modo leyenda
+  la leyenda ya lista las series—. En una fila y no en lista: suelen ser dos o
+  tres nombres cortos («2025», «2026») y en columna ocuparían media altura.
+  Misma píldora de vidrio que las etiquetas, por el mismo motivo de siempre.
+*/
+.volumine-key {
+  top: 12px;
+  left: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3em 0.9em;
+  max-width: calc(100% - 24px);
+  padding: 0.4em 0.75em;
+  border-radius: 0.6em;
+  background: rgb(16 16 24 / 0.58);
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+  color: rgb(255 255 255 / 0.95);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.volumine-key span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  white-space: nowrap;
+}
+
+.volumine-key i {
+  width: 0.7em;
+  height: 0.7em;
+  flex: none;
+  border-radius: 50%;
 }
 
 /*

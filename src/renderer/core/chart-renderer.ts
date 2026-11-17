@@ -1,6 +1,7 @@
 import {
   ACESFilmicToneMapping,
   Box3,
+  CircleGeometry,
   Color,
   CylinderGeometry,
   RingGeometry,
@@ -11,11 +12,7 @@ import {
   MathUtils,
   MeshBasicMaterial,
   Points,
-  PointsMaterial,
-  ShaderMaterial,
   SphereGeometry,
-  AdditiveBlending,
-  BackSide,
   PCFShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
@@ -47,6 +44,7 @@ import { computeGauge } from '../geometry/gauge';
 import {
   barGeometry,
   barRadii,
+  categoryX,
   computeBars,
   cornerSegmentsFor,
   PLOT_WIDTH,
@@ -60,6 +58,7 @@ import {
   valuesAt,
 } from '../geometry/bar-race';
 import { GLOBE_RADIUS, computeMarkers, landPointsGeometry } from '../geometry/globe';
+import { globeBodyMaterial, globeGlowMaterial, globeLandMaterial } from './globe-materials';
 import { colorForSegment, createMaterial } from './materials';
 import { createLabelLayer, type LabelAnchor } from './label-layer';
 
@@ -100,17 +99,12 @@ const BAR_CAMERA_PRESETS: Record<string, CameraPlacement> = {
   isometric: { polar: 58, azimuth: -32, distance: 1 },
 };
 
-/**
- * Con más de una serie hay una fila detrás de otra, y casi de frente la de
- * delante tapa la de detrás entera. Hay que subir y abrir: desde arriba las
- * filas se separan en pantalla, y con más azimut se ven las dos caras. Se pierde
- * algo de precisión al comparar alturas, pero ver una barra mal es mejor que no
- * verla.
- */
-const BAR_CAMERA_MULTI: Record<string, CameraPlacement> = {
-  hero: { polar: 52, azimuth: -30, distance: 1 },
-  isometric: { polar: 48, azimuth: -38, distance: 1 },
-};
+/*
+  Aquí hubo un encuadre aparte para varias series (más alto y más girado): las
+  series iban en filas hacia el fondo y casi de frente la de delante tapaba la
+  de detrás. Con las series agrupadas lado a lado (geometry/bar.ts) ya no hay
+  fila de detrás, y el encuadre casi frontal es el bueno también con varias.
+*/
 
 /** Amplitud del vaivén de una gráfica de barras, en grados. Ver el bucle. */
 const BAR_SWAY_DEGREES = 13;
@@ -355,6 +349,12 @@ type Piece = {
   anchor: Vector3 | null;
   /** Centro alrededor del cual la etiqueta puede quedar oculta. Solo el globo. */
   occludeAround?: Vector3;
+  /**
+   * Las cifras de TODAS las series de su categoría, en orden. Solo las barras
+   * agrupadas: una etiqueta por categoría que dice «42 · 48» en vez de dos
+   * etiquetas pegadas que se pisan.
+   */
+  labelGroup?: { value: number; fraction: number | null }[];
 };
 
 function cameraPlacement(config: ResolvedChartConfig): CameraPlacement {
@@ -379,10 +379,7 @@ function cameraPlacement(config: ResolvedChartConfig): CameraPlacement {
 
   const bars =
     config.type === 'bar' || config.type === 'bar-race' ? BAR_CAMERA_PRESETS : null;
-  const stacked = config.type === 'bar' && config.data.series.length > 1;
-  const byType = bars
-    ? (stacked ? BAR_CAMERA_MULTI : bars)[config.camera.preset]
-    : undefined;
+  const byType = bars ? bars[config.camera.preset] : undefined;
 
   return byType ?? CAMERA_PRESETS[config.camera.preset] ?? CAMERA_PRESETS.hero;
 }
@@ -658,7 +655,12 @@ export function createChartRenderer(
      * falta por llenar, así que ni gasta un color de la paleta ni tiene tooltip.
      * Sigue en `pieces` para que se libere con todo lo demás.
      */
-    options: { color?: string; inert?: boolean; anchor?: Vector3 } = {},
+    options: {
+      color?: string;
+      inert?: boolean;
+      anchor?: Vector3;
+      labelGroup?: Piece['labelGroup'];
+    } = {},
   ) {
     const material = createMaterial(
       config,
@@ -679,6 +681,7 @@ export function createChartRenderer(
       hoverAmount: 0,
       hoverStyle: 'lift',
       anchor: options.anchor ?? null,
+      labelGroup: options.labelGroup,
     });
   }
 
@@ -835,8 +838,39 @@ export function createChartRenderer(
 
     const cornerSegments = cornerSegmentsFor(layout.bars.length);
     const multi = config.data.series.length > 1;
+    /* Las mismas categorías que cuenta `computeBars`: la serie más larga. No se
+       sacan de las barras dibujadas, porque un cero no dibuja barra y la última
+       categoría desaparecería de la cuenta, descolocando todas las etiquetas. */
+    const categories = config.data.series.reduce(
+      (most, serie) => Math.max(most, serie.values.length),
+      0,
+    );
+
+    /*
+      CON VARIAS SERIES, UNA ETIQUETA POR CATEGORÍA, NO POR BARRA.
+
+      Las barras de un grupo están pegadas: dos etiquetas «Q1 42» y «Q1 48» una
+      al lado de la otra se pisan, y el descarte por solape dejaba solo una — o
+      sea, el dato de una serie y el de la otra desaparecido sin avisar. Una
+      sola etiqueta centrada bajo el grupo, con las cifras en el orden de las
+      barras, dice lo mismo sin pisarse. Qué color es cada serie lo dice la
+      clave (ver `refreshLabels`).
+    */
+    const conEtiqueta = new Set<number>();
+    const grupoDe = (index: number) =>
+      config.data.series.map((serie) => {
+        const value = Number.isFinite(serie.values[index]) ? serie.values[index] : 0;
+        const total = serie.values.reduce(
+          (sum, v) => sum + (Number.isFinite(v) ? Math.abs(v) : 0),
+          0,
+        );
+        return { value, fraction: total > 0 ? Math.abs(value) / total : null };
+      });
 
     for (const bar of layout.bars) {
+      const etiquetaAqui = !multi || !conEtiqueta.has(bar.index);
+      if (multi) conEtiqueta.add(bar.index);
+
       addPiece(
         barGeometry({
           height: bar.height,
@@ -872,11 +906,14 @@ export function createChartRenderer(
             perspectiva: la fila de nombres se inclina con la gráfica, que es
             justo el efecto de una gráfica 3D bien hecha.
           */
-          anchor: new Vector3(
-            bar.x,
-            layout.baseline,
-            bar.z + Math.max(layout.width, 0.05) / 2,
-          ),
+          anchor: etiquetaAqui
+            ? new Vector3(
+                multi ? categoryX(bar.index, categories) : bar.x,
+                layout.baseline,
+                bar.z + Math.max(layout.depth, 0.05) / 2,
+              )
+            : undefined,
+          labelGroup: multi && etiquetaAqui ? grupoDe(bar.index) : undefined,
         },
       );
     }
@@ -923,9 +960,9 @@ export function createChartRenderer(
     /* La parrilla se calcula con los valores del PRIMER periodo pero con el
        máximo de TODA la carrera: si la escala cambiara en cada periodo, una
        barra podría encoger mientras su valor sube y la carrera mentiría. */
-    const layout = computeBars(series, { gap, height });
+    const layout = computeBars(series, { gap, height, grouped: false });
     /* El fondo que ocupa es el de UNA fila: los periodos se ven de uno en uno,
-       no uno detrás de otro como las series de las barras agrupadas. */
+       no uno al lado de otro como las series de las barras agrupadas. */
     plotBox = {
       width: PLOT_WIDTH,
       height: layout.totalHeight,
@@ -1058,65 +1095,37 @@ export function createChartRenderer(
     const reach = diametro / Math.sqrt(3);
     plotBox = { width: reach, height: reach, depth: reach };
 
-    /* El planeta. Mate y sin recibir el entorno: una esfera lisa y pulida
-       refleja el IBL en manchas grandes que parecen suciedad, y aquí lo único
-       que tiene que hacer es tapar los puntos de la cara de atrás. */
+    /* El planeta. Con la luz de estudio pero SIN el entorno: una esfera lisa
+       refleja el IBL en manchas grandes que parecen suciedad. Los shaders y por
+       qué son así están en `globe-materials.ts`. */
     globeBody = new Mesh(
       new SphereGeometry(GLOBE_RADIUS, 64, 48),
-      new MeshBasicMaterial({ color: globe.base }),
+      globeBodyMaterial(globe.base, globe.glow),
     );
     globeBody.raycast = () => {};
     group.add(globeBody);
 
-    /* Los puntos de tierra, justo encima de la superficie. Sin iluminar: en cobe
-       el mapa es color plano, y es lo que mantiene el dibujo legible cuando el
-       globo gira y media esfera queda en sombra. */
+    /* Los puntos de tierra, justo encima de la superficie. El tamaño es el
+       DIÁMETRO en unidades de mundo —el material corrige el fov para que lo
+       sea de verdad—: así el punto crece al acercar el zoom y el mapa no se
+       deshace. A densidad por defecto la separación entre puntos es ~0,02, y
+       el punto por defecto ocupa unas tres cuartas partes: se lee como mapa
+       sin llegar a ser mancha. */
     globeLand = new Points(
       landPointsGeometry(globe.density),
-      new PointsMaterial({
-        color: globe.land,
-        /* En unidades de mundo, no de píxel: así el punto crece al acercar el
-           zoom y el mapa no se deshace. */
-        size: 0.004 + globe.dotSize * 0.016,
-        sizeAttenuation: true,
-        transparent: true,
-        depthWrite: false,
-      }),
+      globeLandMaterial(globe.land, 0.005 + globe.dotSize * 0.012),
     );
     globeLand.scale.setScalar(1.004);
     globeLand.raycast = () => {};
     group.add(globeLand);
 
-    /* Halo atmosférico: una esfera mayor vista por dentro, que solo se pinta
-       donde el borde mira de canto. Es lo que despega el globo del fondo sin
-       necesidad de post-proceso, que no cabe en el presupuesto del embed. */
+    /* Halo atmosférico: una esfera mayor vista por dentro, máxima junto al
+       planeta y desvaneciéndose hacia fuera. Es lo que despega el globo del
+       fondo sin post-proceso, que no cabe en el presupuesto del embed. */
+    const HALO = 1.18;
     globeGlow = new Mesh(
-      new SphereGeometry(GLOBE_RADIUS * 1.18, 48, 32),
-      new ShaderMaterial({
-        uniforms: { uColor: { value: new Color(globe.glow) } },
-        transparent: true,
-        depthWrite: false,
-        side: BackSide,
-        blending: AdditiveBlending,
-        vertexShader: `
-          varying vec3 vNormal;
-          varying vec3 vView;
-          void main() {
-            vNormal = normalize(normalMatrix * normal);
-            vec4 mv = modelViewMatrix * vec4(position, 1.0);
-            vView = normalize(-mv.xyz);
-            gl_Position = projectionMatrix * mv;
-          }`,
-        fragmentShader: `
-          uniform vec3 uColor;
-          varying vec3 vNormal;
-          varying vec3 vView;
-          void main() {
-            // Fresnel: opaco de canto, transparente de frente.
-            float rim = 1.0 - abs(dot(vNormal, vView));
-            gl_FragColor = vec4(uColor, pow(rim, 3.2) * 0.55);
-          }`,
-      }),
+      new SphereGeometry(GLOBE_RADIUS * HALO, 48, 32),
+      globeGlowMaterial(globe.glow, 1 / HALO),
     );
     globeGlow.raycast = () => {};
     group.add(globeGlow);
@@ -1128,8 +1137,34 @@ export function createChartRenderer(
        lean sobre la cara oscura del planeta sin depender de dónde dé la luz. */
     const forma = config.style.globe.marker;
 
+    /*
+      EL CLARO ALREDEDOR DEL MARCADOR.
+
+      Un marcador violeta encima de un mapa de puntos violetas desaparecía: el
+      primer color de la paleta de Aurora es casi el de la tierra, y Madrid
+      quedaba invisible justo encima de España. Se abre un claro en el mapa con
+      un disco pegado a la superficie y pintado con el MISMO material que el
+      planeta —con su luz—: no se ve como un parche, se ve como que alrededor
+      del dato no hay tierra, y el marcador se recorta limpio sobre el fondo.
+
+      Solo en `dot` y `pulse`: la chincheta ya se despega del mapa por sí sola.
+    */
+    const claro =
+      forma === 'pin'
+        ? null
+        : globeBodyMaterial(config.style.globe.base, config.style.globe.glow);
+
     for (const marker of layout.markers) {
       const color = colorForSegment(config, marker.index);
+
+      if (claro) {
+        const disco = new Mesh(new CircleGeometry(marker.radius * 1.75, 28), claro);
+        disco.position.copy(marker.normal).multiplyScalar(GLOBE_RADIUS * 1.006);
+        disco.quaternion.setFromUnitVectors(FORWARD, marker.normal);
+        disco.raycast = () => {};
+        group.add(disco);
+        globeExtras.push(disco);
+      }
 
       /*
         En chincheta la CABEZA tiene un mínimo.
@@ -1277,18 +1312,56 @@ export function createChartRenderer(
 
   /** Rehace el DOM de las etiquetas a partir de las piezas que haya ahora. */
   function refreshLabels() {
+    /*
+      BARRAS CON VARIAS SERIES: el color dice SERIE, no categoría, así que hace
+      falta una clave que diga qué color es cada una. Sin ella, dos colores
+      sin nombre no se pueden leer — y las etiquetas van apagadas por defecto,
+      así que la clave no puede depender de ellas: es parte de la codificación,
+      como el eje.
+
+      En modo leyenda no hace falta clave aparte: la leyenda pasa a listar las
+      series, que es lo que hay que poder identificar.
+    */
+    const series = config.data.series;
+    const porSeries = config.type === 'bar' && series.length > 1;
+    const enLeyenda = config.labels.show && config.labels.mode === 'legend';
+
+    labelLayer.setKey(
+      porSeries && !enLeyenda
+        ? series.map((serie, i) => ({
+            name: serie.name || `${i + 1}`,
+            color: colorForSegment(config, i),
+          }))
+        : null,
+    );
+
     const anchors: LabelAnchor[] = [];
-    for (const piece of pieces) {
-      if (!piece.anchor) continue;
-      anchors.push({
-        index: piece.info.index,
-        label: piece.info.label,
-        value: piece.info.value,
-        fraction: piece.info.fraction,
-        color: colorForSegment(config, piece.info.index),
-        anchor: piece.anchor,
-        occludeAround: piece.occludeAround,
+
+    if (porSeries && enLeyenda) {
+      series.forEach((serie, i) => {
+        anchors.push({
+          index: i,
+          label: serie.name || `${i + 1}`,
+          value: serie.values.reduce((sum, v) => sum + (Number.isFinite(v) ? v : 0), 0),
+          fraction: null,
+          color: colorForSegment(config, i),
+          anchor: new Vector3(),
+        });
       });
+    } else {
+      for (const piece of pieces) {
+        if (!piece.anchor) continue;
+        anchors.push({
+          index: piece.info.index,
+          label: piece.info.label,
+          value: piece.info.value,
+          fraction: piece.info.fraction,
+          color: colorForSegment(config, piece.info.index),
+          anchor: piece.anchor,
+          occludeAround: piece.occludeAround,
+          group: piece.labelGroup,
+        });
+      }
     }
     /* El anillo y la tarta rodean un centro, así que sus etiquetas rodean el
        dibujo con línea guía. El globo y la carrera las ponen ENCIMA —debajo

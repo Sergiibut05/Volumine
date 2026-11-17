@@ -7,7 +7,7 @@
 **Embeddable 3D charts. The product is the link.**
 
 Make a chart, copy the URL, paste it anywhere — Notion, Confluence, your own site.<br />
-What shows up isn't a screenshot: it's the chart itself, alive, turning, under 150 KB.
+What shows up isn't a screenshot: it's the chart itself, alive, turning, in about 150 KB.
 
 [**volumine.app**](https://volumine.app) · [Open the editor](https://volumine.app/crear) · [How it works](https://volumine.app/como-funciona) · [☕ Buy me a coffee](https://volumine.app/cafe)
 
@@ -15,7 +15,7 @@ What shows up isn't a screenshot: it's the chart itself, alive, turning, under 1
 ![three.js](https://img.shields.io/badge/three.js-r180-000?logo=threedotjs&logoColor=fff)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=fff)
 ![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20RLS-3ecf8e?logo=supabase&logoColor=fff)
-![Embed size](https://img.shields.io/badge/embed-149%20KB%20gz-5b3ce6)
+![Embed size](https://img.shields.io/badge/embed-151%20KB%20gz-5b3ce6)
 ![Third-party requests](https://img.shields.io/badge/third--party%20requests-0-5b3ce6)
 
 <img src="docs/readme/donut-spin.gif" width="720" alt="A 3D donut chart rotating slowly, with labels for each slice" />
@@ -140,8 +140,8 @@ build by `npm run perf:embed`, and **the build fails if it goes over**.
 
 |                               | Now      | Limit  |
 | ----------------------------- | -------- | ------ |
-| JavaScript (gzip)             | 149.0 KB | 180 KB |
-| CSS (inlined in the HTML)     | 5.5 KB   | 8 KB   |
+| JavaScript (gzip)             | 150.6 KB | 180 KB |
+| CSS (inlined in the HTML)     | 6.0 KB   | 8 KB   |
 | Font (only if the chart asks) | 26.8 KB  | 32 KB  |
 | Requests to third parties     | 0        | 0      |
 
