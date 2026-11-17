@@ -6,8 +6,45 @@
 >
 > Sé concreto. "Avanzando en el renderer" no vale.
 
-**Última actualización:** 2026-08-13
-**Fase actual:** 6 — Todos los tipos de v1 disponibles
+**Última actualización:** 2026-11-17
+**Fase actual:** 7 — Marketing y lanzamiento, en pausa. En producción en
+`volumine.app`; producto **gratis** con «invítame a un café» (ADR 0008).
+
+## Sesión 2026-11-17: fuera el plan de pago, dentro el café
+
+El proyecto llevaba parado desde finales de septiembre. En esta sesión:
+
+- **Plan Pro quitado** (era pago único de 19 €, encendido en producción). En su
+  sitio, `/cafe`: 1, 3 o 5 cafés de 3 €, sin cuenta, con mensaje opcional, y
+  `/precios` redirige con 308 (`next.config.ts`). Cobra con la `STRIPE_SECRET_KEY`
+  que ya estaba puesta y el importe en línea (`price_data`): no hubo que crear
+  nada en el panel. **Comprobado en local con la clave real: la ruta crea una
+  sesión `cs_live_`.** Todo en `docs/PAGOS.md` y la ADR 0008.
+- Borrados: `precios/`, `api/stripe/checkout`, `api/stripe/portal`,
+  `lib/billing/admin.ts`. El webhook se queda reducido a verificar firma y
+  responder 200 — hay un endpoint dado de alta en Stripe que recibe cada café.
+  El último commit con el código del Pro es `b0c1e9c`.
+- Condiciones, privacidad, `ENCARGADOS`, datos estructurados, sitemap y todos
+  los enlaces de «Pricing» actualizados. «Mis gráficas» ya no dice «plan free».
+- **Next 16.3.0 → 16.4.6**: la 16.3.0 tenía varios avisos CRÍTICOS de ejecución
+  remota de código (`npm audit`). Más `npm audit fix` sin `--force`: las
+  dependencias de producción quedan con **0 vulnerabilidades**.
+- `src/middleware.ts` → `src/proxy.ts` (Next 16 deprecó el nombre; misma
+  función, mismo `matcher`).
+- README reescrito en inglés con capturas en `docs/readme/`, que se regeneran
+  con `npm run readme:shots` contra `next start -p 3100`.
+- Verificado: build, `tsc`, lint (0 errores), 257 tests, 15 e2e de Playwright
+  (añadido `/cafe` al barrido de idiomas) y `perf:embed` 149,0 / 180 KB.
+
+**Lo que quedó a medias y es lo primero que hay que hacer:**
+
+1. **Aplicar `supabase/migrations/0007_sin_plan_de_pago.sql` en producción.**
+   Sube el límite gratuito de 5 a 100 gráficas. El MCP de Supabase no conectó
+   en esta sesión, así que NO está aplicada: hasta entonces, quien llegue a 5
+   gráficas se queda sin poder guardar y ya no hay plan al que pasar. Se pega
+   en el SQL Editor del proyecto `butxsqcragkopzxsrukz`.
+2. **Desplegar** (push a `main` → Vercel). Hasta entonces producción sigue
+   enseñando el plan de 19 € y corriendo Next 16.3.0, con los avisos críticos.
 
 ## Dos trampas que ya han mordido, y cómo se reconocen
 
@@ -183,14 +220,21 @@ mano desde el aviso.
    editor, entrar y «Mis gráficas», en los dos idiomas. Ver la sección de i18n.
 7. ~~El CSS del embed está fuera de presupuesto.~~ Arreglado: 5,2 KB de 8. La
    causa era que se enviaba con comentarios. Ver la sección de más abajo.
-8. Botón «Copiar iframe» en el editor. El texto ya está en el diccionario
-   (`editor.copyEmbed`); falta el botón.
+8. ~~Botón «Copiar iframe» en el editor.~~ Hecho (commit `5157c8c`).
+9. Aplicar la migración 0007 y desplegar — ver la sesión 2026-11-17 arriba.
 
 ## Decisiones pendientes de Manuel
 
-- [ ] Confirmar el nombre "Volumine" y renombrar la carpeta
-      (`Rename-Item C:\Users\mnsa1\Desktop\3d-web-chart volumine`).
-- [ ] Dominio, cuando el nombre esté cerrado.
+- [x] ~~Confirmar el nombre "Volumine"~~ y ~~dominio~~: está en producción en
+      `volumine.app`. La carpeta sigue llamándose `3d-web-chart` y el
+      `package.json` dice `voluma`; da igual para todo salvo para la vista.
+- [ ] **Rotar la `service_role`** y, ya que el Pro se fue, **quitarla de
+      Vercel**: ya no la usa ninguna ruta. Se pegó en un chat en agosto.
+- [ ] Limpieza opcional en Stripe: archivar «Volumine Pro» y su precio, y
+      decidir si se borra el webhook (`docs/PAGOS.md`).
+- [ ] ¿Marca de agua para todos o solo para quien no invita? Hoy la lleva todo
+      el mundo (plan `free`). Quitarla es un `UPDATE`; está escrito en la
+      cabecera de la migración 0007.
 
 ## Lecciones caras, para no repetirlas
 
@@ -269,23 +313,13 @@ display: none }` o el elemento oculto se ve.
     `data` y todo `style` salvo lo que se aplica por frame: enumerar lo que NO
     entra es una lista corta y estable.
 
-## Facturación: preparada y apagada
+## Facturación: no hay. Solo cafés
 
-Todo el camino de cobro está escrito y **no se enciende hasta que existan tres
-variables de entorno** (`.env.example`). Sin ellas el webhook devuelve 404 y el
-producto es gratis, exactamente como hoy.
-
-Para activarlo, el día que se quiera:
-
-1. Aplicar `supabase/migrations/0005_facturacion.sql`.
-2. Crear los productos en Stripe y meter sus `price_...` en `plan_limits`.
-3. Poner las tres variables.
-4. Dar de alta el webhook en Stripe apuntando a `/api/stripe/webhook`.
-
-**Lo que NO hay que escribir ese día**: el checkout de cara al usuario y la
-sección de plan en la interfaz. Se dejó fuera a propósito — es lo que depende de
-cómo se decida cobrar (pago único, anual, por equipo) y escribirlo ahora sería
-adivinar.
+Esta sección decía «preparada y apagada», y llevaba meses siendo falso: el plan
+Pro de 19 € estuvo encendido en producción (checkout, webhook y precio en
+`plan_limits`). Desde el 2026-11-17 no hay plan de pago: ver la ADR 0008 y
+`docs/PAGOS.md`. El esquema (`plan`, `plan_limits`, cuota y marca de agua por
+trigger) sigue entero para poder volver a cobrar sin migrar con gente dentro.
 
 ## i18n: terminada
 
@@ -1073,3 +1107,29 @@ build` + `npm start`.**
   tabla de datos, que funciona pero no es bonito. Falta el render en servidor.
 - El lector de consola de la extensión de Chrome se traga los logs tras navegar.
   Para depurar, Playwright: captura `console`, `pageerror` y fallos de red.
+
+### Encontrados el 2026-11-17
+
+- **Quedan vulnerabilidades en dependencias de DESARROLLO** (`vitest` 3 →
+  `tinypool`, `picomatch`, `@vitest/mocker`; una crítica). No llegan a
+  producción. El arreglo es saltar a `vitest` 5, que es un cambio mayor: no se
+  hizo a ciegas. `npm audit --omit=dev` da 0.
+- **`.env.example` sigue describiendo las variables del plan Pro**
+  (`STRIPE_WEBHOOK_SECRET` y `SUPABASE_SERVICE_ROLE_KEY` como obligatorias, y
+  la sección de Stripe duplicada). Hay una regla de permisos que impide a
+  Claude editar `.env*`; hay que corregirlo a mano: solo hace falta
+  `STRIPE_SECRET_KEY` (y `STRIPE_WEBHOOK_SECRET` si se mantiene el webhook).
+- **Node 20 en local.** `@supabase/supabase-js` avisa en cada build de que deja
+  de soportarlo. Vercel usa la versión de su proyecto, no esta.
+- **Aviso de Turbopack en cada build**: hay un `package-lock.json` suelto en
+  `C:\Users\mnsa1` y Next lo detecta como posible raíz del monorepo. Borrarlo
+  (si no es de nada) o poner `turbopack.root` en `next.config.ts`.
+- **No hay `zustand`** aunque CLAUDE.md lo da por stack: el editor lleva su
+  estado y su historial a mano (`src/lib/history.ts`). No es un fallo, pero
+  CLAUDE.md miente en eso.
+- En esta máquina **`rtk grep` cuelga** porque `rg` no está en el PATH (el hook
+  reescribe `grep` → `rtk grep`). Usar la herramienta Grep, no `grep` por Bash.
+- `/cafe` en producción NO se ha probado con un pago de verdad (sí se ha
+  comprobado que la pasarela abre en modo real). El primer café real es la
+  prueba: debería aparecer en Stripe → Pagos con el mensaje en «Campos
+  personalizados».

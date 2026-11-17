@@ -72,13 +72,16 @@ presupuesto.
 
 ## Fase 4 — El editor
 
-- [ ] Store con `ChartConfig` como fuente de verdad
-- [ ] Entrada de datos: tabla editable + pegar desde Excel/Sheets + CSV
+- [ ] Store con `ChartConfig` como fuente de verdad — la `ChartConfig` SÍ es la
+      fuente de verdad, pero sin zustand: estado e historial propios
+      (`src/lib/history.ts`)
+- [x] Entrada de datos: tabla editable + pegar desde Excel/Sheets + CSV
 - [ ] Paneles de personalización (todos los campos del esquema)
 - [ ] Selector de temas con transición animada
-- [ ] Vista previa en vivo
-- [ ] Deshacer/rehacer
-- [ ] Diálogo de compartir: link, snippet iframe, PNG
+- [x] Vista previa en vivo
+- [x] Deshacer/rehacer
+- [ ] Diálogo de compartir: link, snippet iframe, PNG — link e iframe hechos
+      (barra de compartir del editor); falta descargar PNG
 
 **Criterio de salida:** se hace una gráfica bonita sin tocar JSON.
 
@@ -145,6 +148,9 @@ editor. Añadir uno nuevo es una función en el registro `BUILDERS`.
       aprobado el proveedor, pero cada sitio decide cómo lo usa. Mientras no se
       pruebe en una, su página explica el bloque de incrustar y no promete el
       atajo (`desplegado` en `src/lib/integraciones.ts`).
+- [x] Modelo de ingresos: gratis con «invítame a un café» (`/cafe`, ADR 0008).
+      Sustituye al plan Pro de pago único.
+- [x] README en inglés con capturas (`docs/readme/`, `npm run readme:shots`)
 - [ ] Lanzamiento
 
 ---
